@@ -48,3 +48,53 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependency directories
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+.next/
+dist/
+build/
+coverage/
+.vscode/
+.idea/
+
+# Env files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env*.local
+
+# Payload generated type files
+payload-types.ts
+
+# Cache
+.cache/
+.next/
+*.tsbuildinfo
+
+# Docker
+docker-data/
+docker-compose.override.yml
+
+# OS/system files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.pem
+*.key
+*.crt
