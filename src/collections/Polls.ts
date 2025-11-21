@@ -1,110 +1,132 @@
-// apps/cms/src/collections/Polls.ts
-
 import type { CollectionConfig } from 'payload'
 import { allowAdminsAnd } from '../access/control'
-import { setAuthor } from '../hooks/setAuthor'
-import { publishDate } from '../hooks/publishDate'
 
 export const Polls: CollectionConfig = {
   slug: 'polls',
 
   admin: {
     useAsTitle: 'question',
-    defaultColumns: ['question', 'isActive', 'updatedAt'],
+    defaultColumns: ['question', 'status', 'showResults', 'expiresAt'],
   },
+
+  versions: { drafts: true },
 
   access: {
     read: () => true,
-
-    // creators, contributors, hosts can create
-    create: allowAdminsAnd(['creator', 'contributor', 'host-dj']),
-
-    // only editors & admins may update
+    create: allowAdminsAnd(['editor']),
     update: allowAdminsAnd(['editor']),
-
-    // only admin may delete
     delete: allowAdminsAnd(['admin']),
   },
 
-  hooks: {
-    beforeChange: [
-      setAuthor, // auto-assign req.user
-      publishDate, // sets publishedAt if activating for the first time
-    ],
-  },
-
   fields: [
+    /* POLL QUESTION */
     {
       name: 'question',
       type: 'text',
       required: true,
     },
 
+    /* POLL SETTINGS */
     {
-      name: 'description',
-      type: 'textarea',
+      name: 'pollType',
+      type: 'select',
+      defaultValue: 'single',
+      options: [
+        { label: 'Single Choice', value: 'single' },
+        { label: 'Multiple Choice', value: 'multiple' },
+      ],
+      required: true,
+    },
+
+    {
+      name: 'isAnonymous',
+      type: 'checkbox',
+      defaultValue: true,
       admin: {
-        description: 'Optional description or context for this poll.',
+        description: 'If disabled, user must be logged in to vote.',
       },
     },
 
     {
+      name: 'hideResultsUntilEnd',
+      type: 'checkbox',
+      defaultValue: false,
+      label: 'Hide Results Until Poll Ends',
+    },
+
+    {
+      name: 'showResults',
+      type: 'checkbox',
+      defaultValue: true,
+      label: 'Display Results to Users',
+    },
+
+    /* STATUS */
+    {
+      name: 'poll_status',
+      type: 'select',
+      defaultValue: 'active',
+      options: [
+        { label: 'Draft', value: 'draft' },
+        { label: 'Active', value: 'active' },
+        { label: 'Closed', value: 'closed' },
+      ],
+    },
+
+    /* EXPIRATION */
+    {
+      name: 'expiresAt',
+      type: 'date',
+      admin: {
+        description: 'If set, poll automatically closes when this time is reached.',
+      },
+    },
+
+    /* ASSOCIATED CONTENT */
+    {
+      name: 'attachedTo',
+      type: 'relationship',
+      relationTo: ['articles', 'shows', 'episodes'],
+      hasMany: false,
+      admin: {
+        description: 'Attach poll to an article, radio show, or episode.',
+      },
+    },
+
+    /* POLL OPTIONS */
+    {
       name: 'options',
-      type: 'array',
+      type: 'relationship',
+      relationTo: 'poll-items',
+      hasMany: true,
       required: true,
-      minRows: 2,
-      maxRows: 6,
-      labels: {
-        singular: 'Option',
-        plural: 'Options',
+    },
+
+    /* IP PROTECTION */
+    {
+      name: 'trackedIPs',
+      type: 'array',
+      admin: {
+        description: 'System-level: Records IPs that have already voted to prevent duplicates.',
       },
       fields: [
         {
-          name: 'label',
+          name: 'ip',
           type: 'text',
-          required: true,
         },
         {
-          name: 'votes',
-          type: 'number',
-          defaultValue: 0,
-          admin: {
-            readOnly: true,
-            description: 'Votes are incremented by the frontend API.',
-          },
+          name: 'votedAt',
+          type: 'date',
+          defaultValue: () => new Date().toISOString(),
         },
       ],
     },
 
+    /* METRICS */
     {
-      name: 'isActive',
-      type: 'checkbox',
-      defaultValue: true,
-      admin: {
-        description: 'Inactive polls will not display on the frontend.',
-      },
-    },
-
-    // auto filled by setAuthor()
-    {
-      name: 'author',
-      type: 'relationship',
-      relationTo: 'users',
-      required: false,
-      admin: {
-        readOnly: true,
-        position: 'sidebar',
-      },
-    },
-
-    // auto-set by publishDate() when made active for the first time
-    {
-      name: 'publishedAt',
-      type: 'date',
-      admin: {
-        position: 'sidebar',
-        readOnly: true,
-      },
+      name: 'totalVotes',
+      type: 'number',
+      defaultValue: 0,
     },
   ],
 }

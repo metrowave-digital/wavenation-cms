@@ -13,6 +13,13 @@ import { Categories } from './collections/Categories'
 import { Polls } from './collections/Polls'
 import { PollItems } from './collections/PollItems'
 import { Tags } from './collections/Tags'
+import { Shows } from './collections/Shows'
+import { Episodes } from './collections/Episodes'
+import { Guests } from './collections/Guests'
+import { Profiles } from './collections/Profiles'
+import { Events } from './collections/Events'
+import { Charts } from './collections/Charts'
+import { Playlists } from './collections/Playlists'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -25,7 +32,22 @@ export default buildConfig({
 
   editor: lexicalEditor(),
 
-  collections: [Users, Media, Articles, Categories, Polls, PollItems, Tags],
+  collections: [
+    Users,
+    Profiles,
+    Media,
+    Shows,
+    Episodes,
+    Guests,
+    Charts,
+    Categories,
+    PollItems,
+    Polls,
+    Tags,
+    Events,
+    Articles,
+    Playlists,
+  ],
 
   secret: process.env.PAYLOAD_SECRET ?? 'fallback-secret',
 

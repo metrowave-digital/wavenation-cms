@@ -68,12 +68,19 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    profiles: Profile;
     media: Media;
-    articles: Article;
+    shows: Show;
+    episodes: Episode;
+    guests: Guest;
+    charts: Chart;
     categories: Category;
-    polls: Poll;
     'poll-items': PollItem;
+    polls: Poll;
     tags: Tag;
+    events: Event;
+    articles: Article;
+    playlists: Playlist;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -82,12 +89,19 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    profiles: ProfilesSelect<false> | ProfilesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    shows: ShowsSelect<false> | ShowsSelect<true>;
+    episodes: EpisodesSelect<false> | EpisodesSelect<true>;
+    guests: GuestsSelect<false> | GuestsSelect<true>;
+    charts: ChartsSelect<false> | ChartsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
-    polls: PollsSelect<false> | PollsSelect<true>;
     'poll-items': PollItemsSelect<false> | PollItemsSelect<true>;
+    polls: PollsSelect<false> | PollsSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
+    articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    playlists: PlaylistsSelect<false> | PlaylistsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -155,6 +169,142 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "profiles".
+ */
+export interface Profile {
+  id: number;
+  name: string;
+  type:
+    | 'artist'
+    | 'dj'
+    | 'producer'
+    | 'songwriter'
+    | 'actor'
+    | 'model'
+    | 'director'
+    | 'filmmaker'
+    | 'podcaster'
+    | 'journalist'
+    | 'photographer'
+    | 'influencer'
+    | 'creator'
+    | 'public-figure'
+    | 'comedian'
+    | 'dancer'
+    | 'executive'
+    | 'other';
+  /**
+   * Primary headshot / profile photo.
+   */
+  image?: (number | null) | Media;
+  /**
+   * Banner image for their profile page.
+   */
+  coverImage?: (number | null) | Media;
+  bio?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Creative-friendly social links.
+   */
+  socials?: {
+    instagram?: string | null;
+    /**
+     * Facebook Page (not personal).
+     */
+    facebook?: string | null;
+    twitter?: string | null;
+    tiktok?: string | null;
+    youtube?: string | null;
+    website?: string | null;
+    epk?: string | null;
+    spotify?: string | null;
+    appleMusic?: string | null;
+    soundcloud?: string | null;
+    audiomack?: string | null;
+    imdb?: string | null;
+    triller?: string | null;
+    vimeo?: string | null;
+  };
+  /**
+   * Music or content genres.
+   */
+  genres?: (number | Category)[] | null;
+  /**
+   * Creative skills & roles (e.g. 'editor', 'choreographer').
+   */
+  skills?:
+    | {
+        skill?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Instruments played (for musicians).
+   */
+  instruments?:
+    | {
+        instrument?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Add reels, videos, galleries, photography, graphics.
+   */
+  portfolio?:
+    | {
+        media?: (number | null) | Media;
+        caption?: string | null;
+        type?: ('photo' | 'video' | 'reel' | 'art') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Film credits, songs written, podcasts featured on, shows hosted, etc.
+   */
+  credits?:
+    | {
+        title: string;
+        /**
+         * Director, Actor, Host, Producer, etc.
+         */
+        role?: string | null;
+        year?: number | null;
+        linkedShow?: (number | null) | Show;
+        linkedEpisode?: (number | null) | Episode;
+        linkedArticle?: (number | null) | Article;
+        id?: string | null;
+      }[]
+    | null;
+  metrics?: {
+    followers?: number | null;
+    monthlyListeners?: number | null;
+    awards?: number | null;
+  };
+  /**
+   * Featured on homepage / editorial pick.
+   */
+  featured?: boolean | null;
+  trending?: boolean | null;
+  risingStar?: boolean | null;
+  tags?: (number | Tag)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
@@ -199,15 +349,45 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "articles".
+ * via the `definition` "categories".
  */
-export interface Article {
+export interface Category {
   id: number;
-  title: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shows".
+ */
+export interface Show {
+  id: number;
+  name: string;
   slug?: string | null;
-  status: 'draft' | 'published' | 'archived';
-  excerpt?: string | null;
-  body?: {
+  type: 'radio' | 'podcast' | 'live';
+  tagline?: string | null;
+  host?: (number | User)[] | null;
+  coverImage: number | Media;
+  promoImages?:
+    | {
+        image?: (number | null) | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  promoVideo?: string | null;
+  airTimes?:
+    | {
+        day?: string | null;
+        start?: string | null;
+        end?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  description: {
     root: {
       type: string;
       children: {
@@ -221,27 +401,137 @@ export interface Article {
       version: number;
     };
     [k: string]: unknown;
-  } | null;
-  featuredImage?: (number | null) | Media;
-  category?: (number | null) | Category;
-  tags?: (number | Tag)[] | null;
-  author?: (number | null) | User;
-  publishedAt?: string | null;
+  };
+  episodes?: (number | Episode)[] | null;
+  externalLinks?:
+    | {
+        label?: string | null;
+        url?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  followerCount?: number | null;
+  playCount?: number | null;
   updatedAt: string;
   createdAt: string;
-  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories".
+ * via the `definition` "episodes".
  */
-export interface Category {
+export interface Episode {
   id: number;
-  name: string;
-  slug: string;
-  description?: string | null;
+  title: string;
+  slug?: string | null;
+  show: number | Show;
+  airDate: string;
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Upload audio segment / podcast file
+   */
+  audioFile?: (number | null) | Media;
+  /**
+   * Podcast video version (YouTube, Vimeo)
+   */
+  videoEmbed?: string | null;
+  /**
+   * Format: 01:23:45
+   */
+  duration?: string | null;
+  playCount?: number | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles".
+ */
+export interface Article {
+  id: number;
+  title: string;
+  slug?: string | null;
+  editorialStatus?: ('draft' | 'review' | 'approved' | 'published' | 'archived') | null;
+  reviewer?: (number | null) | User;
+  coAuthors?: (number | User)[] | null;
+  publishAt?: string | null;
+  isBreaking?: boolean | null;
+  isPinned?: boolean | null;
+  isFeatured?: boolean | null;
+  author?: (number | null) | User;
+  categories: (number | Category)[];
+  tags?: (number | Tag)[] | null;
+  excerpt: string;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  featuredImage: number | Media;
+  gallery?:
+    | {
+        image?: (number | null) | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  videoEmbed?: string | null;
+  audioClip?: (number | null) | Media;
+  relatedShows?: (number | Show)[] | null;
+  relatedArticles?: (number | Article)[] | null;
+  comments?:
+    | {
+        name: string;
+        user?: (number | null) | User;
+        comment: string;
+        replies?:
+          | {
+              name?: string | null;
+              user?: (number | null) | User;
+              comment?: string | null;
+              createdAt?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        createdAt?: string | null;
+        approved?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    keywords?: string | null;
+    shareImage?: (number | null) | Media;
+  };
+  viewCount?: number | null;
+  likeCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -256,29 +546,130 @@ export interface Tag {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "polls".
+ * via the `definition` "guests".
  */
-export interface Poll {
+export interface Guest {
   id: number;
-  question: string;
+  name: string;
+  slug?: string | null;
+  role?: string | null;
+  photo?: (number | null) | Media;
+  bio: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  social?:
+    | {
+        platform?: string | null;
+        url?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  featuredOn?:
+    | (
+        | {
+            relationTo: 'shows';
+            value: number | Show;
+          }
+        | {
+            relationTo: 'episodes';
+            value: number | Episode;
+          }
+      )[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "charts".
+ */
+export interface Chart {
+  id: number;
+  title: string;
+  type: 'music' | 'radio' | 'playlist' | 'editorial';
+  chartDate: string;
+  status?: ('draft' | 'published' | 'archived') | null;
   /**
-   * Optional description or context for this poll.
+   * Chart positions for this week.
    */
-  description?: string | null;
-  options: {
-    label: string;
+  entries: {
+    position: number;
     /**
-     * Votes are incremented by the frontend API.
+     * Positive = up, negative = down, 0 = same.
      */
-    votes?: number | null;
+    movement?: number | null;
+    weeksOnChart?: number | null;
+    trackTitle: string;
+    artist?: (number | null) | Profile;
+    coverArt?: (number | null) | Media;
+    linkedPlaylist?: (number | null) | Playlist;
     id?: string | null;
   }[];
+  editorialNotes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    keywords?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "playlists".
+ */
+export interface Playlist {
+  id: number;
+  title: string;
+  type: 'editorial' | 'rotation' | 'mood' | 'show' | 'user';
+  coverImage?: (number | null) | Media;
+  description?: string | null;
   /**
-   * Inactive polls will not display on the frontend.
+   * Optional — playlist used on-air for a show.
    */
-  isActive?: boolean | null;
-  author?: (number | null) | User;
-  publishedAt?: string | null;
+  attachedShow?: (number | null) | Show;
+  tracks?:
+    | {
+        title: string;
+        artist?: (number | null) | Profile;
+        audio?: (number | null) | Media;
+        coverArt?: (number | null) | Media;
+        duration?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  status?: ('draft' | 'published' | 'archived') | null;
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    keywords?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -289,12 +680,121 @@ export interface Poll {
 export interface PollItem {
   id: number;
   label: string;
-  poll: number | Poll;
-  votes?: number | null;
   /**
-   * Optional: Upload an icon or image for this poll option.
+   * Optional graphic or thumbnail for the poll option.
    */
   image?: (number | null) | Media;
+  description?: string | null;
+  /**
+   * Optional weighting system (useful for contests or weighted votes).
+   */
+  weight?: number | null;
+  voteCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "polls".
+ */
+export interface Poll {
+  id: number;
+  question: string;
+  pollType: 'single' | 'multiple';
+  /**
+   * If disabled, user must be logged in to vote.
+   */
+  isAnonymous?: boolean | null;
+  hideResultsUntilEnd?: boolean | null;
+  showResults?: boolean | null;
+  poll_status?: ('draft' | 'active' | 'closed') | null;
+  /**
+   * If set, poll automatically closes when this time is reached.
+   */
+  expiresAt?: string | null;
+  /**
+   * Attach poll to an article, radio show, or episode.
+   */
+  attachedTo?:
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'shows';
+        value: number | Show;
+      } | null)
+    | ({
+        relationTo: 'episodes';
+        value: number | Episode;
+      } | null);
+  options: (number | PollItem)[];
+  /**
+   * System-level: Records IPs that have already voted to prevent duplicates.
+   */
+  trackedIPs?:
+    | {
+        ip?: string | null;
+        votedAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  totalVotes?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  title: string;
+  type: 'concert' | 'remote' | 'community' | 'festival' | 'virtual' | 'meet' | 'taping' | 'broadcast';
+  featuredImage?: (number | null) | Media;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  eventDate: string;
+  endDate?: string | null;
+  location?: string | null;
+  /**
+   * Artists, DJs, speakers attending this event.
+   */
+  attachedProfiles?:
+    | {
+        relationTo: 'profiles';
+        value: number | Profile;
+      }[]
+    | null;
+  /**
+   * Shows broadcasting live at this event.
+   */
+  attachedShows?:
+    | {
+        relationTo: 'shows';
+        value: number | Show;
+      }[]
+    | null;
+  ticketsURL?: string | null;
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    keywords?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -327,28 +827,56 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
+        relationTo: 'profiles';
+        value: number | Profile;
+      } | null)
+    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
     | ({
-        relationTo: 'articles';
-        value: number | Article;
+        relationTo: 'shows';
+        value: number | Show;
+      } | null)
+    | ({
+        relationTo: 'episodes';
+        value: number | Episode;
+      } | null)
+    | ({
+        relationTo: 'guests';
+        value: number | Guest;
+      } | null)
+    | ({
+        relationTo: 'charts';
+        value: number | Chart;
       } | null)
     | ({
         relationTo: 'categories';
         value: number | Category;
       } | null)
     | ({
-        relationTo: 'polls';
-        value: number | Poll;
-      } | null)
-    | ({
         relationTo: 'poll-items';
         value: number | PollItem;
       } | null)
     | ({
+        relationTo: 'polls';
+        value: number | Poll;
+      } | null)
+    | ({
         relationTo: 'tags';
         value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'events';
+        value: number | Event;
+      } | null)
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'playlists';
+        value: number | Playlist;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -420,6 +948,80 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "profiles_select".
+ */
+export interface ProfilesSelect<T extends boolean = true> {
+  name?: T;
+  type?: T;
+  image?: T;
+  coverImage?: T;
+  bio?: T;
+  socials?:
+    | T
+    | {
+        instagram?: T;
+        facebook?: T;
+        twitter?: T;
+        tiktok?: T;
+        youtube?: T;
+        website?: T;
+        epk?: T;
+        spotify?: T;
+        appleMusic?: T;
+        soundcloud?: T;
+        audiomack?: T;
+        imdb?: T;
+        triller?: T;
+        vimeo?: T;
+      };
+  genres?: T;
+  skills?:
+    | T
+    | {
+        skill?: T;
+        id?: T;
+      };
+  instruments?:
+    | T
+    | {
+        instrument?: T;
+        id?: T;
+      };
+  portfolio?:
+    | T
+    | {
+        media?: T;
+        caption?: T;
+        type?: T;
+        id?: T;
+      };
+  credits?:
+    | T
+    | {
+        title?: T;
+        role?: T;
+        year?: T;
+        linkedShow?: T;
+        linkedEpisode?: T;
+        linkedArticle?: T;
+        id?: T;
+      };
+  metrics?:
+    | T
+    | {
+        followers?: T;
+        monthlyListeners?: T;
+        awards?: T;
+      };
+  featured?: T;
+  trending?: T;
+  risingStar?: T;
+  tags?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
@@ -471,22 +1073,114 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "articles_select".
+ * via the `definition` "shows_select".
  */
-export interface ArticlesSelect<T extends boolean = true> {
-  title?: T;
+export interface ShowsSelect<T extends boolean = true> {
+  name?: T;
   slug?: T;
-  status?: T;
-  excerpt?: T;
-  body?: T;
-  featuredImage?: T;
-  category?: T;
-  tags?: T;
-  author?: T;
-  publishedAt?: T;
+  type?: T;
+  tagline?: T;
+  host?: T;
+  coverImage?: T;
+  promoImages?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  promoVideo?: T;
+  airTimes?:
+    | T
+    | {
+        day?: T;
+        start?: T;
+        end?: T;
+        id?: T;
+      };
+  description?: T;
+  episodes?: T;
+  externalLinks?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
+  followerCount?: T;
+  playCount?: T;
   updatedAt?: T;
   createdAt?: T;
-  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "episodes_select".
+ */
+export interface EpisodesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  show?: T;
+  airDate?: T;
+  description?: T;
+  audioFile?: T;
+  videoEmbed?: T;
+  duration?: T;
+  playCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "guests_select".
+ */
+export interface GuestsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  role?: T;
+  photo?: T;
+  bio?: T;
+  social?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
+  featuredOn?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "charts_select".
+ */
+export interface ChartsSelect<T extends boolean = true> {
+  title?: T;
+  type?: T;
+  chartDate?: T;
+  status?: T;
+  entries?:
+    | T
+    | {
+        position?: T;
+        movement?: T;
+        weeksOnChart?: T;
+        trackTitle?: T;
+        artist?: T;
+        coverArt?: T;
+        linkedPlaylist?: T;
+        id?: T;
+      };
+  editorialNotes?: T;
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        keywords?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -501,35 +1195,42 @@ export interface CategoriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "polls_select".
+ * via the `definition` "poll-items_select".
  */
-export interface PollsSelect<T extends boolean = true> {
-  question?: T;
+export interface PollItemsSelect<T extends boolean = true> {
+  label?: T;
+  image?: T;
   description?: T;
-  options?:
-    | T
-    | {
-        label?: T;
-        votes?: T;
-        id?: T;
-      };
-  isActive?: T;
-  author?: T;
-  publishedAt?: T;
+  weight?: T;
+  voteCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "poll-items_select".
+ * via the `definition` "polls_select".
  */
-export interface PollItemsSelect<T extends boolean = true> {
-  label?: T;
-  poll?: T;
-  votes?: T;
-  image?: T;
+export interface PollsSelect<T extends boolean = true> {
+  question?: T;
+  pollType?: T;
+  isAnonymous?: T;
+  hideResultsUntilEnd?: T;
+  showResults?: T;
+  poll_status?: T;
+  expiresAt?: T;
+  attachedTo?: T;
+  options?: T;
+  trackedIPs?:
+    | T
+    | {
+        ip?: T;
+        votedAt?: T;
+        id?: T;
+      };
+  totalVotes?: T;
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -538,6 +1239,126 @@ export interface PollItemsSelect<T extends boolean = true> {
 export interface TagsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  title?: T;
+  type?: T;
+  featuredImage?: T;
+  description?: T;
+  eventDate?: T;
+  endDate?: T;
+  location?: T;
+  attachedProfiles?: T;
+  attachedShows?: T;
+  ticketsURL?: T;
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        keywords?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles_select".
+ */
+export interface ArticlesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  editorialStatus?: T;
+  reviewer?: T;
+  coAuthors?: T;
+  publishAt?: T;
+  isBreaking?: T;
+  isPinned?: T;
+  isFeatured?: T;
+  author?: T;
+  categories?: T;
+  tags?: T;
+  excerpt?: T;
+  body?: T;
+  featuredImage?: T;
+  gallery?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  videoEmbed?: T;
+  audioClip?: T;
+  relatedShows?: T;
+  relatedArticles?: T;
+  comments?:
+    | T
+    | {
+        name?: T;
+        user?: T;
+        comment?: T;
+        replies?:
+          | T
+          | {
+              name?: T;
+              user?: T;
+              comment?: T;
+              createdAt?: T;
+              id?: T;
+            };
+        createdAt?: T;
+        approved?: T;
+        id?: T;
+      };
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        keywords?: T;
+        shareImage?: T;
+      };
+  viewCount?: T;
+  likeCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "playlists_select".
+ */
+export interface PlaylistsSelect<T extends boolean = true> {
+  title?: T;
+  type?: T;
+  coverImage?: T;
+  description?: T;
+  attachedShow?: T;
+  tracks?:
+    | T
+    | {
+        title?: T;
+        artist?: T;
+        audio?: T;
+        coverArt?: T;
+        duration?: T;
+        id?: T;
+      };
+  status?: T;
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        keywords?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,42 +1,55 @@
 import type { CollectionConfig } from 'payload'
+import { allowAdminsAnd } from '../access/control'
 
 export const PollItems: CollectionConfig = {
   slug: 'poll-items',
+
   admin: {
     useAsTitle: 'label',
-    defaultColumns: ['label', 'poll', 'votes'],
+    defaultColumns: ['label', 'voteCount'],
   },
+
+  access: {
+    read: () => true,
+    create: allowAdminsAnd(['editor']),
+    update: allowAdminsAnd(['editor']),
+    delete: allowAdminsAnd(['admin']),
+  },
+
   fields: [
     {
       name: 'label',
       type: 'text',
       required: true,
     },
-    {
-      name: 'poll',
-      type: 'relationship',
-      relationTo: 'polls',
-      required: true,
-      admin: {
-        position: 'sidebar',
-      },
-    },
-    {
-      name: 'votes',
-      type: 'number',
-      defaultValue: 0,
-      admin: {
-        position: 'sidebar',
-      },
-    },
+
     {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
-      required: false,
       admin: {
-        description: 'Optional: Upload an icon or image for this poll option.',
+        description: 'Optional graphic or thumbnail for the poll option.',
       },
+    },
+
+    {
+      name: 'description',
+      type: 'textarea',
+    },
+
+    {
+      name: 'weight',
+      type: 'number',
+      defaultValue: 1,
+      admin: {
+        description: 'Optional weighting system (useful for contests or weighted votes).',
+      },
+    },
+
+    {
+      name: 'voteCount',
+      type: 'number',
+      defaultValue: 0,
     },
   ],
 }
