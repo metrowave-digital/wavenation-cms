@@ -1,50 +1,62 @@
-# ------------------------
-# Base image
-# ------------------------
-FROM node:22-alpine AS base
+# ----------------------------------------
+# Base image with Node + pnpm
+# ----------------------------------------
+FROM node:20-slim AS base
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
 WORKDIR /app
-RUN corepack enable pnpm
 
-# ------------------------
-# Dependencies stage
-# ------------------------
+
+# ----------------------------------------
+# Dependencies Layer
+# ----------------------------------------
 FROM base AS deps
 
-WORKDIR /app
+# Install system deps for ffmpeg if needed
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    build-essential \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
-# ------------------------
-# Build stage (Payload builds admin panel)
-# ------------------------
+
+# ----------------------------------------
+# Builder Layer
+# ----------------------------------------
 FROM base AS builder
 
-WORKDIR /app
-
-# Copy node_modules and source code
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build Payload admin panel
+# Fix ffmpeg installer warnings
+RUN pnpm approve-builds
+
+# Build Next.js + Payload
 RUN pnpm run build
 
-# ------------------------
-# Runtime image
-# ------------------------
-FROM node:22-alpine AS runner
+
+# ----------------------------------------
+# Runtime layer
+# ----------------------------------------
+FROM base AS runner
+
+ENV NODE_ENV=production
+ENV PORT=3000
 
 WORKDIR /app
 
-ENV NODE_ENV=production
-RUN corepack enable pnpm
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/package.json ./package.json
 
-# Copy compiled output
-COPY --from=builder /app ./
-
-# Payload runs on port 3000
 EXPOSE 3000
 
-# Start the Payload CMS server
 CMD ["pnpm", "start"]
