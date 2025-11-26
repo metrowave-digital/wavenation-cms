@@ -1,0 +1,160 @@
+/* ----------------------------------------------------------
+   WaveNation Admin Theme — Global Overrides
+---------------------------------------------------------- */
+
+/* Brand Colors */
+:root {
+  --wn-black: #181d1f;
+  --wn-black-light: #1e2426;
+  --wn-gray: #d7dedc;
+  --wn-gray-light: #f2f5f4;
+  --wn-red: #b0343c;
+  --wn-red-light: #c8464e;
+  --wn-amber: #cf873d;
+  --wn-amber-light: #e39a4d;
+  --wn-gold: #e4b500;
+
+  --wn-text: #ffffff;
+  --wn-text-light: #1e2426;
+
+  --wn-card: #202527;
+  --wn-card-light: #f8f9f9;
+
+  --wn-border: #2e3334;
+  --wn-border-light: #e3e5e5;
+
+  /* Typography */
+  --font-sans: 'Inter', sans-serif;
+  --font-body: 'Fira Sans', sans-serif;
+  --font-heading: 'Oswald', sans-serif;
+  --font-editorial: 'Merriweather', serif;
+}
+
+/* Apply fonts */
+body,
+.wn-admin-root {
+  font-family: var(--font-body);
+  background: var(--wn-black);
+  color: var(--wn-text);
+}
+
+/* -----------------------------------------------
+   THEME OVERRIDES
+----------------------------------------------- */
+:root {
+  --theme-bg: var(--wn-black);
+  --theme-text: var(--wn-text);
+  --theme-elevation-50: #1f2427;
+  --theme-elevation-100: var(--wn-card);
+
+  --theme-border-color: var(--wn-border);
+  --theme-input-bg: var(--wn-card);
+  --theme-input-border: var(--wn-border);
+
+  --theme-primary: var(--wn-amber);
+  --theme-primary-hover: var(--wn-amber-light);
+  --theme-primary-text: #000;
+}
+
+/* -----------------------------------------------
+   SIDEBAR NAVIGATION
+----------------------------------------------- */
+.nav {
+  background: var(--wn-black-light) !important;
+  border-right: 1px solid var(--wn-border) !important;
+}
+
+.nav__brand {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  color: var(--wn-amber);
+}
+
+.nav__link {
+  color: var(--wn-gray) !important;
+  font-weight: 500;
+}
+
+.nav__link:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.nav__link--active {
+  background: var(--wn-amber) !important;
+  color: #000 !important;
+  font-weight: 600;
+}
+
+/* -----------------------------------------------
+   GLOBAL CARDS & PANELS
+----------------------------------------------- */
+.card {
+  background: var(--wn-card) !important;
+  border: 1px solid var(--wn-border) !important;
+  color: var(--wn-text) !important;
+}
+
+.label,
+.field-label {
+  color: var(--wn-gray) !important;
+}
+
+/* -----------------------------------------------
+   BUTTONS
+----------------------------------------------- */
+.btn {
+  background: var(--wn-amber) !important;
+  border-color: var(--wn-amber) !important;
+  color: #000 !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+}
+
+.btn:hover {
+  background: var(--wn-amber-light) !important;
+}
+
+/* -----------------------------------------------
+   TABLES
+----------------------------------------------- */
+.table {
+  background: var(--wn-card) !important;
+}
+
+.table__header,
+.table__cell {
+  color: var(--wn-gray) !important;
+}
+
+.table__row:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* -----------------------------------------------
+   FORMS
+----------------------------------------------- */
+input,
+textarea,
+select {
+  background: var(--wn-card) !important;
+  border: 1px solid var(--wn-border) !important;
+  color: var(--wn-text) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--wn-amber) !important;
+}
+
+/* -----------------------------------------------
+   LOGIN PAGE
+----------------------------------------------- */
+.login__wrap {
+  background: var(--wn-black) !important;
+}
+
+.login__card {
+  background: var(--wn-card) !important;
+  border: 1px solid var(--wn-border) !important;
+}

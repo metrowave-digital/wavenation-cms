@@ -1,164 +1,191 @@
+/* -----------------------------------------------------------
+   WaveNation Global Style System (Frontend)
+----------------------------------------------------------- */
+
+/* Brand Palette */
 :root {
-  --font-mono: 'Roboto Mono', monospace;
+  --wn-black: #181d1f;
+  --wn-black-light: #1e2426;
+
+  --wn-gray: #d7dedc;
+  --wn-gray-light: #f2f5f4;
+
+  --wn-red: #b0343c;
+  --wn-red-light: #c8464e;
+
+  --wn-amber: #cf873d;
+  --wn-amber-light: #e39a4d;
+
+  --wn-gold: #e4b500;
+  --wn-gold-light: #f0c200;
+
+  --wn-text: #ffffff;
+  --wn-text-light: #1e2426;
+
+  --wn-card: #202527;
+  --wn-card-light: #f8f9f9;
+
+  --wn-border: #2e3334;
+  --wn-border-light: #e3e5e5;
+
+  /* Typography */
+  --font-ui: var(--font-inter);
+  --font-body: var(--font-fira);
+  --font-headline: var(--font-oswald);
+  --font-editorial: var(--font-merriweather);
+}
+
+/* -----------------------------------------------------------
+   GLOBAL DEFAULTS
+----------------------------------------------------------- */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  background: var(--wn-black);
+  color: var(--wn-text);
 }
 
 * {
   box-sizing: border-box;
-}
-
-html {
-  font-size: 18px;
-  line-height: 32px;
-
-  background: rgb(0, 0, 0);
-  -webkit-font-smoothing: antialiased;
-}
-
-html,
-body,
-#app {
-  height: 100%;
-}
-
-body {
-  font-family: system-ui;
-  font-size: 18px;
-  line-height: 32px;
-
-  margin: 0;
-  color: rgb(1000, 1000, 1000);
-
-  @media (max-width: 1024px) {
-    font-size: 15px;
-    line-height: 24px;
-  }
-}
-
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-h1 {
-  margin: 40px 0;
-  font-size: 64px;
-  line-height: 70px;
-  font-weight: bold;
-
-  @media (max-width: 1024px) {
-    margin: 24px 0;
-    font-size: 42px;
-    line-height: 42px;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 38px;
-    line-height: 38px;
-  }
-
-  @media (max-width: 400px) {
-    font-size: 32px;
-    line-height: 32px;
-  }
-}
-
-p {
-  margin: 24px 0;
-
-  @media (max-width: 1024px) {
-    margin: calc(var(--base) * 0.75) 0;
-  }
+  transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
 a {
-  color: currentColor;
-
-  &:focus {
-    opacity: 0.8;
-    outline: none;
-  }
-
-  &:active {
-    opacity: 0.7;
-    outline: none;
-  }
+  color: var(--wn-amber);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--wn-amber-light);
 }
 
-svg {
-  vertical-align: middle;
-}
+/* -----------------------------------------------------------
+   HOMEPAGE LAYOUT
+----------------------------------------------------------- */
 
-.home {
+.wn-home {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: center;
-  height: 100vh;
-  padding: 45px;
-  max-width: 1024px;
+  min-height: 100vh;
+}
+
+/* ---------------- HERO ---------------- */
+
+.wn-hero {
+  padding: 80px 20px;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.wn-hero-inner {
+  max-width: 720px;
   margin: 0 auto;
-  overflow: hidden;
+}
 
-  @media (max-width: 400px) {
-    padding: 24px;
+.wn-logo {
+  width: 80px;
+  height: 80px;
+  opacity: 0.95;
+  margin-bottom: 24px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* Title */
+.wn-title {
+  font-family: var(--font-headline);
+  font-size: 2.75rem;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.wn-title span {
+  color: var(--wn-amber);
+}
+
+/* Subtitle */
+.wn-subtitle {
+  font-family: var(--font-ui);
+  font-size: 1.15rem;
+  line-height: 1.6;
+  max-width: 540px;
+  margin: 0 auto 36px;
+  color: var(--wn-gray);
+}
+
+/* ---------------- BUTTONS ---------------- */
+
+.wn-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.wn-btn {
+  padding: 12px 28px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+/* Primary */
+.wn-btn-primary {
+  background: linear-gradient(90deg, var(--wn-amber), var(--wn-gold));
+  color: #000;
+  border: none;
+}
+.wn-btn-primary:hover {
+  opacity: 0.85;
+}
+
+/* Secondary */
+.wn-btn-secondary {
+  border: 1px solid var(--wn-gray);
+  color: var(--wn-text);
+  background: transparent;
+}
+.wn-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ---------------- FOOTER ---------------- */
+
+.wn-footer {
+  padding: 36px 0;
+  text-align: center;
+  color: var(--wn-gray);
+  font-family: var(--font-ui);
+}
+
+.wn-file {
+  color: var(--wn-amber);
+}
+.wn-file:hover {
+  text-decoration: underline;
+}
+
+/* -----------------------------------------------------------
+   RESPONSIVE
+----------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .wn-title {
+    font-size: 2.15rem;
   }
+}
 
-  .content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1;
+/* -----------------------------------------------------------
+   ANIMATIONS
+----------------------------------------------------------- */
 
-    h1 {
-      text-align: center;
-    }
-  }
-
-  .links {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    a {
-      text-decoration: none;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-    }
-
-    .admin {
-      color: rgb(0, 0, 0);
-      background: rgb(1000, 1000, 1000);
-      border: 1px solid rgb(0, 0, 0);
-    }
-
-    .docs {
-      color: rgb(1000, 1000, 1000);
-      background: rgb(0, 0, 0);
-      border: 1px solid rgb(1000, 1000, 1000);
-    }
-  }
-
-  .footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    @media (max-width: 1024px) {
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    p {
-      margin: 0;
-    }
-
-    .codeLink {
-      text-decoration: none;
-      padding: 0 0.5rem;
-      background: rgb(60, 60, 60);
-      border-radius: 4px;
-    }
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

@@ -1,0 +1,192 @@
+/* -------------------------------------------------------
+   WaveNation Admin Theme — Complete
+-------------------------------------------------------- */
+
+/* Base CSS Variables */
+:root {
+  --wn-black: #181D1F;
+  --wn-black-light: #1E2426;
+
+  --wn-gray: #D7DEDC;
+  --wn-gray-light: #F2F5F4;
+
+  --wn-red: #B0343C;
+  --wn-red-light: #C8464E;
+
+  --wn-amber: #CF873D;
+  --wn-amber-light: #E39A4D;
+
+  --wn-gold: #E4B500;
+  --wn-gold-light: #F0C200;
+
+  --wn-text: #FFFFFF;
+  --wn-text-light: #1E2426;
+
+  --wn-bg: #181D1F;
+  --wn-bg-light: #FFFFFF;
+
+  --wn-card: #202527;
+  --wn-card-light: #F8F9F9;
+
+  --wn-border: #2E3334;
+  --wn-border-light: #E3E5E5;
+
+  --font-sans: 'Inter', 'Fira Sans', system-ui, sans-serif;
+}
+
+/* -------------------------------------------------------
+   DARK THEME
+-------------------------------------------------------- */
+
+html[data-theme="dark"] body {
+  background: var(--wn-bg);
+  color: var(--wn-text);
+  font-family: var(--font-sans);
+}
+
+html[data-theme="dark"] .app-wrapper,
+html[data-theme="dark"] .nav,
+html[data-theme="dark"] .collection-edit,
+html[data-theme="dark"] .collection-list {
+  background: var(--wn-bg);
+}
+
+/* Cards, panels, modals */
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .drawer__content,
+html[data-theme="dark"] .modal__content {
+  background: var(--wn-card);
+  border-color: var(--wn-border);
+}
+
+/* Sidebar */
+html[data-theme="dark"] .nav-group__wrap {
+  background: var(--wn-black);
+}
+
+/* Buttons */
+html[data-theme="dark"] .btn,
+html[data-theme="dark"] button {
+  background: var(--wn-amber);
+  border-color: var(--wn-amber);
+  color: #000;
+}
+
+html[data-theme="dark"] .btn:hover {
+  background: var(--wn-amber-light);
+}
+
+/* Links */
+html[data-theme="dark"] a {
+  color: var(--wn-gold);
+}
+
+html[data-theme="dark"] a:hover {
+  color: var(--wn-gold-light);
+}
+
+/* Form fields */
+html[data-theme="dark"] .field-type,
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select {
+  background: var(--wn-card);
+  border-color: var(--wn-border);
+  color: var(--wn-text);
+}
+
+/* Table rows */
+html[data-theme="dark"] .table__row {
+  background: var(--wn-card);
+  border-color: var(--wn-border);
+}
+
+/* -------------------------------------------------------
+   LIGHT THEME
+-------------------------------------------------------- */
+
+html[data-theme="light"] body {
+  background: var(--wn-bg-light);
+  color: var(--wn-text-light);
+  font-family: var(--font-sans);
+}
+
+/* Main surfaces */
+html[data-theme="light"] .app-wrapper,
+html[data-theme="light"] .nav,
+html[data-theme="light"] .collection-edit,
+html[data-theme="light"] .collection-list {
+  background: var(--wn-bg-light);
+}
+
+/* Cards, panels */
+html[data-theme="light"] .card,
+html[data-theme="light"] .drawer__content,
+html[data-theme="light"] .modal__content {
+  background: var(--wn-card-light);
+  border-color: var(--wn-border-light);
+}
+
+/* Sidebar */
+html[data-theme="light"] .nav-group__wrap {
+  background: var(--wn-gray-light);
+}
+
+/* Buttons */
+html[data-theme="light"] .btn,
+html[data-theme="light"] button {
+  background: var(--wn-red-light);
+  border-color: var(--wn-red-light);
+  color: #fff;
+}
+
+html[data-theme="light"] .btn:hover {
+  background: var(--wn-red);
+}
+
+/* Links */
+html[data-theme="light"] a {
+  color: var(--wn-black-light);
+}
+
+html[data-theme="light"] a:hover {
+  color: var(--wn-red);
+}
+
+/* Form fields */
+html[data-theme="light"] .field-type,
+html[data-theme="light"] input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] select {
+  background: var(--wn-card-light);
+  border-color: var(--wn-border-light);
+  color: var(--wn-text-light);
+}
+
+/* Table rows */
+html[data-theme="light"] .table__row {
+  background: var(--wn-card-light);
+  border-color: var(--wn-border-light);
+}
+
+/* -------------------------------------------------------
+   LOGIN PAGE
+-------------------------------------------------------- */
+
+.login__wrap {
+  background: var(--wn-black);
+}
+
+html[data-theme="light"] .login__wrap {
+  background: var(--wn-bg-light);
+}
+
+.login__card {
+  background: var(--wn-card);
+  border: 1px solid var(--wn-border);
+}
+
+html[data-theme="light"] .login__card {
+  background: var(--wn-card-light);
+  border: 1px solid var(--wn-border-light);
+}

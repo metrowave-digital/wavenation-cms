@@ -13,47 +13,67 @@ export default async function HomePage() {
   const payload = await getPayload({ config: payloadConfig })
   const { user } = await payload.auth({ headers })
 
+  // VSCode file jump link
   const fileURL = `vscode://file/${fileURLToPath(import.meta.url)}`
 
   return (
-    <div className="home">
-      <div className="content">
-        <picture>
-          <source srcSet="https://raw.githubusercontent.com/payloadcms/payload/main/packages/ui/src/assets/payload-favicon.svg" />
+    <div className="wn-home">
+      {/* HERO SECTION */}
+      <section className="wn-hero">
+        <div className="wn-hero-inner">
           <Image
-            alt="Payload Logo"
-            height={65}
-            src="https://raw.githubusercontent.com/payloadcms/payload/main/packages/ui/src/assets/payload-favicon.svg"
-            width={65}
+            alt="WaveNation Logo"
+            height={80}
+            width={80}
+            src="/admin-assets/wn-icon.svg"
+            className="wn-logo"
+            priority
           />
-        </picture>
-        {!user && <h1>Welcome to your new project.</h1>}
-        {user && <h1>Welcome back, {user.email}</h1>}
-        <div className="links">
-          <a
-            className="admin"
-            href={payloadConfig.routes.admin}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Go to admin panel
-          </a>
-          <a
-            className="docs"
-            href="https://payloadcms.com/docs"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Documentation
-          </a>
+
+          {!user ? (
+            <h1 className="wn-title">
+              Welcome to <span>WaveNation CMS</span>
+            </h1>
+          ) : (
+            <h1 className="wn-title">
+              Welcome back, <span>{user.email}</span>
+            </h1>
+          )}
+
+          <p className="wn-subtitle">
+            Manage articles, playlists, shows, polls, events, podcasts, and the entire WaveNation
+            media ecosystem—all in one powerful dashboard.
+          </p>
+
+          <div className="wn-actions">
+            <a
+              className="wn-btn wn-btn-primary"
+              href={payloadConfig.routes.admin}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Launch Admin Panel
+            </a>
+
+            <a
+              className="wn-btn wn-btn-secondary"
+              href="https://wavenation.online"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              WaveNation Website
+            </a>
+          </div>
         </div>
-      </div>
-      <div className="footer">
-        <p>Update this page by editing</p>
-        <a className="codeLink" href={fileURL}>
-          <code>app/(frontend)/page.tsx</code>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="wn-footer">
+        <p>Need to Sign-Up?</p>
+        <a className="wn-file" href="https://wavenation.online/join">
+          <code>Join the Wave</code>
         </a>
-      </div>
+      </footer>
     </div>
   )
 }

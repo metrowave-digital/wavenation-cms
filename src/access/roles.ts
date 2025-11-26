@@ -1,12 +1,12 @@
-// apps/cms/src/access/roles.ts
-
-export type UserRole = 'admin' | 'editor' | 'creator' | 'contributor' | 'reviewer' | 'host-dj'
-
-export const ROLE_LIST: UserRole[] = [
+export const ROLE_LIST = [
   'admin',
+  'producer',
   'editor',
-  'creator',
   'contributor',
-  'reviewer',
+  'creator',
+  'dj',
   'host-dj',
-]
+  'viewer',
+] as const
+
+export type Role = (typeof ROLE_LIST)[number]

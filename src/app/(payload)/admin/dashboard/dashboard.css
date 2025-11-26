@@ -1,0 +1,138 @@
+/* -------------------------------------
+   Quick Actions
+------------------------------------- */
+.wn-d-quick {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.wn-q-action {
+  padding: 10px 18px;
+  background: var(--wn-card);
+  border: 1px solid var(--wn-border);
+  border-radius: 8px;
+  color: var(--wn-amber);
+  font-weight: 600;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.wn-q-action:hover {
+  border-color: var(--wn-amber);
+  background: #24292b;
+}
+
+/* -------------------------------------
+   Stats
+------------------------------------- */
+.wn-d-stats {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  margin-bottom: 40px;
+}
+
+.wn-d-stat {
+  background: var(--wn-card);
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--wn-border);
+  text-align: center;
+  transition: 0.2s;
+}
+
+.wn-d-stat h3 {
+  font-size: 2rem;
+  margin-bottom: 6px;
+  color: var(--wn-amber);
+}
+
+.wn-d-stat p {
+  color: var(--wn-gray);
+}
+
+/* -------------------------------------
+   Main grid
+------------------------------------- */
+.wn-d-main {
+  display: grid;
+  gap: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+/* CARD */
+.wn-d-card {
+  padding: 22px;
+  background: var(--wn-card);
+  border: 1px solid var(--wn-border);
+  border-radius: 12px;
+}
+
+.wn-d-card h2 {
+  font-size: 1.4rem;
+  font-family: var(--font-heading);
+  margin-bottom: 16px;
+}
+
+/* Lists */
+.wn-d-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wn-d-list li {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  color: var(--wn-gray);
+}
+
+.wn-d-list li a {
+  color: var(--wn-text);
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.wn-d-list.media li span:first-child {
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------------------------
+   System Status
+------------------------------------- */
+.wn-status-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.wn-status-item {
+  padding: 10px;
+  border-radius: 6px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.wn-status-item.ok {
+  background: #223322;
+  color: #6bff8c;
+  border: 1px solid #3a5;
+}
+
+.wn-status-item.warn {
+  background: #332b22;
+  color: #ffce63;
+  border: 1px solid #a76b21;
+}
+
+.wn-sched-msg {
+  font-size: 0.9rem;
+  color: var(--wn-gray);
+  margin-bottom: 10px;
+}
