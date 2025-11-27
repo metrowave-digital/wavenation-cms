@@ -10,7 +10,7 @@ RUN corepack enable
 
 
 ##############################################
-# Dependencies Install
+# Install Dependencies
 ##############################################
 FROM base AS deps
 WORKDIR /app
@@ -20,43 +20,39 @@ RUN pnpm install --frozen-lockfile
 
 
 ##############################################
-# Build Next.js + Payload Admin
+# Build Payload + Next.js
 ##############################################
 FROM base AS builder
 WORKDIR /app
 
-# include node_modules for build
 COPY --from=deps /app/node_modules ./node_modules
-
-# copy full project
 COPY . .
 
-# Prevent database init during build
 ENV PAYLOAD_BUILD=true
-RUN PAYLOAD_SKIP_DB_INIT=true pnpm build
+RUN PAYLOAD_SKIP_DB_INIT=true pnpm build    # no DB access during build
 
 
 ##############################################
-# Runner — Production Runtime
+# Runner — Production Container for Render
 ##############################################
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# include production dependencies
+##############################################
+# Copy runtime dependencies & build output
+##############################################
 COPY --from=deps /app/node_modules ./node_modules
 
-# Next.js standalone server output
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Payload server sources required at runtime
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/payload.config.ts ./
+COPY ./public ./public
 
-# Final — ensure static assets come through
-COPY ./public ./public   # THIS FIXED THE BUILD ISSUE
-
+##############################################
+# Render runs CMD automatically if specified
+##############################################
 EXPOSE 3000
-
 CMD ["node", "server.js"]
