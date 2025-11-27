@@ -10,7 +10,7 @@ RUN corepack enable
 
 
 ##############################################
-# Install Dependencies
+# Dependencies Layer
 ##############################################
 FROM base AS deps
 WORKDIR /app
@@ -20,7 +20,7 @@ RUN pnpm install --frozen-lockfile
 
 
 ##############################################
-# Build Payload + Next.js
+# Build — Payload + Next.js
 ##############################################
 FROM base AS builder
 WORKDIR /app
@@ -29,18 +29,21 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV PAYLOAD_BUILD=true
-RUN PAYLOAD_SKIP_DB_INIT=true pnpm build    # no DB access during build
+RUN PAYLOAD_SKIP_DB_INIT=true pnpm build    # prevents DB calls while building
 
 
 ##############################################
-# Runner — Production Container for Render
+# Runtime — Production container
 ##############################################
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Install only production dependencies (optional optimization)
+# RUN pnpm install --prod
+
 ##############################################
-# Copy runtime dependencies & build output
+# Copy compiled output
 ##############################################
 COPY --from=deps /app/node_modules ./node_modules
 
@@ -49,10 +52,14 @@ COPY --from=builder /app/.next/static ./.next/static
 
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/payload.config.ts ./
-COPY ./public ./public
+COPY --from=builder /app/server.js ./server.js   # REQUIRED FOR NEXT STANDALONE
+
+# ❗ Public directory ONLY copied if exists
+# If you later add one, uncomment:
+# COPY ./public ./public
 
 ##############################################
-# Render runs CMD automatically if specified
+# Start Command
 ##############################################
 EXPOSE 3000
 CMD ["node", "server.js"]
