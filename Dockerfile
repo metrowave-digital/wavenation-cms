@@ -1,24 +1,48 @@
-# --- Install ----
-FROM node:20 AS deps
+# -------------------------
+# Base Image with pnpm + node
+# -------------------------
+FROM node:20-bullseye AS base
+
+# Enable pnpm in all stages
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+
+# -------------------------
+# Deps — install packages
+# -------------------------
+FROM base AS deps
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml .npmrc ./
-RUN corepack enable
+COPY package.json pnpm-lock.yaml ./
+COPY .npmrc .npmrc
+
 RUN pnpm install --frozen-lockfile
 
-# --- Builder ----
-FROM node:20 AS builder
+
+# -------------------------
+# Builder — build Next + Payload
+# -------------------------
+FROM base AS builder
 WORKDIR /app
 
+# Copy deps node_modules first
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source
 COPY . .
 
 ENV PAYLOAD_BUILD=true
 
+# Build Next.js + Payload Admin
 RUN pnpm run build
 
-# --- Runner ----
-FROM node:20 AS runner
+
+# -------------------------
+# Runner — production server
+# -------------------------
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -26,4 +50,5 @@ ENV NODE_ENV=production
 COPY --from=builder /app ./
 
 EXPOSE 3000
+
 CMD ["pnpm", "start"]
