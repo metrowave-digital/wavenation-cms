@@ -61,11 +61,12 @@ COPY --from=builder /app/.next/standalone ./
 # 2. Copy static assets (required for Next.js standalone)
 COPY --from=builder /app/.next/static ./.next/static
 
-# Reverting this copy back to the standard multi-stage approach.
-# NOTE: If this fails with "/app/public": not found, you MUST check your 
-# local project root and your .dockerignore file to ensure 'public' is 
-# not excluded from the build context.
-COPY --from=builder /app/public ./public
+# FIX: Copy public directory from the build context (source: .)
+# The previous multi-stage copy failed consistently because /app/public 
+# was missing inside the builder image, likely due to .dockerignore.
+# This copies directly from your local public folder into the runner image.
+# For this to work, you MUST ensure 'public' is NOT in your .dockerignore file.
+COPY public ./public
 
 # Optional: Install ffmpeg here if your app needs it at runtime
 # RUN apt-get update && apt-get install -y ffmpeg
