@@ -60,7 +60,10 @@ COPY --from=builder /app/.next/standalone ./
 
 # 2. Copy static assets (required for Next.js standalone)
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+
+# FIX: Copy public directory directly from the build context (source: .).
+# The previous line failed because /app/public was not found in the builder stage.
+COPY public ./public
 
 # Optional: Install ffmpeg here if your app needs it at runtime
 # RUN apt-get update && apt-get install -y ffmpeg
