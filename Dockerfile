@@ -50,11 +50,22 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app ./
+# --- FIXED RUNNER STAGE ---
+# We now copy only the standalone build artifacts.
+# This fixes the "next start does not work with output: standalone" warning
+# and significantly reduces the Docker image size.
 
-# Optional: Install ffmpeg here if your app needs it at runtime (fixes the warnings)
+# 1. Copy the standalone server and dependencies
+COPY --from=builder /app/.next/standalone ./
+
+# 2. Copy static assets (required for Next.js standalone)
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+# Optional: Install ffmpeg here if your app needs it at runtime
 # RUN apt-get update && apt-get install -y ffmpeg
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+# Use the correct startup command for standalone mode
+CMD ["node", "server.js"]
