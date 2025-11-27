@@ -1,60 +1,50 @@
-# ----------------------------------------
-# Base image with Node + pnpm
-# ----------------------------------------
+# ------------------------------
+# 1) Base image
+# ------------------------------
 FROM node:20-slim AS base
-
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
+# ------------------------------
+# 2) Install deps
+# ------------------------------
+FROM base AS deps
 WORKDIR /app
 
-
-# ----------------------------------------
-# Dependencies Layer
-# ----------------------------------------
-FROM base AS deps
-
-# Install system deps for ffmpeg if needed
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3 \
-    build-essential \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
 
-
-# ----------------------------------------
-# Builder Layer
-# ----------------------------------------
-FROM base AS builder
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Fix ffmpeg installer warnings
-RUN pnpm approve-builds
-
-# Build Next.js + Payload
-RUN pnpm run build
-
-
-# ----------------------------------------
-# Runtime layer
-# ----------------------------------------
-FROM base AS runner
-
-ENV NODE_ENV=production
-ENV PORT=3000
-
+# ------------------------------
+# 3) Build stage
+# ------------------------------
+FROM deps AS builder
 WORKDIR /app
 
+# Tell Payload not to render admin during build
+ENV PAYLOAD_BUILD=true
+
+# Automatically approve ffmpeg builds
+RUN pnpm add sharp --ignore-scripts=false
+
+COPY . .
+
+# Approve ffmpeg-static
+RUN pnpm config set pnpm.allowedBuiltDependencies=ffmpeg-static
+
+# Build
+RUN pnpm run build
+
+# ------------------------------
+# 4) Runtime image
+# ------------------------------
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PAYLOAD_BUILD=false
+
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000

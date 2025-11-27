@@ -5,7 +5,6 @@ import { buildConfig } from 'payload'
 /* =============================
    ADAPTERS + PLUGINS
 ============================= */
-
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
@@ -158,15 +157,25 @@ import {
 } from './globals'
 
 /* =============================
-   SETUP
+   SETUP PATHS
 ============================= */
-
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+/* =============================
+   FULL PAYLOAD CONFIG
+============================= */
+
 export default buildConfig({
   serverURL: process.env.PUBLIC_CMS_URL,
-  admin: { user: Users.slug },
+
+  /**
+   * IMPORTANT:
+   * Do NOT render Payload admin during Docker build.
+   * This prevents Postgres connection attempts that crash the build.
+   */
+  admin: process.env.PAYLOAD_BUILD === 'true' ? undefined : { user: Users.slug },
+
   editor: lexicalEditor(),
 
   collections: [
@@ -280,12 +289,18 @@ export default buildConfig({
 
   secret: process.env.PAYLOAD_SECRET ?? 'dev-secret',
 
+  /* =============================
+     DATABASE CONFIG — NO CHANGES
+  ============================== */
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URI!,
     },
   }),
 
+  /* =============================
+     S3 / R2 STORAGE — CORRECT
+  ============================== */
   plugins: [
     s3Storage({
       bucket: process.env.S3_BUCKET!,
