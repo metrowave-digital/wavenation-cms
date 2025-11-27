@@ -1,18 +1,33 @@
-// app/api/utils/text/summary/route.ts
-import OpenAI from 'openai'
+// src/app/api/utils/text/summary/route.ts
 import { NextResponse } from 'next/server'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
+// Prevent Next.js from prerendering or executing at build time
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function POST(req: Request) {
-  const { text } = await req.json()
+  try {
+    // Lazy-load OpenAI so it does NOT run during build
+    const OpenAI = (await import('openai')).default
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4.1',
-    messages: [{ role: 'user', content: `Summarize: ${text}` }],
-  })
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      console.log('[AI Summary] Missing OPENAI_API_KEY (runtime)')
+      return NextResponse.json({ error: 'AI is not configured' }, { status: 500 })
+    }
 
-  return NextResponse.json({
-    summary: completion.choices[0].message.content,
-  })
+    const client = new OpenAI({ apiKey })
+
+    const { text } = await req.json()
+
+    const response = await client.responses.create({
+      model: 'gpt-4o-mini',
+      input: `Summarize this text in 3–4 sentences. Text: ${text}`,
+    })
+
+    return NextResponse.json({ summary: response.output_text })
+  } catch (error) {
+    console.error('❌ AI Summary Route Error:', error)
+    return NextResponse.json({ error: 'Summary generation failed' }, { status: 500 })
+  }
 }
