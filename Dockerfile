@@ -30,7 +30,7 @@ WORKDIR /app
 # Copy deps node_modules first
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy source
+# Copy source (This is where the 'public' folder should be copied from your host to the image)
 COPY . .
 
 ENV PAYLOAD_BUILD=true
@@ -61,9 +61,11 @@ COPY --from=builder /app/.next/standalone ./
 # 2. Copy static assets (required for Next.js standalone)
 COPY --from=builder /app/.next/static ./.next/static
 
-# FIX: Copy public directory directly from the build context (source: .).
-# The previous line failed because /app/public was not found in the builder stage.
-COPY public ./public
+# Reverting this copy back to the standard multi-stage approach.
+# NOTE: If this fails with "/app/public": not found, you MUST check your 
+# local project root and your .dockerignore file to ensure 'public' is 
+# not excluded from the build context.
+COPY --from=builder /app/public ./public
 
 # Optional: Install ffmpeg here if your app needs it at runtime
 # RUN apt-get update && apt-get install -y ffmpeg
