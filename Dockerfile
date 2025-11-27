@@ -33,6 +33,11 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy source
 COPY . .
 
+# --- CRITICAL FIX START ---
+# We set this to "true" so your payload.config.ts uses the noopDB adapter
+ENV PAYLOAD_SKIP_DB_INIT=true
+# --- CRITICAL FIX END ---
+
 ENV PAYLOAD_BUILD=true
 
 # Build Next.js + Payload Admin
@@ -48,6 +53,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=builder /app ./
+
+# Optional: Install ffmpeg here if your app needs it at runtime (fixes the warnings)
+# RUN apt-get update && apt-get install -y ffmpeg
 
 EXPOSE 3000
 
