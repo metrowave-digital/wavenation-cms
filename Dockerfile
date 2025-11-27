@@ -33,15 +33,13 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy source
 COPY . .
 
-# --- CRITICAL FIX START ---
-# We set this to "true" so your payload.config.ts uses the noopDB adapter
-ENV PAYLOAD_SKIP_DB_INIT=true
-# --- CRITICAL FIX END ---
-
 ENV PAYLOAD_BUILD=true
 
 # Build Next.js + Payload Admin
-RUN pnpm run build
+# CRITICAL FIX: We set PAYLOAD_SKIP_DB_INIT=true ONLY for this command.
+# This ensures the noopDB is used for building, but the variable doesn't 
+# persist to the runner stage or runtime environment.
+RUN PAYLOAD_SKIP_DB_INIT=true pnpm run build
 
 
 # -------------------------
