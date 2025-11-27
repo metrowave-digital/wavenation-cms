@@ -5,6 +5,7 @@ import { buildConfig } from 'payload'
 /* =============================
    ADAPTERS + PLUGINS
 ============================= */
+
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
@@ -157,26 +158,45 @@ import {
 } from './globals'
 
 /* =============================
-   SETUP PATHS
+   SETUP
 ============================= */
+
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+/* -------------------------------------------------------------
+   NO-OP DATABASE ADAPTER FOR BUILD PHASE (Fixes Render errors)
+-------------------------------------------------------------- */
+
+const noopDB: any = {
+  init: async () => {
+    console.warn('[payload] Using noop DB adapter during build.')
+  },
+  close: async () => {},
+  query: async () => ({ rows: [] }),
+  supportsTransactions: false,
+}
+
+const db =
+  process.env.PAYLOAD_SKIP_DB_INIT === 'true'
+    ? noopDB
+    : postgresAdapter({
+        pool: {
+          connectionString: process.env.DATABASE_URI!,
+        },
+      })
+
 /* =============================
-   FULL PAYLOAD CONFIG
+   CONFIG EXPORT
 ============================= */
 
 export default buildConfig({
   serverURL: process.env.PUBLIC_CMS_URL,
-
-  /**
-   * IMPORTANT:
-   * Do NOT render Payload admin during Docker build.
-   * This prevents Postgres connection attempts that crash the build.
-   */
-  admin: process.env.PAYLOAD_BUILD === 'true' ? undefined : { user: Users.slug },
+  admin: { user: Users.slug },
 
   editor: lexicalEditor(),
+
+  db,
 
   collections: [
     Users,
@@ -289,18 +309,6 @@ export default buildConfig({
 
   secret: process.env.PAYLOAD_SECRET ?? 'dev-secret',
 
-  /* =============================
-     DATABASE CONFIG — NO CHANGES
-  ============================== */
-  db: postgresAdapter({
-    pool: {
-      connectionString: process.env.DATABASE_URI!,
-    },
-  }),
-
-  /* =============================
-     S3 / R2 STORAGE — CORRECT
-  ============================== */
   plugins: [
     s3Storage({
       bucket: process.env.S3_BUCKET!,
