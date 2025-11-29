@@ -1,164 +1,261 @@
+/* -------------------------------------------------------------
+   W A V E N A T I O N   B R A N D   T O K E N S
+------------------------------------------------------------- */
+
 :root {
-  --font-mono: 'Roboto Mono', monospace;
+  --wn-blue: #00b3ff;
+  --wn-magenta: #e92c63;
+  --wn-green: #39ff14;
+  --wn-black: #0c0f13;
+  --wn-card-black: #14171c;
+  --wn-gray: #9aa0a6;
+  --wn-white: #ffffff;
 }
 
-* {
-  box-sizing: border-box;
+/* -------------------------------------------------------------
+   GLOBAL LAYOUT
+------------------------------------------------------------- */
+
+.wn-dashboard {
+  background: var(--wn-black);
+  color: var(--wn-white);
+  min-height: 100vh;
+  font-family: Inter, sans-serif;
+  padding-bottom: 80px;
 }
 
-html {
-  font-size: 18px;
-  line-height: 32px;
-
-  background: rgb(0, 0, 0);
-  -webkit-font-smoothing: antialiased;
+/* Fade entire dashboard on load */
+.fade-in {
+  animation: fadeIn 1.3s ease forwards;
+  opacity: 0;
 }
 
-html,
-body,
-#app {
-  height: 100%;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-body {
-  font-family: system-ui;
-  font-size: 18px;
-  line-height: 32px;
-
-  margin: 0;
-  color: rgb(1000, 1000, 1000);
-
-  @media (max-width: 1024px) {
-    font-size: 15px;
-    line-height: 24px;
-  }
+/* Slide-up for sections */
+.slide-up {
+  animation: slideUp 0.9s ease forwards;
+  opacity: 0;
 }
 
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-h1 {
-  margin: 40px 0;
-  font-size: 64px;
-  line-height: 70px;
-  font-weight: bold;
+/* -------------------------------------------------------------
+   HERO SECTION
+------------------------------------------------------------- */
 
-  @media (max-width: 1024px) {
-    margin: 24px 0;
-    font-size: 42px;
-    line-height: 42px;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 38px;
-    line-height: 38px;
-  }
-
-  @media (max-width: 400px) {
-    font-size: 32px;
-    line-height: 32px;
-  }
+.wn-hero {
+  position: relative;
+  padding: 110px 25px 80px;
+  text-align: center;
+  overflow: hidden;
+  background: radial-gradient(
+      circle at 50% 0%,
+      rgba(0, 179, 255, 0.15),
+      rgba(233, 44, 99, 0.1)
+    ),
+    #0c0f13;
+  border-bottom: 1px solid #1f242c;
 }
 
-p {
-  margin: 24px 0;
-
-  @media (max-width: 1024px) {
-    margin: calc(var(--base) * 0.75) 0;
-  }
+.wn-hero-content {
+  position: relative;
+  z-index: 3;
 }
 
-a {
-  color: currentColor;
-
-  &:focus {
-    opacity: 0.8;
-    outline: none;
-  }
-
-  &:active {
-    opacity: 0.7;
-    outline: none;
-  }
+/* Floating waveforms */
+.wn-floating-waves,
+.wn-floating-waves-2 {
+  position: absolute;
+  inset: 0;
+  background: url('/waveform-bg.svg') repeat-x;
+  opacity: 0.12;
+  animation: floatWaves 18s linear infinite;
+  z-index: 1;
 }
 
-svg {
-  vertical-align: middle;
+.wn-floating-waves-2 {
+  animation-duration: 28s;
+  opacity: 0.07;
+  filter: hue-rotate(40deg);
 }
 
-.home {
+@keyframes floatWaves {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+.wn-logo {
+  width: 90px;
+  height: 90px;
+}
+
+/* Neon glow pulse */
+.glow-pulse {
+  animation: glowPulse 3.2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%   { filter: drop-shadow(0 0 6px rgba(0, 179, 255, 0.7)); }
+  50%  { filter: drop-shadow(0 0 18px rgba(233, 44, 99, 0.8)); }
+  100% { filter: drop-shadow(0 0 6px rgba(0, 179, 255, 0.7)); }
+}
+
+.wn-title {
+  margin: 20px 0 10px;
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--wn-blue), var(--wn-magenta));
+  background-clip: text;            /* Standard syntax (fixes warning) */
+  -webkit-background-clip: text;    /* WebKit for Chrome/Safari */
+  color: transparent;
+}
+
+.wn-subtitle {
+  color: var(--wn-gray);
+  font-size: 1.15rem;
+  margin-top: 10px;
+}
+
+/* -------------------------------------------------------------
+   SECTION HEADERS
+------------------------------------------------------------- */
+
+.wn-section {
+  padding: 40px 20px 30px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.wn-section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 25px;
+}
+
+/* -------------------------------------------------------------
+   QUICK ACTIONS
+------------------------------------------------------------- */
+
+.wn-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.wn-action-card {
+  padding: 18px;
+  background: var(--wn-card-black);
+  border: 1px solid #20242c;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--wn-white);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  height: 100vh;
-  padding: 45px;
-  max-width: 1024px;
-  margin: 0 auto;
-  overflow: hidden;
+  gap: 6px;
+  transition: 0.2s ease;
+  position: relative;
+}
 
-  @media (max-width: 400px) {
-    padding: 24px;
-  }
+/* Electricity shock flicker on hover */
+.electric-hover {
+  position: relative;
+  transition: 0.25s ease;
+}
 
-  .content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1;
+.electric-hover:hover {
+  transform: translateY(-4px);
+  border-color: var(--wn-blue);
+}
 
-    h1 {
-      text-align: center;
-    }
-  }
+.electric-hover:hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: electricFlicker 0.12s linear infinite;
+}
 
-  .links {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+@keyframes electricFlicker {
+  0%   { box-shadow: 0 0 6px rgba(0, 179, 255, 0.7); }
+  25%  { box-shadow: 0 0 12px rgba(233, 44, 99, 0.8); }
+  50%  { box-shadow: 0 0 4px rgba(57, 255, 20, 0.5); }
+  75%  { box-shadow: 0 0 10px rgba(233, 44, 99, 0.9); }
+  100% { box-shadow: 0 0 6px rgba(0, 179, 255, 0.7); }
+}
 
-    a {
-      text-decoration: none;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-    }
+.wn-action-icon {
+  font-size: 1.4rem;
+}
 
-    .admin {
-      color: rgb(0, 0, 0);
-      background: rgb(1000, 1000, 1000);
-      border: 1px solid rgb(0, 0, 0);
-    }
+.wn-action-text {
+  font-size: 1rem;
+  font-weight: 600;
+}
 
-    .docs {
-      color: rgb(1000, 1000, 1000);
-      background: rgb(0, 0, 0);
-      border: 1px solid rgb(1000, 1000, 1000);
-    }
-  }
+/* -------------------------------------------------------------
+   CORE GRID (Admin / Docs / API)
+------------------------------------------------------------- */
 
-  .footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.wn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 25px;
+}
 
-    @media (max-width: 1024px) {
-      flex-direction: column;
-      gap: 6px;
-    }
+.wn-card {
+  padding: 25px;
+  background: var(--wn-card-black);
+  border: 1px solid #222831;
+  border-radius: 16px;
+  text-decoration: none;
+  color: var(--wn-white);
+  display: flex;
+  flex-direction: column;
+  transition: 0.25s ease;
+  position: relative;
+}
 
-    p {
-      margin: 0;
-    }
+.wn-card:hover {
+  background: #1d2129;
+  border-color: var(--wn-magenta);
+  transform: translateY(-4px);
+}
 
-    .codeLink {
-      text-decoration: none;
-      padding: 0 0.5rem;
-      background: rgb(60, 60, 60);
-      border-radius: 4px;
-    }
-  }
+.wn-card h3 {
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.wn-card p {
+  color: var(--wn-gray);
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.wn-card-link {
+  margin-top: auto;
+  font-weight: 600;
+  color: var(--wn-blue);
+}
+
+/* -------------------------------------------------------------
+   FOOTER
+------------------------------------------------------------- */
+
+.wn-footer {
+  text-align: center;
+  padding: 50px 0 20px;
+  font-size: 0.88rem;
+  color: var(--wn-gray);
+  border-top: 1px solid #1f242c;
+  width: 100%;
+  margin-top: 40px;
 }

@@ -1,8 +1,7 @@
-import { headers as getHeaders } from 'next/headers.js'
+import { headers as getHeaders } from 'next/headers'
 import Image from 'next/image'
 import { getPayload } from 'payload'
 import React from 'react'
-import { fileURLToPath } from 'url'
 
 import config from '@/payload.config'
 import './styles.css'
@@ -13,47 +12,95 @@ export default async function HomePage() {
   const payload = await getPayload({ config: payloadConfig })
   const { user } = await payload.auth({ headers })
 
-  const fileURL = `vscode://file/${fileURLToPath(import.meta.url)}`
+  const quickActions = [
+    { label: 'Create Post', href: `${payloadConfig.routes.admin}/collections/posts`, icon: '📝' },
+    { label: 'Upload Media', href: `${payloadConfig.routes.admin}/media`, icon: '📁' },
+    { label: 'Manage Shows', href: `${payloadConfig.routes.admin}/collections/shows`, icon: '🎙️' },
+    { label: 'Creator Hub', href: `/creator`, icon: '🚀' },
+  ]
 
   return (
-    <div className="home">
-      <div className="content">
-        <picture>
-          <source srcSet="https://raw.githubusercontent.com/payloadcms/payload/main/packages/ui/src/assets/payload-favicon.svg" />
+    <div className="wn-dashboard fade-in">
+      {/* HERO */}
+      <section className="wn-hero slide-up">
+        <div className="wn-floating-waves"></div>
+        <div className="wn-floating-waves-2"></div>
+
+        <div className="wn-hero-content">
           <Image
-            alt="Payload Logo"
-            height={65}
-            src="https://raw.githubusercontent.com/payloadcms/payload/main/packages/ui/src/assets/payload-favicon.svg"
-            width={65}
+            src="/wavenation-logo.svg"
+            alt="WaveNation Logo"
+            width={90}
+            height={90}
+            className="wn-logo glow-pulse"
           />
-        </picture>
-        {!user && <h1>Welcome to your new project.</h1>}
-        {user && <h1>Welcome back, {user.email}</h1>}
-        <div className="links">
+
+          <h1 className="wn-title glow-pulse">
+            {user ? `Welcome back, ${user.email}` : 'Welcome to WaveNation'}
+          </h1>
+
+          <p className="wn-subtitle">The future of urban media. Your creator command center.</p>
+        </div>
+      </section>
+
+      {/* QUICK ACTIONS */}
+      <section className="wn-section slide-up">
+        <h2 className="wn-section-title">Quick Actions</h2>
+
+        <div className="wn-actions-grid">
+          {quickActions.map((a, idx) => (
+            <a href={a.href} key={idx} className="wn-action-card electric-hover">
+              <span className="wn-action-icon">{a.icon}</span>
+              <span className="wn-action-text">{a.label}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* CORE TOOLS */}
+      <section className="wn-section slide-up">
+        <h2 className="wn-section-title">Core Tools</h2>
+
+        <div className="wn-grid">
           <a
-            className="admin"
             href={payloadConfig.routes.admin}
-            rel="noopener noreferrer"
+            className="wn-card electric-hover"
             target="_blank"
+            rel="noopener noreferrer"
           >
-            Go to admin panel
+            <h3>Admin Panel</h3>
+            <p>Manage collections, users, media & system content.</p>
+            <span className="wn-card-link">Open Admin →</span>
           </a>
+
           <a
-            className="docs"
             href="https://payloadcms.com/docs"
-            rel="noopener noreferrer"
+            className="wn-card electric-hover"
             target="_blank"
+            rel="noopener noreferrer"
           >
-            Documentation
+            <h3>Documentation</h3>
+            <p>Learn Payload fields, hooks & advanced features.</p>
+            <span className="wn-card-link">Open Docs →</span>
+          </a>
+
+          <a
+            href={`${payloadConfig.routes.api}/graphql`}
+            className="wn-card electric-hover"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <h3>GraphQL API</h3>
+            <p>Query your CMS with the built-in GraphQL Explorer.</p>
+            <span className="wn-card-link">Open GraphQL →</span>
           </a>
         </div>
-      </div>
-      <div className="footer">
-        <p>Update this page by editing</p>
-        <a className="codeLink" href={fileURL}>
-          <code>app/(frontend)/page.tsx</code>
-        </a>
-      </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="wn-footer slide-up">
+        WaveNation CMS • Built for Creators • Powered by MetroWave Digital
+      </footer>
     </div>
   )
 }
