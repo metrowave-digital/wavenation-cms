@@ -3,16 +3,28 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 
 export async function POST(req: NextRequest, { params }: any) {
-  const pollId = Number(params.id)
   const payload = await getPayload({ config })
+
+  const pollId = Number(params.id)
+  if (isNaN(pollId)) {
+    return NextResponse.json({ error: 'Invalid poll ID' }, { status: 400 })
+  }
 
   try {
     const body = await req.json()
     const { optionValue, optionLabel, userId } = body
 
+    // 🔥 FIX: Convert optionValue to number
+    const optionValueNum = Number(optionValue)
+    if (isNaN(optionValueNum)) {
+      return NextResponse.json({ error: 'Invalid optionValue (must be a number)' }, { status: 400 })
+    }
+
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0'
 
-    // Load poll
+    /* --------------------------------------------------------
+     * Load poll
+     * -------------------------------------------------------- */
     const poll = await payload.findByID({
       collection: 'polls',
       id: pollId,
@@ -22,7 +34,9 @@ export async function POST(req: NextRequest, { params }: any) {
       return NextResponse.json({ error: 'Poll not found' }, { status: 404 })
     }
 
-    // Prevent duplicate votes
+    /* --------------------------------------------------------
+     * Prevent duplicate votes (IP match)
+     * -------------------------------------------------------- */
     if (!poll.allowMultipleVotes) {
       const existingVote = await payload.find({
         collection: 'poll-votes',
@@ -37,21 +51,25 @@ export async function POST(req: NextRequest, { params }: any) {
       }
     }
 
-    // Create vote
+    /* --------------------------------------------------------
+     * Create vote record
+     * -------------------------------------------------------- */
     await payload.create({
       collection: 'poll-votes',
       data: {
         poll: pollId,
-        optionValue,
+        optionValue: optionValueNum, // FIXED
         optionLabel,
         user: userId ?? null,
         ip,
       },
     })
 
-    // Update vote counts
+    /* --------------------------------------------------------
+     * Increment poll's vote counts
+     * -------------------------------------------------------- */
     const updatedOptions = poll.options.map((opt: any) =>
-      opt.value === String(optionValue) ? { ...opt, voteCount: (opt.voteCount || 0) + 1 } : opt,
+      Number(opt.value) === optionValueNum ? { ...opt, voteCount: (opt.voteCount || 0) + 1 } : opt,
     )
 
     const updatedTotal = updatedOptions.reduce((sum: number, o: any) => sum + (o.voteCount || 0), 0)
