@@ -75,6 +75,7 @@ import { ReviewReactions } from './collections/Articles/ReviewReactions'
 /* Polls */
 import { Polls } from './collections/Polls/Polls'
 import { PollVotes } from './collections/Polls/PollVotes'
+import { PollIPLogs } from './collections/Polls/PollIPLogs'
 
 /* Groups */
 import { Groups } from './collections/Groups/Groups'
@@ -219,6 +220,7 @@ export default buildConfig({
     /* Polls */
     Polls,
     PollVotes,
+    PollIPLogs,
 
     /* Groups */
     Groups,

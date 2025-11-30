@@ -92,6 +92,7 @@ export interface Config {
     'review-reactions': ReviewReaction;
     polls: Poll;
     'poll-votes': PollVote;
+    'poll-ip-logs': PollIpLog;
     groups: Group;
     'group-events': GroupEvent;
     'group-messages': GroupMessage;
@@ -191,6 +192,7 @@ export interface Config {
     'review-reactions': ReviewReactionsSelect<false> | ReviewReactionsSelect<true>;
     polls: PollsSelect<false> | PollsSelect<true>;
     'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
+    'poll-ip-logs': PollIpLogsSelect<false> | PollIpLogsSelect<true>;
     groups: GroupsSelect<false> | GroupsSelect<true>;
     'group-events': GroupEventsSelect<false> | GroupEventsSelect<true>;
     'group-messages': GroupMessagesSelect<false> | GroupMessagesSelect<true>;
@@ -3892,101 +3894,25 @@ export interface Poll {
 export interface PollVote {
   id: number;
   poll: number | Poll;
-  /**
-   * Used when vote belongs to a channel-level poll.
-   */
-  channelPoll?: (number | null) | ChannelPoll;
-  /**
-   * May be null if allowMultipleVotes & anonymous
-   */
-  voter?: (number | null) | Profile;
-  /**
-   * Hashed IP (for rate limiting / fraud)
-   */
-  ipHash?: string | null;
-  /**
-   * Must match an option.value from the poll
-   */
-  optionValue: string;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
+  optionValue: number;
+  optionLabel: string;
+  user?: (number | null) | User;
+  ip: string;
+  userAgent?: string | null;
+  targetContentType?: string | null;
+  targetContentId?: string | null;
+  pollDisplay?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "channel-polls".
+ * via the `definition` "poll-ip-logs".
  */
-export interface ChannelPoll {
+export interface PollIpLog {
   id: number;
-  channel: number | CreatorChannel;
-  question: string;
-  status?: ('draft' | 'active' | 'closed') | null;
-  visibility?: ('public' | 'subscribers' | 'tiers') | null;
-  allowedTiers?: (number | CreatorTier)[] | null;
-  options: {
-    label: string;
-    value: string;
-    voteCount?: number | null;
-    id?: string | null;
-  }[];
-  /**
-   * Aggregated metrics for analytics & dashboards.
-   */
-  results?: {
-    totalVotes?: number | null;
-    uniqueVoters?: number | null;
-    /**
-     * 0–1 fraction of eligible viewers
-     */
-    participationRate?: number | null;
-    /**
-     * Breakdown of votes by creator tier.
-     */
-    byTier?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    /**
-     * Optional breakdown by geography.
-     */
-    byGeo?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    /**
-     * Optional breakdown by device (mobile, web, tv).
-     */
-    byDevice?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-  };
-  startAt?: string | null;
-  endAt?: string | null;
-  showResults?: ('always' | 'after-vote' | 'after-end') | null;
+  pollId: number;
+  ip: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -4768,6 +4694,76 @@ export interface ChannelAnalytic {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "channel-polls".
+ */
+export interface ChannelPoll {
+  id: number;
+  channel: number | CreatorChannel;
+  question: string;
+  status?: ('draft' | 'active' | 'closed') | null;
+  visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  allowedTiers?: (number | CreatorTier)[] | null;
+  options: {
+    label: string;
+    value: string;
+    voteCount?: number | null;
+    id?: string | null;
+  }[];
+  /**
+   * Aggregated metrics for analytics & dashboards.
+   */
+  results?: {
+    totalVotes?: number | null;
+    uniqueVoters?: number | null;
+    /**
+     * 0–1 fraction of eligible viewers
+     */
+    participationRate?: number | null;
+    /**
+     * Breakdown of votes by creator tier.
+     */
+    byTier?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Optional breakdown by geography.
+     */
+    byGeo?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Optional breakdown by device (mobile, web, tv).
+     */
+    byDevice?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  startAt?: string | null;
+  endAt?: string | null;
+  showResults?: ('always' | 'after-vote' | 'after-end') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "channel-chat".
  */
 export interface ChannelChat {
@@ -5177,6 +5173,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'poll-votes';
         value: number | PollVote;
+      } | null)
+    | ({
+        relationTo: 'poll-ip-logs';
+        value: number | PollIpLog;
       } | null)
     | ({
         relationTo: 'groups';
@@ -6450,11 +6450,24 @@ export interface PollsSelect<T extends boolean = true> {
  */
 export interface PollVotesSelect<T extends boolean = true> {
   poll?: T;
-  channelPoll?: T;
-  voter?: T;
-  ipHash?: T;
   optionValue?: T;
-  metadata?: T;
+  optionLabel?: T;
+  user?: T;
+  ip?: T;
+  userAgent?: T;
+  targetContentType?: T;
+  targetContentId?: T;
+  pollDisplay?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "poll-ip-logs_select".
+ */
+export interface PollIpLogsSelect<T extends boolean = true> {
+  pollId?: T;
+  ip?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,6 +1,8 @@
 import type { CollectionConfig, AccessArgs, CollectionBeforeChangeHook } from 'payload'
-import { seoFields } from '../../../fields/seo'
 
+/* ============================================================
+   IMPORT SUB-FIELD GROUPS (each must export Field[])
+============================================================ */
 import { profileCoreFields } from './profile.core'
 import { profileRoleFields } from './profile.roles'
 import { profileCreatorFields } from './profile.creator'
@@ -12,37 +14,44 @@ import { profileMessagingFields } from './profile.messaging'
 import { profileNotificationFields } from './profile.notifications'
 import { profileSystemFields } from './profile.system'
 
-/* ============================
-   ACCESS HELPERS (TS SAFE)
-============================ */
-const getUserRoles = (req: AccessArgs['req']): string[] => {
-  const raw = (req.user as any)?.roles
-  return Array.isArray(raw) ? (raw as string[]) : []
-}
+/* ============================================================
+   ACCESS HELPERS
+============================================================ */
+
+const getUserRoles = (req: AccessArgs['req']): string[] =>
+  Array.isArray((req.user as any)?.roles) ? ((req.user as any).roles as string[]) : []
 
 const isAdmin = ({ req }: AccessArgs): boolean => {
   const roles = getUserRoles(req)
-  return roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')
+  return (
+    roles.includes('admin') ||
+    roles.includes('super-admin') ||
+    roles.includes('system')
+  )
 }
 
 const isAdminOrSelfProfile = ({ req, id }: AccessArgs): boolean => {
   if (!req.user) return false
   const roles = getUserRoles(req)
+
+  // Admin-like roles always allowed
   if (roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')) {
     return true
   }
-  // profile is usually linked via req.user.profile (optional)
+
+  // Profile-level ownership check
   const userProfileId = (req.user as any)?.profile
-  return !!userProfileId && !!id && String(userProfileId) === String(id)
+  return Boolean(userProfileId && id && String(userProfileId) === String(id))
 }
 
-/* ============================
+/* ============================================================
    BEFORE CHANGE HOOK
-============================ */
+============================================================ */
+
 const profilesBeforeChange: CollectionBeforeChangeHook = ({ data, req, operation }) => {
   if (!data) return data
 
-  // Link createdBy/updatedBy from auth user
+  // Creator/updater
   if (req.user) {
     if (operation === 'create') {
       ;(data as any).createdBy = req.user.id
@@ -50,13 +59,14 @@ const profilesBeforeChange: CollectionBeforeChangeHook = ({ data, req, operation
     ;(data as any).updatedBy = req.user.id
   }
 
-  // Auto-generate slug from displayName or user name
+  // Slug generation
   if (!data.slug) {
     const base =
       data.displayName ||
       [data.firstName, data.lastName].filter(Boolean).join(' ') ||
       (req.user as any)?.email ||
       ''
+
     if (base) {
       data.slug = base
         .toLowerCase()
@@ -68,9 +78,10 @@ const profilesBeforeChange: CollectionBeforeChangeHook = ({ data, req, operation
   return data
 }
 
-/* ============================
+/* ============================================================
    PROFILES COLLECTION
-============================ */
+============================================================ */
+
 export const Profiles: CollectionConfig = {
   slug: 'profiles',
 
@@ -82,7 +93,7 @@ export const Profiles: CollectionConfig = {
 
   access: {
     read: () => true,
-    create: ({ req }: AccessArgs) => Boolean(req.user),
+    create: ({ req }) => Boolean(req.user),
     update: isAdminOrSelfProfile,
     delete: isAdmin,
   },
@@ -111,3 +122,5 @@ export const Profiles: CollectionConfig = {
     beforeChange: [profilesBeforeChange],
   },
 }
+
+export default Profiles

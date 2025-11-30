@@ -1,20 +1,32 @@
-// src/collections/PollVotes.ts
 import type { CollectionConfig } from 'payload'
 
 export const PollVotes: CollectionConfig = {
   slug: 'poll-votes',
 
   admin: {
-    useAsTitle: 'id',
+    useAsTitle: 'pollDisplay',
     group: 'Engagement',
-    defaultColumns: ['poll', 'voter', 'optionValue', 'createdAt'],
+    defaultColumns: ['poll', 'optionLabel', 'user', 'ip', 'createdAt'],
   },
 
   access: {
-    read: ({ req }) => Boolean(req.user),
+    read: ({ req }) => {
+      // Public users can read votes (aggregated only)
+      if (!req.user) return true
+
+      // Admins full access
+      if (req.user.roles?.includes('admin')) return true
+
+      // Default: readable
+      return true
+    },
+
     create: () => true,
     update: () => false,
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+
+    delete: ({ req }) => {
+      return req.user?.roles?.includes('admin') === true
+    },
   },
 
   timestamps: true,
@@ -27,39 +39,65 @@ export const PollVotes: CollectionConfig = {
       required: true,
     },
 
-    // Also used for ChannelPolls
-    {
-      name: 'channelPoll',
-      type: 'relationship',
-      relationTo: 'channel-polls',
-      admin: {
-        description: 'Used when vote belongs to a channel-level poll.',
-      },
-    },
-
-    {
-      name: 'voter',
-      type: 'relationship',
-      relationTo: 'profiles',
-      admin: { description: 'May be null if allowMultipleVotes & anonymous' },
-    },
-
-    {
-      name: 'ipHash',
-      type: 'text',
-      admin: { description: 'Hashed IP (for rate limiting / fraud)' },
-    },
-
     {
       name: 'optionValue',
-      type: 'text',
+      type: 'number',
       required: true,
-      admin: { description: 'Must match an option.value from the poll' },
     },
 
     {
-      name: 'metadata',
-      type: 'json',
+      name: 'optionLabel',
+      type: 'text',
+      required: true,
+    },
+
+    {
+      name: 'user',
+      type: 'relationship',
+      relationTo: 'users',
+      required: false,
+    },
+
+    {
+      name: 'ip',
+      type: 'text',
+      required: true,
+    },
+
+    {
+      name: 'userAgent',
+      type: 'text',
+      required: false,
+    },
+
+    {
+      name: 'targetContentType',
+      type: 'text',
+      required: false,
+    },
+
+    {
+      name: 'targetContentId',
+      type: 'text',
+      required: false,
+    },
+
+    {
+      name: 'pollDisplay',
+      type: 'text',
+      admin: { readOnly: true },
+      hooks: {
+        beforeChange: [
+          ({ data }) => {
+            if (data && data.poll && data.optionLabel) {
+              data.pollDisplay = `Poll ${data.poll} — ${data.optionLabel}`
+            }
+            return data
+          },
+        ],
+      },
     },
   ],
 }
+
+export default PollVotes
