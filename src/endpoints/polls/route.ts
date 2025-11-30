@@ -1,154 +1,98 @@
-import type { Endpoint, PayloadRequest } from 'payload'
+import { NextResponse } from 'next/server'
+import payload from 'payload'
 
-type PollVoteBody = {
-  pollId?: number | string
-  optionId?: number | string
-}
+/**
+ * GET /api/polls
+ * Supports:
+ *  - ?limit=10
+ *  - ?page=2
+ *  - ?sort=-createdAt
+ *  - ?status=active
+ *  - ?scope=global
+ *  - ?contentType=articles
+ *  - ?contentId=<id>
+ *  - ?activeOnly=true (auto filters by dates + status)
+ */
 
-export const pollsRoute: Endpoint = {
-  path: '/polls',
-  method: 'post',
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
 
-  handler: async (...args: any[]): Promise<any> => {
-    // ============================================================
-    // Payload v3 passes: (req, res, next, context)
-    // But we cannot annotate types or TS rejects it.
-    // ============================================================
-    const req = args[0] as PayloadRequest
-    const res = args[1] as any
+    const limit = Number(searchParams.get('limit')) || 10
+    const page = Number(searchParams.get('page')) || 1
+    const sort = searchParams.get('sort') || '-createdAt'
 
-    const payload = req.payload
+    const status = searchParams.get('status') // active, closed, draft
+    const scope = searchParams.get('scope')
+    const contentType = searchParams.get('contentType')
+    const contentId = searchParams.get('contentId')
+    const activeOnly = searchParams.get('activeOnly') === 'true'
 
-    const { action } = (req.query || {}) as { action?: string }
+    const now = new Date()
 
-    const body = (req.body || {}) as PollVoteBody
-    const pollId = body.pollId ? Number(body.pollId) : undefined
-    const optionId = body.optionId ? Number(body.optionId) : undefined
-
-    // Fetch-API-style headers guaranteed safe
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    const where: any = {}
 
     /* ---------------------------------------------------------
-       1️⃣ CHECK IP
-    --------------------------------------------------------- */
-    if (action === 'check-ip') {
-      if (!pollId) {
-        return res.status(400).json({ error: 'pollId is required' })
-      }
-
-      const existed = await payload.find({
-        collection: 'poll-ip-logs',
-        limit: 1,
-        where: {
-          pollId: { equals: pollId },
-          ip: { equals: String(ip) },
-        },
-      })
-
-      return res.json({ alreadyVoted: existed.totalDocs > 0 })
+     * Filter: status
+     * --------------------------------------------------------- */
+    if (status) {
+      where.status = { equals: status }
     }
 
     /* ---------------------------------------------------------
-       2️⃣ VOTE
-    --------------------------------------------------------- */
-    if (action === 'vote') {
-      if (!pollId || !optionId) {
-        return res.status(400).json({ error: 'pollId and optionId are required' })
-      }
-
-      const poll: any = await payload.findByID({
-        collection: 'polls',
-        id: pollId,
-      })
-
-      if (!poll) {
-        return res.status(404).json({ error: 'Poll not found' })
-      }
-
-      if (poll.status !== 'active') {
-        return res.status(400).json({ error: 'Poll is not active' })
-      }
-
-      if (poll.requireAuth && !req.user) {
-        return res.status(403).json({ error: 'Login required' })
-      }
-
-      if (!poll.allowMultipleVotes) {
-        const existed = await payload.find({
-          collection: 'poll-ip-logs',
-          limit: 1,
-          where: {
-            pollId: { equals: pollId },
-            ip: { equals: String(ip) },
-          },
-        })
-
-        if (existed.totalDocs > 0) {
-          return res.status(403).json({ error: 'Already voted' })
-        }
-      }
-
-      const updatedOptions = poll.options.map((opt: any) =>
-        Number(opt.value) === optionId ? { ...opt, voteCount: (opt.voteCount || 0) + 1 } : opt,
-      )
-
-      const updatedPoll = await payload.update({
-        collection: 'polls',
-        id: pollId,
-        data: {
-          options: updatedOptions,
-          totalVotes: (poll.totalVotes || 0) + 1,
-        },
-      })
-
-      const votedOption = updatedOptions.find((opt: any) => Number(opt.value) === optionId)
-
-      let targetContentId: string | null = null
-      let targetContentType: string | null = null
-
-      if (poll.scope === 'content') {
-        targetContentType = poll.targetContentType || null
-
-        const rel = poll.targetContent
-        if (typeof rel === 'string' || typeof rel === 'number') {
-          targetContentId = String(rel)
-        } else if (rel && typeof rel === 'object' && 'value' in rel) {
-          targetContentId = String(rel.value)
-        }
-      }
-
-      await payload.create({
-        collection: 'poll-votes',
-        data: {
-          poll: pollId,
-          optionValue: optionId,
-          optionLabel: votedOption?.label || '',
-          ip: String(ip),
-          user: req.user?.id || null,
-          userAgent: req.headers.get('user-agent') || null,
-          targetContentType,
-          targetContentId,
-        },
-      })
-
-      await payload.create({
-        collection: 'poll-ip-logs',
-        data: {
-          pollId,
-          ip: String(ip),
-        },
-      })
-
-      return res.json(updatedPoll)
+     * Filter: scope (global, content, event, channel)
+     * --------------------------------------------------------- */
+    if (scope) {
+      where.scope = { equals: scope }
     }
 
     /* ---------------------------------------------------------
-       DEFAULT
-    --------------------------------------------------------- */
-    return res.status(400).json({
-      error: 'Invalid action. Use ?action=vote or ?action=check-ip',
+     * Filter: target content (content-based polls)
+     * --------------------------------------------------------- */
+    if (contentType) {
+      where.targetContentType = { equals: contentType }
+    }
+
+    if (contentId) {
+      where.targetContent = { equals: contentId }
+    }
+
+    /* ---------------------------------------------------------
+     * Filter: active-only mode
+     * ---------------------------------------------------------
+     * - status = active
+     * - startAt <= now
+     * - endAt >= now (or null)
+     * --------------------------------------------------------- */
+    if (activeOnly) {
+      where.and = [
+        { status: { equals: 'active' } },
+        {
+          or: [{ startAt: { less_than_equal: now } }, { startAt: { equals: null } }],
+        },
+        {
+          or: [{ endAt: { greater_than_equal: now } }, { endAt: { equals: null } }],
+        },
+      ]
+    }
+
+    /* ---------------------------------------------------------
+     * Execute Payload Query
+     * --------------------------------------------------------- */
+    const polls = await payload.find({
+      collection: 'polls',
+      limit,
+      page,
+      sort,
+      where,
     })
-  },
-}
 
-export default pollsRoute
+    return NextResponse.json(polls)
+  } catch (err) {
+    console.error('Polls GET error:', err)
+    return NextResponse.json(
+      { error: 'Failed to fetch polls', details: String(err) },
+      { status: 500 },
+    )
+  }
+}

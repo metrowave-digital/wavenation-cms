@@ -92,7 +92,6 @@ export interface Config {
     'review-reactions': ReviewReaction;
     polls: Poll;
     'poll-votes': PollVote;
-    'poll-ip-logs': PollIpLog;
     groups: Group;
     'group-events': GroupEvent;
     'group-messages': GroupMessage;
@@ -192,7 +191,6 @@ export interface Config {
     'review-reactions': ReviewReactionsSelect<false> | ReviewReactionsSelect<true>;
     polls: PollsSelect<false> | PollsSelect<true>;
     'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
-    'poll-ip-logs': PollIpLogsSelect<false> | PollIpLogsSelect<true>;
     groups: GroupsSelect<false> | GroupsSelect<true>;
     'group-events': GroupEventsSelect<false> | GroupEventsSelect<true>;
     'group-messages': GroupMessagesSelect<false> | GroupMessagesSelect<true>;
@@ -3907,17 +3905,6 @@ export interface PollVote {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "poll-ip-logs".
- */
-export interface PollIpLog {
-  id: number;
-  pollId: number;
-  ip: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "group-events".
  */
 export interface GroupEvent {
@@ -5173,10 +5160,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'poll-votes';
         value: number | PollVote;
-      } | null)
-    | ({
-        relationTo: 'poll-ip-logs';
-        value: number | PollIpLog;
       } | null)
     | ({
         relationTo: 'groups';
@@ -6458,16 +6441,6 @@ export interface PollVotesSelect<T extends boolean = true> {
   targetContentType?: T;
   targetContentId?: T;
   pollDisplay?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "poll-ip-logs_select".
- */
-export interface PollIpLogsSelect<T extends boolean = true> {
-  pollId?: T;
-  ip?: T;
   updatedAt?: T;
   createdAt?: T;
 }
