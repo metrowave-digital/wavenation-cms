@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  // Convert URL param to number (required)
+export async function POST(req: NextRequest, { params }: any) {
   const pollId = Number(params.id)
-
-  // Initialize Payload CMS (required for App Router)
   const payload = await getPayload({ config })
 
   try {
@@ -15,9 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '0.0.0.0'
 
-    /* --------------------------------------------------------
-     * Load poll
-     * -------------------------------------------------------- */
+    // Load poll
     const poll = await payload.findByID({
       collection: 'polls',
       id: pollId,
@@ -27,9 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Poll not found' }, { status: 404 })
     }
 
-    /* --------------------------------------------------------
-     * Prevent multiple votes (IP-based)
-     * -------------------------------------------------------- */
+    // Prevent duplicate votes
     if (!poll.allowMultipleVotes) {
       const existingVote = await payload.find({
         collection: 'poll-votes',
@@ -44,13 +37,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
-    /* --------------------------------------------------------
-     * Create vote record
-     * -------------------------------------------------------- */
+    // Create vote
     await payload.create({
       collection: 'poll-votes',
       data: {
-        poll: pollId, // number, not string
+        poll: pollId,
         optionValue,
         optionLabel,
         user: userId ?? null,
@@ -58,33 +49,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     })
 
-    /* --------------------------------------------------------
-     * Increment vote count + total votes
-     * -------------------------------------------------------- */
+    // Update vote counts
     const updatedOptions = poll.options.map((opt: any) =>
       opt.value === String(optionValue) ? { ...opt, voteCount: (opt.voteCount || 0) + 1 } : opt,
     )
 
-    const updatedTotalVotes = updatedOptions.reduce(
-      (acc: number, o: any) => acc + (o.voteCount || 0),
-      0,
-    )
+    const updatedTotal = updatedOptions.reduce((sum: number, o: any) => sum + (o.voteCount || 0), 0)
 
-    /* --------------------------------------------------------
-     * Save updated poll
-     * -------------------------------------------------------- */
     const updatedPoll = await payload.update({
       collection: 'polls',
       id: pollId,
       data: {
         options: updatedOptions,
-        totalVotes: updatedTotalVotes,
+        totalVotes: updatedTotal,
       },
     })
 
-    /* --------------------------------------------------------
-     * Return updated results
-     * -------------------------------------------------------- */
     return NextResponse.json({
       success: true,
       options: updatedPoll.options,
