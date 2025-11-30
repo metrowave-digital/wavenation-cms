@@ -167,7 +167,7 @@ const dirname = path.dirname(filename)
 
 export default buildConfig({
   /* -----------------------------------------------------------
-     ADMIN PANEL CONFIG (AUTH0 — NO PAYLOAD LOGIN)
+     ADMIN PANEL CONFIG (AUTH0)
   ----------------------------------------------------------- */
   admin: {
     user: Users.slug,
@@ -175,22 +175,51 @@ export default buildConfig({
   },
 
   /* -----------------------------------------------------------
+     ENABLE CORS (REQUIRED FOR RENDER)
+  ----------------------------------------------------------- */
+  cors: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+
+    'https://wavenation.media',
+    'https://www.wavenation.media',
+
+    'https://wavenation.online',
+    'https://www.wavenation.online',
+
+    'https://portal.wavenation.online',
+
+    'https://wavenation.plus',
+    'https://www.wavenation.plus',
+  ],
+
+  csrf: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+
+    'https://wavenation.media',
+    'https://www.wavenation.media',
+
+    'https://wavenation.online',
+    'https://www.wavenation.online',
+
+    'https://portal.wavenation.online',
+
+    'https://wavenation.plus',
+    'https://www.wavenation.plus',
+  ],
+
+  /* -----------------------------------------------------------
      COLLECTIONS
   ----------------------------------------------------------- */
   collections: [
-    /* Global System */
     GlobalSettings,
     Alerts,
     Popups,
-
-    /* Users */
     Users,
     Profiles,
-
-    /* Media */
     Media,
 
-    /* Entertainment Content */
     Shows,
     Episodes,
     Schedule,
@@ -207,26 +236,21 @@ export default buildConfig({
     Playlists,
     Charts,
 
-    /* Categories */
     Tags,
     Categories,
 
-    /* Articles */
     Articles,
     Reviews,
     ReviewReactions,
 
-    /* Polls */
     Polls,
     PollVotes,
 
-    /* Groups */
     Groups,
     GroupEvents,
     GroupMessages,
     GroupPosts,
 
-    /* Events */
     Events,
     TicketTypes,
     Tickets,
@@ -239,7 +263,6 @@ export default buildConfig({
     EventAnalytics,
     Venues,
 
-    /* Ecommerce */
     Products,
     ProductVariants,
     Carts,
@@ -248,7 +271,6 @@ export default buildConfig({
     PaymentRecords,
     Orders,
 
-    /* Subscriptions */
     SubscriptionPlans,
     Subscriptions,
     CreatorTiers,
@@ -259,11 +281,9 @@ export default buildConfig({
     CreatorRedemptions,
     BillingCycles,
 
-    /* Monetization */
     ContentSubscriptions,
     ContentAccess,
 
-    /* Messaging */
     Messages,
     Chats,
     MessageThreads,
@@ -273,7 +293,6 @@ export default buildConfig({
     Announcements,
     MessageReactions,
 
-    /* Creator Channels */
     CreatorChannels,
     ChannelPosts,
     ChannelMedia,
@@ -287,7 +306,6 @@ export default buildConfig({
     ChannelPolls,
     ChannelChat,
 
-    /* Engagement */
     Blocks,
     Comments,
     CommentReactions,
@@ -298,7 +316,6 @@ export default buildConfig({
     NotificationRules,
     Reactions,
 
-    /* Ads */
     Ads,
     AdPlacements,
     Campaigns,
@@ -348,7 +365,7 @@ export default buildConfig({
   sharp,
 
   /* -----------------------------------------------------------
-     TS TYPES
+     TYPESCRIPT TYPES
   ----------------------------------------------------------- */
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
