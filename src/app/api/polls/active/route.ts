@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import payload from 'payload'
 
 export async function GET(req: NextRequest) {
@@ -11,15 +11,15 @@ export async function GET(req: NextRequest) {
       sort: '-createdAt',
       where: {
         and: [
-          // Must be active
+          // Must be "active"
           { status: { equals: 'active' } },
 
-          // Start date condition
+          // Poll has already started OR has no start time
           {
             or: [{ startAt: { less_than_equal: now } }, { startAt: { equals: null } }],
           },
 
-          // End date condition
+          // Poll hasn't ended OR has no end time
           {
             or: [{ endAt: { greater_than_equal: now } }, { endAt: { equals: null } }],
           },
@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
       poll: activePoll,
       found: Boolean(activePoll),
     })
-  } catch (err) {
-    console.error('Active Poll Error:', err)
+  } catch (error) {
+    console.error('Active Poll Error:', error)
     return NextResponse.json({ error: 'Failed to load active poll' }, { status: 500 })
   }
 }
