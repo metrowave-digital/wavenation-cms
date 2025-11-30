@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import payload from 'payload'
+import { getPayload } from 'payload'
+import config from '@/payload.config'
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  // Convert URL param to number (required)
+  const pollId = Number(params.id)
+
+  // Initialize Payload CMS (required for App Router)
+  const payload = await getPayload({ config })
+
   try {
-    // Extract pollId from URL: /api/polls/123/vote
-    const url = new URL(req.url)
-    const segments = url.pathname.split('/')
-    const pollId = Number(segments[segments.length - 2])
-
     const body = await req.json()
     const { optionValue, optionLabel, userId } = body
 
@@ -26,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     /* --------------------------------------------------------
-     * Prevent multiple votes
+     * Prevent multiple votes (IP-based)
      * -------------------------------------------------------- */
     if (!poll.allowMultipleVotes) {
       const existingVote = await payload.find({
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
     await payload.create({
       collection: 'poll-votes',
       data: {
-        poll: pollId,
+        poll: pollId, // number, not string
         optionValue,
         optionLabel,
         user: userId ?? null,
@@ -57,13 +59,16 @@ export async function POST(req: NextRequest) {
     })
 
     /* --------------------------------------------------------
-     * Increment vote count
+     * Increment vote count + total votes
      * -------------------------------------------------------- */
     const updatedOptions = poll.options.map((opt: any) =>
       opt.value === String(optionValue) ? { ...opt, voteCount: (opt.voteCount || 0) + 1 } : opt,
     )
 
-    const updatedTotal = updatedOptions.reduce((acc: number, o: any) => acc + (o.voteCount || 0), 0)
+    const updatedTotalVotes = updatedOptions.reduce(
+      (acc: number, o: any) => acc + (o.voteCount || 0),
+      0,
+    )
 
     /* --------------------------------------------------------
      * Save updated poll
@@ -73,11 +78,15 @@ export async function POST(req: NextRequest) {
       id: pollId,
       data: {
         options: updatedOptions,
-        totalVotes: updatedTotal,
+        totalVotes: updatedTotalVotes,
       },
     })
 
+    /* --------------------------------------------------------
+     * Return updated results
+     * -------------------------------------------------------- */
     return NextResponse.json({
+      success: true,
       options: updatedPoll.options,
       totalVotes: updatedPoll.totalVotes,
     })
