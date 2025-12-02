@@ -90,6 +90,7 @@ export interface Config {
     articles: Article;
     reviews: Review;
     'review-reactions': ReviewReaction;
+    'artist-spotlight': ArtistSpotlight;
     polls: Poll;
     'poll-votes': PollVote;
     groups: Group;
@@ -189,6 +190,7 @@ export interface Config {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     'review-reactions': ReviewReactionsSelect<false> | ReviewReactionsSelect<true>;
+    'artist-spotlight': ArtistSpotlightSelect<false> | ArtistSpotlightSelect<true>;
     polls: PollsSelect<false> | PollsSelect<true>;
     'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
     groups: GroupsSelect<false> | GroupsSelect<true>;
@@ -3796,6 +3798,24 @@ export interface ChannelReaction {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "artist-spotlight".
+ */
+export interface ArtistSpotlight {
+  id: number;
+  title: string;
+  bannerImage: number | Media;
+  artist: number | Profile;
+  artistImage?: (number | null) | Media;
+  tagline?: string | null;
+  extraInfo?: string | null;
+  featuredArticle?: (number | null) | Article;
+  featuredRelease?: (number | null) | Album;
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "polls".
  */
 export interface Poll {
@@ -5154,6 +5174,10 @@ export interface PayloadLockedDocument {
         value: number | ReviewReaction;
       } | null)
     | ({
+        relationTo: 'artist-spotlight';
+        value: number | ArtistSpotlight;
+      } | null)
+    | ({
         relationTo: 'polls';
         value: number | Poll;
       } | null)
@@ -6390,6 +6414,23 @@ export interface ReviewReactionsSelect<T extends boolean = true> {
   reaction?: T;
   review?: T;
   user?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "artist-spotlight_select".
+ */
+export interface ArtistSpotlightSelect<T extends boolean = true> {
+  title?: T;
+  bannerImage?: T;
+  artist?: T;
+  artistImage?: T;
+  tagline?: T;
+  extraInfo?: T;
+  featuredArticle?: T;
+  featuredRelease?: T;
+  slug?: T;
   updatedAt?: T;
   createdAt?: T;
 }

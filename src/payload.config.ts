@@ -48,6 +48,7 @@ import { Shows } from './collections/Shows/Shows'
 import { Episodes } from './collections/Shows/Episodes'
 import { Schedule } from './collections/Shows/Schedule'
 import { EPGEntries } from './collections/Shows/EPGEntries'
+import ArtistSpotlight from './collections/Articles/ArtistSpotlight'
 
 /* Film + VOD */
 import { Films } from './collections/VOD/Films'
@@ -242,6 +243,7 @@ export default buildConfig({
     Articles,
     Reviews,
     ReviewReactions,
+    ArtistSpotlight,
 
     Polls,
     PollVotes,
