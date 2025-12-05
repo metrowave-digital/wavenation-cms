@@ -417,6 +417,16 @@ export interface Popup {
  */
 export interface Media {
   id: number;
+  /**
+   * Auto-generated image crops
+   */
+  variants?: {
+    thumbnail?: string | null;
+    square?: string | null;
+    landscape?: string | null;
+    portrait?: string | null;
+    cinematic?: string | null;
+  };
   filename?: string | null;
   mimeType?: string | null;
   filesize?: number | null;
@@ -425,6 +435,20 @@ export interface Media {
   duration?: number | null;
   bitrate?: number | null;
   dominantColor?: string | null;
+  caption?: string | null;
+  attribution?: string | null;
+  /**
+   * Primary focus for smart cropping
+   *
+   * @minItems 2
+   * @maxItems 2
+   */
+  focalPoint?: [number, number] | null;
+  carouselSettings?: {
+    enableInArticleCarousel?: boolean | null;
+    carouselCaption?: string | null;
+    carouselAttribution?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1026,41 +1050,67 @@ export interface Schedule {
 export interface Article {
   id: number;
   title: string;
-  /**
-   * Auto-generated if empty
-   */
-  slug?: string | null;
-  status?: ('draft' | 'published' | 'archived') | null;
+  type:
+    | 'standard'
+    | 'breaking-news'
+    | 'music-review'
+    | 'film-tv-review'
+    | 'interview'
+    | 'feature'
+    | 'event-recap'
+    | 'african-american-culture'
+    | 'lifestyle'
+    | 'faith-inspiration'
+    | 'sponsored'
+    | 'creator-spotlight';
+  status: 'draft' | 'review' | 'needs-correction' | 'scheduled' | 'published';
   publishedDate?: string | null;
   /**
-   * Estimated minutes to read
+   * Set a future date/time to auto-publish.
    */
-  readingTime?: number | null;
-  featureLevel?: ('breaking' | 'spotlight' | 'featured' | 'standard') | null;
-  author: number | Profile;
-  contributors?: (number | Profile)[] | null;
-  editors?: (number | Profile)[] | null;
-  heroImage?: (number | null) | Media;
-  heroVideo?: (number | null) | Media;
-  body: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
+  scheduledPublishDate?: string | null;
+  lastUpdated?: string | null;
+  /**
+   * Assign an editor to review this article.
+   */
+  peerReviewer?: (number | null) | Profile;
+  qualityScorecard?: {
+    clarityScore?: number | null;
+    grammarScore?: number | null;
+    culturalScore?: number | null;
+    verifiedSources?: number | null;
+    /**
+     * Auto or manually determined.
+     */
+    overallQuality?: number | null;
   };
+  author?: (number | null) | Profile;
+  slug?: string | null;
+  heroImage?: (number | null) | Media;
+  heroImageAlt?: string | null;
+  /**
+   * Add multiple images/videos to display as a scrollable gallery.
+   */
+  carousel?:
+    | {
+        media: number | Media;
+        caption?: string | null;
+        attribution?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  readingTime?: number | null;
+  /**
+   * Required when editing published content or marking Needs Correction.
+   */
+  editorialNotes?: string | null;
+  /**
+   * Build the article using rich text, media, embeds, quotes, callouts, and more.
+   */
   contentBlocks?:
     | (
         | {
-            text?: {
+            content: {
               root: {
                 type: string;
                 children: {
@@ -1074,69 +1124,784 @@ export interface Article {
                 version: number;
               };
               [k: string]: unknown;
-            } | null;
+            };
             id?: string | null;
             blockName?: string | null;
-            blockType: 'textBlock';
+            blockType: 'richText';
           }
         | {
-            image?: (number | null) | Media;
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'image';
+          }
+        | {
+            media: number | Media;
             caption?: string | null;
             id?: string | null;
             blockName?: string | null;
-            blockType: 'imageBlock';
+            blockType: 'video';
           }
         | {
-            embedUrl?: string | null;
+            items: {
+              media: number | Media;
+              caption?: string | null;
+              attribution?: string | null;
+              id?: string | null;
+            }[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'carousel';
+          }
+        | {
+            quote: string;
+            source?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'pullQuote';
+          }
+        | {
+            style?: ('info' | 'warning' | 'highlight') | null;
+            content: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'callout';
+          }
+        | {
+            embedUrl: string;
             caption?: string | null;
             id?: string | null;
             blockName?: string | null;
-            blockType: 'embedBlock';
+            blockType: 'embed';
+          }
+        | {
+            left: number | Media;
+            right: number | Media;
+            caption?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'sideBySide';
+          }
+        | {
+            text: string;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'dropcap';
+          }
+        | {
+            events?:
+              | {
+                  year: string;
+                  title: string;
+                  description: string;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'timeline';
+          }
+        | {
+            quote: string;
+            source?: string | null;
+            media?: (number | null) | Media;
+            position?: ('left' | 'right') | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'quoteWithImage';
+          }
+        | {
+            author: number | Profile;
+            bio?: string | null;
+            photo?: (number | null) | Media;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'authorBio';
+          }
+        | {
+            adType: 'banner' | 'native' | 'script';
+            media?: (number | null) | Media;
+            nativeText?: string | null;
+            script?: string | null;
+            sponsorName?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'adUnit';
+          }
+        | {
+            notes?:
+              | {
+                  label: string;
+                  content: string;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'footnotes';
+          }
+        | {
+            poll: number | Poll;
+            showResultsInline?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'interactivePoll';
           }
       )[]
     | null;
-  category?: (number | null) | Category;
+  /**
+   * Search Engine Optimization & social media metadata.
+   */
+  seo?: {
+    /**
+     * Custom SEO title
+     */
+    title?: string | null;
+    /**
+     * SEO description (160 chars recommended)
+     */
+    description?: string | null;
+    /**
+     * Comma-separated (R&B, Gospel, Radio, TV)
+     */
+    keywords?: string | null;
+    /**
+     * Facebook/Twitter share image (Open Graph)
+     */
+    ogImage?: (number | null) | Media;
+    /**
+     * Hide this page from search engines
+     */
+    noIndex?: boolean | null;
+  };
+  /**
+   * Auto-generated analytics fields
+   */
+  engagement?: {
+    views?: number | null;
+    likes?: number | null;
+    shares?: number | null;
+    comments?: number | null;
+    reactions?:
+      | {
+          type?: string | null;
+          count?: number | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  standardFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    tags?: string[] | null;
+    publishDate?: string | null;
+    heroImage: number | Media;
+    heroImageAlt: string;
+    introParagraph: string;
+    section1Context: string;
+    section2MainStory: string;
+    section3CulturalAnalysis?: string | null;
+    section4WhatsNext?: string | null;
+    creditsSources?: string | null;
+    socialCopyShort?: string | null;
+    socialCopyLong?: string | null;
+    altTextForImages?: string | null;
+    /**
+     * Auto-updated metrics for analytics + social proof
+     */
+    engagement?: {
+      views?: number | null;
+      likes?: number | null;
+      shares?: number | null;
+      comments?: number | null;
+      reactions?:
+        | {
+            type?: string | null;
+            count?: number | null;
+            id?: string | null;
+          }[]
+        | null;
+    };
+  };
+  breakingNewsFields?: {
+    subtitle?: string | null;
+    tags?: string[] | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    /**
+     * Concise breaking news summary. Keep under 2–3 sentences.
+     */
+    whatHappened: string;
+    /**
+     * Each entry should be a single confirmed fact.
+     */
+    confirmedDetails?: string[] | null;
+    /**
+     * Prevent misinformation. Only list items that need clarification or are pending verification.
+     */
+    notYetConfirmed?: string | null;
+    /**
+     * Include official statements from law enforcement, government, PR teams, companies, etc.
+     */
+    statements?: string | null;
+    /**
+     * Explain related history or events.
+     */
+    context?: string | null;
+    /**
+     * Add updates as the story evolves.
+     */
+    updates?: string[] | null;
+    /**
+     * Short, breaking-style update.
+     */
+    socialCopyTwitter?: string | null;
+    socialCopyInstagram?: string | null;
+  };
+  musicReviewFields?: {
+    sub?: string | null;
+    cat: number | Category;
+    subcat?: (number | null) | Category;
+    auth: number | Profile;
+    /**
+     * Brief context, release date, and why the project matters.
+     */
+    intro?: string | null;
+    taa?: {
+      sp?: string | null;
+      vp?: string | null;
+      lt?: string | null;
+      /**
+       * List standout tracks (one per line).
+       */
+      st?: string[] | null;
+      wp?: string | null;
+    };
+    /**
+     * How this project fits into genre trends, the scene, or the artist’s evolution.
+     */
+    cp?: string | null;
+    /**
+     * 1–2 paragraph summary conclusion of the review.
+     */
+    vd?: string | null;
+    /**
+     * Use WaveNation’s 1–10 rating scale.
+     */
+    rt: number;
+    /**
+     * Add track names in order.
+     */
+    tl?: string[] | null;
+    rtr?: (number | Track)[] | null;
+    ral?: (number | Album)[] | null;
+  };
+  filmTVReviewFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    /**
+     * Setup, creators, platform, release date, and why the project matters.
+     */
+    intro?: string | null;
+    /**
+     * Write a clear plot overview without major spoilers unless noted.
+     */
+    plotSummary?: string | null;
+    /**
+     * Break down key creative elements of the film/show.
+     */
+    analysis?: {
+      direction?: string | null;
+      acting?: string | null;
+      cinematography?: string | null;
+      writing?: string | null;
+      themes?: string | null;
+    };
+    /**
+     * Discuss relevance to Black, Southern, multicultural, or urban audiences.
+     */
+    culturalAnalysis?: string | null;
+    /**
+     * 1–2 paragraph conclusion.
+     */
+    verdict?: string | null;
+    /**
+     * Use WaveNation’s 1–10 rating scale.
+     */
+    rating: number;
+    relatedShow?: (number | Media)[] | null;
+    relatedFilm?: (number | Media)[] | null;
+  };
+  interviewFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    author: number | Profile;
+    podcast?: (number | null) | PodcastEpisode;
+    musicVideo?: (number | null) | Media;
+    interviewVideo?: (number | null) | Media;
+    /**
+     * Explain who the interview subject is and why they matter.
+     */
+    intro?: string | null;
+    /**
+     * Add as many Q&A blocks as needed. Each entry contains a question and answer.
+     */
+    interview: {
+      question: string;
+      answer: string;
+      id?: string | null;
+    }[];
+    /**
+     * Final thoughts, upcoming projects, or any closing commentary.
+     */
+    closingNotes?: string | null;
+    sidebar?: {
+      socialLinks?:
+        | {
+            platform: string;
+            url: string;
+            id?: string | null;
+          }[]
+        | null;
+      tourDates?:
+        | {
+            date?: string | null;
+            id?: string | null;
+          }[]
+        | null;
+      releases?:
+        | {
+            release?: string | null;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    relatedArtists?: (number | Profile)[] | null;
+  };
+  featureFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    author: number | Profile;
+    /**
+     * A vivid opening scene or story that pulls the reader in.
+     */
+    narrativeLede: string;
+    /**
+     * Human-focused narrative detail.
+     */
+    sectionStory?: string | null;
+    /**
+     * Industry context or cultural analysis.
+     */
+    sectionInsight?: string | null;
+    /**
+     * Quotes from interviews or experts.
+     */
+    sectionVoices?: string | null;
+    /**
+     * Explain the significance of the story.
+     */
+    sectionImpact?: string | null;
+    /**
+     * What comes next for the subject?
+     */
+    sectionFuture?: string | null;
+    /**
+     * List all references used in this feature.
+     */
+    creditsSources?: string | null;
+  };
+  eventRecapFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    /**
+     * Event name, location, date, and audience size/type.
+     */
+    intro: string;
+    /**
+     * List key moments from the event.
+     */
+    highlights?: string[] | null;
+    /**
+     * Describe the energy, visuals, crowd, venue, and overall experience.
+     */
+    atmosphere?: string | null;
+    /**
+     * Explain why the event resonated with the community or culture.
+     */
+    culturalTakeaways?: string | null;
+    /**
+     * Upload photos with required alt text for accessibility.
+     */
+    photos?:
+      | {
+          image: number | Media;
+          alt: string;
+          id?: string | null;
+        }[]
+      | null;
+    relatedEvents?: (number | Event)[] | null;
+  };
+  aaFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    /**
+     * An evocative moment or detail.
+     */
+    hook?: string | null;
+    background?: string | null;
+    mainStory?: string | null;
+    localVoices?:
+      | {
+          quote: string;
+          speaker?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    connectionToWN?: string | null;
+    resources?:
+      | {
+          title: string;
+          description?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  lifestyleFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    /**
+     * Relatable hook + problem or opportunity that frames the lifestyle topic.
+     */
+    intro: string;
+    body?: {
+      /**
+       * Explain the concept or trend.
+       */
+      sectionInsight?: string | null;
+      /**
+       * Relevant scenarios, people, or situations that illustrate the insight.
+       */
+      sectionExamples?: string | null;
+      /**
+       * Actionable suggestions, recommendations, or steps.
+       */
+      sectionAdvice?: string | null;
+      /**
+       * Tie the topic to Southern, urban, or multicultural living.
+       */
+      sectionCulturalRelevance?: string | null;
+    };
+    /**
+     * What readers should try, consider, or reflect on.
+     */
+    callToAction?: string | null;
+    /**
+     * Lifestyle photography rules apply—upload images + alt text.
+     */
+    imagery?:
+      | {
+          image: number | Media;
+          alt: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  faithFields?: {
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    /**
+     * Scripture, meditation prompt, or initial reflective thought. (Optional)
+     */
+    openingReflection?: string | null;
+    /**
+     * Encouragement, devotional insight, or spiritual lesson.
+     */
+    message: string;
+    /**
+     * Explain how this connects to everyday life and practice.
+     */
+    application?: string | null;
+    /**
+     * (Optional)
+     */
+    closingPrayerOrAffirmation?: string | null;
+  };
+  sponsoredFields?: {
+    sponsor: string;
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    /**
+     * Required by WaveNation + FTC guidelines.
+     */
+    disclosure: string;
+    /**
+     * Brand context + cultural relevance. Why this story matters for our audience.
+     */
+    intro?: string | null;
+    /**
+     * Highlight the product, event, or activation.
+     */
+    body?: string | null;
+    /**
+     * Real customer stories, testimonials, or community connections.
+     */
+    storyIntegration?: string | null;
+    cta?: {
+      text?: string | null;
+      url?: string | null;
+      eventDate?: string | null;
+      productInfo?: string | null;
+    };
+    /**
+     * Upload only sponsor-approved photography or graphics.
+     */
+    assets?:
+      | {
+          image: number | Media;
+          alt: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  csFields?: {
+    subtitle?: string | null;
+    category?: (number | null) | Category;
+    subCategory?: (number | null) | Category;
+    intro?: string | null;
+    origin?: string | null;
+    work?: string | null;
+    vision?: string | null;
+    mediaAssets?:
+      | {
+          type: 'image' | 'video';
+          file?: (number | null) | Media;
+          caption?: string | null;
+          credit?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "polls".
+ */
+export interface Poll {
+  id: number;
+  question: string;
+  /**
+   * Auto-generated if empty
+   */
+  slug?: string | null;
+  status?: ('draft' | 'active' | 'closed' | 'archived') | null;
+  scope: 'global' | 'content' | 'event' | 'channel';
+  options: {
+    label: string;
+    value: string;
+    voteCount?: number | null;
+    id?: string | null;
+  }[];
+  /**
+   * If content-specific, choose content type.
+   */
+  targetContentType?:
+    | ('shows' | 'episodes' | 'films' | 'vod' | 'podcasts' | 'podcast-episodes' | 'articles' | 'tracks' | 'albums')
+    | null;
+  targetContent?:
+    | ({
+        relationTo: 'shows';
+        value: number | Show;
+      } | null)
+    | ({
+        relationTo: 'episodes';
+        value: number | Episode;
+      } | null)
+    | ({
+        relationTo: 'films';
+        value: number | Film;
+      } | null)
+    | ({
+        relationTo: 'vod';
+        value: number | Vod;
+      } | null)
+    | ({
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      } | null)
+    | ({
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      } | null)
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'tracks';
+        value: number | Track;
+      } | null)
+    | ({
+        relationTo: 'albums';
+        value: number | Album;
+      } | null);
+  targetEvent?: (number | null) | Event;
+  targetChannel?: (number | null) | CreatorChannel;
+  /**
+   * Limit poll to certain roles (optional)
+   */
+  audienceRoles?: ('free' | 'creator' | 'pro' | 'industry' | 'host' | 'editor' | 'admin')[] | null;
+  /**
+   * Require logged-in user to vote
+   */
+  requireAuth?: boolean | null;
+  allowMultipleVotes?: boolean | null;
+  showResults?: ('always' | 'after-vote' | 'after-end' | 'admin-only') | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  totalVotes?: number | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "films".
+ */
+export interface Film {
+  id: number;
+  title: string;
+  /**
+   * Auto-generated if empty.
+   */
+  slug?: string | null;
+  filmType: 'feature' | 'documentary' | 'short' | 'pilot' | 'music-film';
+  releaseYear?: number | null;
+  status?: ('published' | 'coming-soon' | 'scheduled' | 'archived') | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  videoProvider: 'cloudflare' | 's3' | 'external';
+  /**
+   * Cloudflare video UID
+   */
+  cloudflareVideoId?: string | null;
+  /**
+   * HLS/DASH playback URL
+   */
+  cloudflarePlaybackUrl?: string | null;
+  /**
+   * Upload MP4 or WEBM
+   */
+  s3VideoFile?: (number | null) | Media;
+  /**
+   * YouTube, Vimeo, or custom stream URL
+   */
+  externalUrl?: string | null;
+  poster?: (number | null) | Media;
+  bannerImage?: (number | null) | Media;
+  stillImages?: (number | Media)[] | null;
+  brandColor?: string | null;
+  directors?: (number | Profile)[] | null;
+  writers?: (number | Profile)[] | null;
+  producers?: (number | Profile)[] | null;
+  cast?:
+    | {
+        profile?: (number | null) | Profile;
+        roleName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  runtimeMinutes?: number | null;
+  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
+  genre?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
-  relatedArticles?: (number | Article)[] | null;
-  relatedMedia?:
-    | (
-        | {
-            relationTo: 'tracks';
-            value: number | Track;
-          }
-        | {
-            relationTo: 'albums';
-            value: number | Album;
-          }
-        | {
-            relationTo: 'films';
-            value: number | Film;
-          }
-        | {
-            relationTo: 'vod';
-            value: number | Vod;
-          }
-        | {
-            relationTo: 'podcasts';
-            value: number | Podcast;
-          }
-        | {
-            relationTo: 'podcast-episodes';
-            value: number | PodcastEpisode;
-          }
-        | {
-            relationTo: 'shows';
-            value: number | Show;
-          }
-        | {
-            relationTo: 'episodes';
-            value: number | Episode;
-          }
-      )[]
+  trailer?: (number | null) | Media;
+  transcript?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  clips?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
     | null;
-  comments?: (number | Comment)[] | null;
-  reviews?: (number | Review)[] | null;
-  reactions?: (number | CommentReaction)[] | null;
+  behindTheScenes?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  promos?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * Search Engine Optimization & social media metadata.
    */
@@ -1163,95 +1928,6 @@ export interface Article {
     noIndex?: boolean | null;
   };
   views?: number | null;
-  shares?: number | null;
-  likes?: number | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tracks".
- */
-export interface Track {
-  id: number;
-  title: string;
-  /**
-   * Auto-generated if empty
-   */
-  slug?: string | null;
-  status?: ('released' | 'unreleased' | 'preview' | 'blocked') | null;
-  description?: string | null;
-  primaryArtist: number | Profile;
-  featuredArtists?: (number | Profile)[] | null;
-  producers?: (number | Profile)[] | null;
-  writers?: (number | Profile)[] | null;
-  album?: (number | null) | Album;
-  audioProvider?: ('cloudflare' | 's3' | 'external') | null;
-  cloudflareAudioId?: string | null;
-  cloudflarePlaybackUrl?: string | null;
-  s3AudioFile?: (number | null) | Media;
-  externalUrl?: string | null;
-  runtime?: string | null;
-  bpm?: number | null;
-  key?: string | null;
-  /**
-   * International Standard Recording Code
-   */
-  isrc?: string | null;
-  genre?: (number | null) | Category;
-  tags?: (number | Tag)[] | null;
-  /**
-   * Optional lyrics or timed captions
-   */
-  lyrics?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  coverArt?: (number | null) | Media;
-  /**
-   * Optional visualizer loop
-   */
-  videoVisual?: (number | null) | Media;
-  playlists?: (number | Playlist)[] | null;
-  /**
-   * Search Engine Optimization & social media metadata.
-   */
-  seo?: {
-    /**
-     * Custom SEO title
-     */
-    title?: string | null;
-    /**
-     * SEO description (160 chars recommended)
-     */
-    description?: string | null;
-    /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
-     */
-    keywords?: string | null;
-    /**
-     * Facebook/Twitter share image (Open Graph)
-     */
-    ogImage?: (number | null) | Media;
-    /**
-     * Hide this page from search engines
-     */
-    noIndex?: boolean | null;
-  };
-  streams?: number | null;
   likes?: number | null;
   shares?: number | null;
   engagementScore?: number | null;
@@ -1262,18 +1938,26 @@ export interface Track {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "albums".
+ * via the `definition` "vod".
  */
-export interface Album {
+export interface Vod {
   id: number;
   title: string;
   /**
-   * Auto-generated if empty
+   * Auto-generated if left empty.
    */
   slug?: string | null;
-  albumType: 'album' | 'ep' | 'single' | 'compilation' | 'mixtape';
-  releaseYear?: number | null;
-  status?: ('released' | 'unreleased' | 'preview') | null;
+  vodType:
+    | 'special'
+    | 'exclusive'
+    | 'interview'
+    | 'performance'
+    | 'event-replay'
+    | 'sermon'
+    | 'short'
+    | 'doc-short'
+    | 'feature-clip';
+  status?: ('published' | 'scheduled' | 'draft' | 'archived') | null;
   description?: {
     root: {
       type: string;
@@ -1289,20 +1973,98 @@ export interface Album {
     };
     [k: string]: unknown;
   } | null;
-  primaryArtist: number | Profile;
-  featuredArtists?: (number | Profile)[] | null;
+  publishedDate?: string | null;
+  videoProvider: 'cloudflare' | 's3' | 'external';
   /**
-   * Album cover
+   * Cloudflare Stream UID
    */
-  coverArt?: (number | null) | Media;
-  gallery?: (number | Media)[] | null;
+  cloudflareVideoId?: string | null;
   /**
-   * Add tracks assigned to this album
+   * Cloudflare playback URL (HLS/DASH)
    */
-  tracks?: (number | Track)[] | null;
+  cloudflarePlaybackUrl?: string | null;
+  /**
+   * Upload MP4 / WEBM file
+   */
+  s3VideoFile?: (number | null) | Media;
+  /**
+   * YouTube, Vimeo, or direct URL
+   */
+  externalUrl?: string | null;
+  thumbnail?: (number | null) | Media;
+  bannerImage?: (number | null) | Media;
+  stillImages?: (number | Media)[] | null;
+  /**
+   * Optional HEX theme color
+   */
+  brandColor?: string | null;
+  hosts?: (number | Profile)[] | null;
+  guests?: (number | Profile)[] | null;
+  /**
+   * Directors, producers, editors, creators
+   */
+  creators?: (number | Profile)[] | null;
+  /**
+   * Optional grouping to TV or Radio shows
+   */
+  relatedShows?: (number | Show)[] | null;
+  /**
+   * Optional — if this VOD belongs with specific episodes
+   */
+  relatedEpisodes?: (number | Episode)[] | null;
+  runtimeMinutes?: number | null;
+  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
   genre?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
-  playlists?: (number | Playlist)[] | null;
+  transcript?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  clips?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  behindTheScenes?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  promos?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Group VOD items into curated playlists
+   */
+  collections?:
+    | {
+        title: string;
+        /**
+         * Add other VOD videos to this collection
+         */
+        items?: (number | Vod)[] | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * Search Engine Optimization & social media metadata.
    */
@@ -1328,91 +2090,10 @@ export interface Album {
      */
     noIndex?: boolean | null;
   };
-  streams?: number | null;
+  views?: number | null;
   likes?: number | null;
   shares?: number | null;
   engagementScore?: number | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "playlists".
- */
-export interface Playlist {
-  id: number;
-  title: string;
-  /**
-   * Auto-generated if empty.
-   */
-  slug?: string | null;
-  /**
-   * Optional description for the playlist.
-   */
-  description?: string | null;
-  /**
-   * Playlist cover image.
-   */
-  coverImage?: (number | null) | Media;
-  type: 'podcasts' | 'podcast-episodes' | 'vod' | 'tv-episodes' | 'tracks' | 'mixed';
-  /**
-   * Media items for non-music playlists.
-   */
-  items?:
-    | (
-        | {
-            relationTo: 'podcasts';
-            value: number | Podcast;
-          }
-        | {
-            relationTo: 'podcast-episodes';
-            value: number | PodcastEpisode;
-          }
-        | {
-            relationTo: 'vod';
-            value: number | Vod;
-          }
-        | {
-            relationTo: 'episodes';
-            value: number | Episode;
-          }
-        | {
-            relationTo: 'tracks';
-            value: number | Track;
-          }
-        | {
-            relationTo: 'films';
-            value: number | Film;
-          }
-      )[]
-    | null;
-  /**
-   * For tracks not yet created in the Tracks collection.
-   */
-  manualTracks?:
-    | {
-        title: string;
-        artist: string;
-        album?: string | null;
-        /**
-         * Example: 3:25
-         */
-        duration?: string | null;
-        /**
-         * Optional artwork.
-         */
-        coverArt?: (number | null) | Media;
-        /**
-         * Optional link to Spotify, Apple Music, YouTube, etc.
-         */
-        externalUrl?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  sortOrder?: ('manual' | 'newest' | 'oldest' | 'popular') | null;
-  visibility?: ('public' | 'private' | 'unlisted') | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -1603,233 +2284,121 @@ export interface PodcastEpisode {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "vod".
+ * via the `definition` "playlists".
  */
-export interface Vod {
-  id: number;
-  title: string;
-  /**
-   * Auto-generated if left empty.
-   */
-  slug?: string | null;
-  vodType:
-    | 'special'
-    | 'exclusive'
-    | 'interview'
-    | 'performance'
-    | 'event-replay'
-    | 'sermon'
-    | 'short'
-    | 'doc-short'
-    | 'feature-clip';
-  status?: ('published' | 'scheduled' | 'draft' | 'archived') | null;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  publishedDate?: string | null;
-  videoProvider: 'cloudflare' | 's3' | 'external';
-  /**
-   * Cloudflare Stream UID
-   */
-  cloudflareVideoId?: string | null;
-  /**
-   * Cloudflare playback URL (HLS/DASH)
-   */
-  cloudflarePlaybackUrl?: string | null;
-  /**
-   * Upload MP4 / WEBM file
-   */
-  s3VideoFile?: (number | null) | Media;
-  /**
-   * YouTube, Vimeo, or direct URL
-   */
-  externalUrl?: string | null;
-  thumbnail?: (number | null) | Media;
-  bannerImage?: (number | null) | Media;
-  stillImages?: (number | Media)[] | null;
-  /**
-   * Optional HEX theme color
-   */
-  brandColor?: string | null;
-  hosts?: (number | Profile)[] | null;
-  guests?: (number | Profile)[] | null;
-  /**
-   * Directors, producers, editors, creators
-   */
-  creators?: (number | Profile)[] | null;
-  /**
-   * Optional grouping to TV or Radio shows
-   */
-  relatedShows?: (number | Show)[] | null;
-  /**
-   * Optional — if this VOD belongs with specific episodes
-   */
-  relatedEpisodes?: (number | Episode)[] | null;
-  runtimeMinutes?: number | null;
-  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
-  genre?: (number | null) | Category;
-  tags?: (number | Tag)[] | null;
-  transcript?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  clips?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  behindTheScenes?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  promos?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Group VOD items into curated playlists
-   */
-  collections?:
-    | {
-        title: string;
-        /**
-         * Add other VOD videos to this collection
-         */
-        items?: (number | Vod)[] | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Search Engine Optimization & social media metadata.
-   */
-  seo?: {
-    /**
-     * Custom SEO title
-     */
-    title?: string | null;
-    /**
-     * SEO description (160 chars recommended)
-     */
-    description?: string | null;
-    /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
-     */
-    keywords?: string | null;
-    /**
-     * Facebook/Twitter share image (Open Graph)
-     */
-    ogImage?: (number | null) | Media;
-    /**
-     * Hide this page from search engines
-     */
-    noIndex?: boolean | null;
-  };
-  views?: number | null;
-  likes?: number | null;
-  shares?: number | null;
-  engagementScore?: number | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "films".
- */
-export interface Film {
+export interface Playlist {
   id: number;
   title: string;
   /**
    * Auto-generated if empty.
    */
   slug?: string | null;
-  filmType: 'feature' | 'documentary' | 'short' | 'pilot' | 'music-film';
-  releaseYear?: number | null;
-  status?: ('published' | 'coming-soon' | 'scheduled' | 'archived') | null;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  videoProvider: 'cloudflare' | 's3' | 'external';
   /**
-   * Cloudflare video UID
+   * Optional description for the playlist.
    */
-  cloudflareVideoId?: string | null;
+  description?: string | null;
   /**
-   * HLS/DASH playback URL
+   * Playlist cover image.
    */
-  cloudflarePlaybackUrl?: string | null;
+  coverImage?: (number | null) | Media;
+  type: 'podcasts' | 'podcast-episodes' | 'vod' | 'tv-episodes' | 'tracks' | 'mixed';
   /**
-   * Upload MP4 or WEBM
+   * Media items for non-music playlists.
    */
-  s3VideoFile?: (number | null) | Media;
+  items?:
+    | (
+        | {
+            relationTo: 'podcasts';
+            value: number | Podcast;
+          }
+        | {
+            relationTo: 'podcast-episodes';
+            value: number | PodcastEpisode;
+          }
+        | {
+            relationTo: 'vod';
+            value: number | Vod;
+          }
+        | {
+            relationTo: 'episodes';
+            value: number | Episode;
+          }
+        | {
+            relationTo: 'tracks';
+            value: number | Track;
+          }
+        | {
+            relationTo: 'films';
+            value: number | Film;
+          }
+      )[]
+    | null;
   /**
-   * YouTube, Vimeo, or custom stream URL
+   * For tracks not yet created in the Tracks collection.
    */
-  externalUrl?: string | null;
-  poster?: (number | null) | Media;
-  bannerImage?: (number | null) | Media;
-  stillImages?: (number | Media)[] | null;
-  brandColor?: string | null;
-  directors?: (number | Profile)[] | null;
-  writers?: (number | Profile)[] | null;
-  producers?: (number | Profile)[] | null;
-  cast?:
+  manualTracks?:
     | {
-        profile?: (number | null) | Profile;
-        roleName?: string | null;
+        title: string;
+        artist: string;
+        album?: string | null;
+        /**
+         * Example: 3:25
+         */
+        duration?: string | null;
+        /**
+         * Optional artwork.
+         */
+        coverArt?: (number | null) | Media;
+        /**
+         * Optional link to Spotify, Apple Music, YouTube, etc.
+         */
+        externalUrl?: string | null;
         id?: string | null;
       }[]
     | null;
-  runtimeMinutes?: number | null;
-  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
+  sortOrder?: ('manual' | 'newest' | 'oldest' | 'popular') | null;
+  visibility?: ('public' | 'private' | 'unlisted') | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tracks".
+ */
+export interface Track {
+  id: number;
+  title: string;
+  /**
+   * Auto-generated if empty
+   */
+  slug?: string | null;
+  status?: ('released' | 'unreleased' | 'preview' | 'blocked') | null;
+  description?: string | null;
+  primaryArtist: number | Profile;
+  featuredArtists?: (number | Profile)[] | null;
+  producers?: (number | Profile)[] | null;
+  writers?: (number | Profile)[] | null;
+  album?: (number | null) | Album;
+  audioProvider?: ('cloudflare' | 's3' | 'external') | null;
+  cloudflareAudioId?: string | null;
+  cloudflarePlaybackUrl?: string | null;
+  s3AudioFile?: (number | null) | Media;
+  externalUrl?: string | null;
+  runtime?: string | null;
+  bpm?: number | null;
+  key?: string | null;
+  /**
+   * International Standard Recording Code
+   */
+  isrc?: string | null;
   genre?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
-  trailer?: (number | null) | Media;
-  transcript?: {
+  /**
+   * Optional lyrics or timed captions
+   */
+  lyrics?: {
     root: {
       type: string;
       children: {
@@ -1844,27 +2413,12 @@ export interface Film {
     };
     [k: string]: unknown;
   } | null;
-  clips?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  behindTheScenes?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  promos?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
+  coverArt?: (number | null) | Media;
+  /**
+   * Optional visualizer loop
+   */
+  videoVisual?: (number | null) | Media;
+  playlists?: (number | Playlist)[] | null;
   /**
    * Search Engine Optimization & social media metadata.
    */
@@ -1890,7 +2444,7 @@ export interface Film {
      */
     noIndex?: boolean | null;
   };
-  views?: number | null;
+  streams?: number | null;
   likes?: number | null;
   shares?: number | null;
   engagementScore?: number | null;
@@ -1901,627 +2455,76 @@ export interface Film {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "comments".
+ * via the `definition` "albums".
  */
-export interface Comment {
-  id: number;
-  author: number | Profile;
-  body: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
-  /**
-   * Threaded comment support
-   */
-  parent?: (number | null) | Comment;
-  mediaType:
-    | 'tracks'
-    | 'albums'
-    | 'podcasts'
-    | 'podcast-episodes'
-    | 'vod'
-    | 'films'
-    | 'shows'
-    | 'episodes'
-    | 'articles'
-    | 'reviews';
-  mediaItem:
-    | {
-        relationTo: 'tracks';
-        value: number | Track;
-      }
-    | {
-        relationTo: 'albums';
-        value: number | Album;
-      }
-    | {
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      }
-    | {
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      }
-    | {
-        relationTo: 'vod';
-        value: number | Vod;
-      }
-    | {
-        relationTo: 'films';
-        value: number | Film;
-      }
-    | {
-        relationTo: 'shows';
-        value: number | Show;
-      }
-    | {
-        relationTo: 'episodes';
-        value: number | Episode;
-      }
-    | {
-        relationTo: 'articles';
-        value: number | Article;
-      }
-    | {
-        relationTo: 'reviews';
-        value: number | Review;
-      };
-  reactions?: (number | CommentReaction)[] | null;
-  /**
-   * AI-generated toxicity score (0–1). Used for moderation.
-   */
-  toxicityScore?: number | null;
-  /**
-   * Automatically flagged when toxicity exceeds threshold.
-   */
-  isToxic?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "reviews".
- */
-export interface Review {
+export interface Album {
   id: number;
   title: string;
-  rating: number;
   /**
-   * Optional critic rating (weighted)
+   * Auto-generated if empty
    */
-  criticRating?: number | null;
-  /**
-   * Mark review as containing spoilers
-   */
-  spoiler?: boolean | null;
-  body?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * Internal-only editorial notes for moderation.
-   */
-  editorNotes?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
-  reviewer: number | Profile;
-  mediaType:
-    | 'tracks'
-    | 'albums'
-    | 'films'
-    | 'vod'
-    | 'podcasts'
-    | 'podcast-episodes'
-    | 'shows'
-    | 'episodes'
-    | 'articles';
-  mediaItem:
-    | {
-        relationTo: 'tracks';
-        value: number | Track;
-      }
-    | {
-        relationTo: 'albums';
-        value: number | Album;
-      }
-    | {
-        relationTo: 'films';
-        value: number | Film;
-      }
-    | {
-        relationTo: 'vod';
-        value: number | Vod;
-      }
-    | {
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      }
-    | {
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      }
-    | {
-        relationTo: 'shows';
-        value: number | Show;
-      }
-    | {
-        relationTo: 'episodes';
-        value: number | Episode;
-      }
-    | {
-        relationTo: 'articles';
-        value: number | Article;
-      };
-  reactions?: (number | ReviewReaction)[] | null;
-  comments?: (number | Comment)[] | null;
-  /**
-   * AI toxicity score (0-1).
-   */
-  toxicityScore?: number | null;
-  /**
-   * Automatically flagged if toxicity is high.
-   */
-  isToxic?: boolean | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "review-reactions".
- */
-export interface ReviewReaction {
-  id: number;
-  reaction: number | Reaction;
-  review: number | Review;
-  user: number | Profile;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "reactions".
- */
-export interface Reaction {
-  id: number;
-  label: string;
-  /**
-   * Emoji to display (🔥, 💯, 😂, ❤️, 👎)
-   */
-  emoji: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "comment-reactions".
- */
-export interface CommentReaction {
-  id: number;
-  reaction: number | Reaction;
-  comment: number | Comment;
-  user: number | Profile;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "creator-channels".
- */
-export interface CreatorChannel {
-  id: number;
-  creator: number | Profile;
-  name: string;
   slug?: string | null;
-  description?: string | null;
-  status?: ('active' | 'paused' | 'archived') | null;
-  visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  albumType: 'album' | 'ep' | 'single' | 'compilation' | 'mixtape';
+  releaseYear?: number | null;
+  status?: ('released' | 'unreleased' | 'preview') | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  primaryArtist: number | Profile;
+  featuredArtists?: (number | Profile)[] | null;
   /**
-   * Which tiers can access this channel
+   * Album cover
    */
-  allowedTiers?: (number | CreatorTier)[] | null;
-  coverImage?: (number | null) | Media;
-  bannerVideo?: (number | null) | Media;
+  coverArt?: (number | null) | Media;
+  gallery?: (number | Media)[] | null;
   /**
-   * Users who follow this channel
+   * Add tracks assigned to this album
    */
-  followers?: (number | Profile)[] | null;
+  tracks?: (number | Track)[] | null;
+  genre?: (number | null) | Category;
+  tags?: (number | Tag)[] | null;
+  playlists?: (number | Playlist)[] | null;
   /**
-   * Auto-generated follower count
+   * Search Engine Optimization & social media metadata.
    */
-  followersCount?: number | null;
-  /**
-   * Populated via API (not stored in DB)
-   */
-  followedByMe?: boolean | null;
-  moderators?: (number | ChannelModerator)[] | null;
-  announcements?: (number | ChannelAnnouncement)[] | null;
   seo?: {
     /**
-     * Search Engine Optimization & social media metadata.
+     * Custom SEO title
      */
-    seo?: {
-      /**
-       * Custom SEO title
-       */
-      title?: string | null;
-      /**
-       * SEO description (160 chars recommended)
-       */
-      description?: string | null;
-      /**
-       * Comma-separated (R&B, Gospel, Radio, TV)
-       */
-      keywords?: string | null;
-      /**
-       * Facebook/Twitter share image (Open Graph)
-       */
-      ogImage?: (number | null) | Media;
-      /**
-       * Hide this page from search engines
-       */
-      noIndex?: boolean | null;
-    };
+    title?: string | null;
+    /**
+     * SEO description (160 chars recommended)
+     */
+    description?: string | null;
+    /**
+     * Comma-separated (R&B, Gospel, Radio, TV)
+     */
+    keywords?: string | null;
+    /**
+     * Facebook/Twitter share image (Open Graph)
+     */
+    ogImage?: (number | null) | Media;
+    /**
+     * Hide this page from search engines
+     */
+    noIndex?: boolean | null;
   };
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "creator-tiers".
- */
-export interface CreatorTier {
-  id: number;
-  creator: number | Profile;
-  name: string;
-  slug?: string | null;
-  status?: ('active' | 'hidden' | 'archived') | null;
-  price: number;
-  currency?: string | null;
-  billingInterval: 'monthly' | 'yearly';
-  description?: string | null;
-  benefits?: (number | CreatorTierBenefit)[] | null;
-  mediaPreview?: (number | null) | Media;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "creator-tier-benefits".
- */
-export interface CreatorTierBenefit {
-  id: number;
-  title: string;
-  description?: string | null;
-  /**
-   * Optional—badge shown in chats/comments.
-   */
-  badgeIcon?: (number | null) | Media;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "channel-moderators".
- */
-export interface ChannelModerator {
-  id: number;
-  channel: number | CreatorChannel;
-  user: number | Profile;
-  role: 'manager' | 'editor' | 'moderator';
-  permissions?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "channel-announcements".
- */
-export interface ChannelAnnouncement {
-  id: number;
-  channel: number | CreatorChannel;
-  title: string;
-  body: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  visibility?: ('public' | 'subscribers' | 'tiers') | null;
-  allowedTiers?: (number | CreatorTier)[] | null;
-  pinned?: boolean | null;
-  expiresAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "creator-subscriptions".
- */
-export interface CreatorSubscription {
-  id: number;
-  creator: number | Profile;
-  subscriber: number | Profile;
-  tier: number | CreatorTier;
-  status?: ('active' | 'canceled' | 'paused' | 'past_due') | null;
-  startDate: string;
-  endDate?: string | null;
-  stripeSubscriptionId?: string | null;
-  renewalAttempts?: number | null;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "content-subscriptions".
- */
-export interface ContentSubscription {
-  id: number;
-  subscriber: number | Profile;
-  contentType:
-    | 'shows'
-    | 'episodes'
-    | 'films'
-    | 'vod'
-    | 'podcasts'
-    | 'podcast-episodes'
-    | 'articles'
-    | 'tracks'
-    | 'albums';
-  contentItem:
-    | {
-        relationTo: 'shows';
-        value: number | Show;
-      }
-    | {
-        relationTo: 'episodes';
-        value: number | Episode;
-      }
-    | {
-        relationTo: 'films';
-        value: number | Film;
-      }
-    | {
-        relationTo: 'vod';
-        value: number | Vod;
-      }
-    | {
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      }
-    | {
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      }
-    | {
-        relationTo: 'articles';
-        value: number | Article;
-      }
-    | {
-        relationTo: 'tracks';
-        value: number | Track;
-      }
-    | {
-        relationTo: 'albums';
-        value: number | Album;
-      };
-  status?: ('active' | 'expired' | 'canceled') | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  pricePaid?: number | null;
-  currency?: string | null;
-  transactionId?: string | null;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscription-plans".
- */
-export interface SubscriptionPlan {
-  id: number;
-  name: string;
-  slug?: string | null;
-  interval: 'monthly' | 'yearly';
-  price: number;
-  benefits?:
-    | {
-        text?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  status?: ('active' | 'hidden' | 'archived') | null;
-  stripeProductId?: string | null;
-  stripePriceId?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "creator-earnings".
- */
-export interface CreatorEarning {
-  id: number;
-  creator: number | Profile;
-  /**
-   * Format: 2025-03
-   */
-  month?: string | null;
-  currency?: string | null;
-  gross?: number | null;
-  platformFee?: number | null;
-  processingFee?: number | null;
-  net?: number | null;
-  payoutStatus?: ('pending' | 'paid' | 'held') | null;
-  payout?: (number | null) | CreatorPayout;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "creator-payouts".
- */
-export interface CreatorPayout {
-  id: number;
-  creator: number | Profile;
-  payoutReference?: string | null;
-  amount?: number | null;
-  currency?: string | null;
-  status?: ('processing' | 'paid' | 'failed' | 'reversed') | null;
-  payoutDate?: string | null;
-  notes?: string | null;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "charts".
- */
-export interface Chart {
-  id: number;
-  title: string;
-  slug?: string | null;
-  chartType: 'weekly' | 'daily' | 'monthly' | 'trending' | 'staff-picks' | 'algorithmic';
-  /**
-   * Week/Month this chart represents
-   */
-  period?: string | null;
-  status?: ('draft' | 'published' | 'archived') | null;
-  description?: string | null;
-  entries?:
-    | {
-        rank: number;
-        /**
-         * Previous position
-         */
-        lastWeek?: number | null;
-        peak?: number | null;
-        weeksOnChart?: number | null;
-        movement?: ('up' | 'down' | 'new' | 're-entry' | 'same') | null;
-        /**
-         * Use an existing track OR create manual entry below.
-         */
-        track?: (number | null) | Track;
-        /**
-         * Use when the track does NOT exist in the Tracks collection.
-         */
-        manualTrackInfo?: {
-          title?: string | null;
-          artist?: string | null;
-          coverArt?: (number | null) | Media;
-          /**
-           * Optional link to streaming platform
-           */
-          externalUrl?: string | null;
-        };
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Optionally link this chart to a playlist.
-   */
-  playlist?: (number | null) | Playlist;
+  streams?: number | null;
+  likes?: number | null;
+  shares?: number | null;
+  engagementScore?: number | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -2942,6 +2945,20 @@ export interface MessageReaction {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions".
+ */
+export interface Reaction {
+  id: number;
+  label: string;
+  /**
+   * Emoji to display (🔥, 💯, 😂, ❤️, 👎)
+   */
+  emoji: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notifications".
  */
 export interface Notification {
@@ -3077,6 +3094,620 @@ export interface Notification {
     | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews".
+ */
+export interface Review {
+  id: number;
+  title: string;
+  rating: number;
+  /**
+   * Optional critic rating (weighted)
+   */
+  criticRating?: number | null;
+  /**
+   * Mark review as containing spoilers
+   */
+  spoiler?: boolean | null;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Internal-only editorial notes for moderation.
+   */
+  editorNotes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
+  reviewer: number | Profile;
+  mediaType:
+    | 'tracks'
+    | 'albums'
+    | 'films'
+    | 'vod'
+    | 'podcasts'
+    | 'podcast-episodes'
+    | 'shows'
+    | 'episodes'
+    | 'articles';
+  mediaItem:
+    | {
+        relationTo: 'tracks';
+        value: number | Track;
+      }
+    | {
+        relationTo: 'albums';
+        value: number | Album;
+      }
+    | {
+        relationTo: 'films';
+        value: number | Film;
+      }
+    | {
+        relationTo: 'vod';
+        value: number | Vod;
+      }
+    | {
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      }
+    | {
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      }
+    | {
+        relationTo: 'shows';
+        value: number | Show;
+      }
+    | {
+        relationTo: 'episodes';
+        value: number | Episode;
+      }
+    | {
+        relationTo: 'articles';
+        value: number | Article;
+      };
+  reactions?: (number | ReviewReaction)[] | null;
+  comments?: (number | Comment)[] | null;
+  /**
+   * AI toxicity score (0-1).
+   */
+  toxicityScore?: number | null;
+  /**
+   * Automatically flagged if toxicity is high.
+   */
+  isToxic?: boolean | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-reactions".
+ */
+export interface ReviewReaction {
+  id: number;
+  reaction: number | Reaction;
+  review: number | Review;
+  user: number | Profile;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments".
+ */
+export interface Comment {
+  id: number;
+  author: number | Profile;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
+  /**
+   * Threaded comment support
+   */
+  parent?: (number | null) | Comment;
+  mediaType:
+    | 'tracks'
+    | 'albums'
+    | 'podcasts'
+    | 'podcast-episodes'
+    | 'vod'
+    | 'films'
+    | 'shows'
+    | 'episodes'
+    | 'articles'
+    | 'reviews';
+  mediaItem:
+    | {
+        relationTo: 'tracks';
+        value: number | Track;
+      }
+    | {
+        relationTo: 'albums';
+        value: number | Album;
+      }
+    | {
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      }
+    | {
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      }
+    | {
+        relationTo: 'vod';
+        value: number | Vod;
+      }
+    | {
+        relationTo: 'films';
+        value: number | Film;
+      }
+    | {
+        relationTo: 'shows';
+        value: number | Show;
+      }
+    | {
+        relationTo: 'episodes';
+        value: number | Episode;
+      }
+    | {
+        relationTo: 'articles';
+        value: number | Article;
+      }
+    | {
+        relationTo: 'reviews';
+        value: number | Review;
+      };
+  reactions?: (number | CommentReaction)[] | null;
+  /**
+   * AI-generated toxicity score (0–1). Used for moderation.
+   */
+  toxicityScore?: number | null;
+  /**
+   * Automatically flagged when toxicity exceeds threshold.
+   */
+  isToxic?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comment-reactions".
+ */
+export interface CommentReaction {
+  id: number;
+  reaction: number | Reaction;
+  comment: number | Comment;
+  user: number | Profile;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "charts".
+ */
+export interface Chart {
+  id: number;
+  title: string;
+  slug?: string | null;
+  chartType: 'weekly' | 'daily' | 'monthly' | 'trending' | 'staff-picks' | 'algorithmic';
+  /**
+   * Week/Month this chart represents
+   */
+  period?: string | null;
+  status?: ('draft' | 'published' | 'archived') | null;
+  description?: string | null;
+  entries?:
+    | {
+        rank: number;
+        /**
+         * Previous position
+         */
+        lastWeek?: number | null;
+        peak?: number | null;
+        weeksOnChart?: number | null;
+        movement?: ('up' | 'down' | 'new' | 're-entry' | 'same') | null;
+        /**
+         * Use an existing track OR create manual entry below.
+         */
+        track?: (number | null) | Track;
+        /**
+         * Use when the track does NOT exist in the Tracks collection.
+         */
+        manualTrackInfo?: {
+          title?: string | null;
+          artist?: string | null;
+          coverArt?: (number | null) | Media;
+          /**
+           * Optional link to streaming platform
+           */
+          externalUrl?: string | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Optionally link this chart to a playlist.
+   */
+  playlist?: (number | null) | Playlist;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "creator-channels".
+ */
+export interface CreatorChannel {
+  id: number;
+  creator: number | Profile;
+  name: string;
+  slug?: string | null;
+  description?: string | null;
+  status?: ('active' | 'paused' | 'archived') | null;
+  visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  /**
+   * Which tiers can access this channel
+   */
+  allowedTiers?: (number | CreatorTier)[] | null;
+  coverImage?: (number | null) | Media;
+  bannerVideo?: (number | null) | Media;
+  /**
+   * Users who follow this channel
+   */
+  followers?: (number | Profile)[] | null;
+  /**
+   * Auto-generated follower count
+   */
+  followersCount?: number | null;
+  /**
+   * Populated via API (not stored in DB)
+   */
+  followedByMe?: boolean | null;
+  moderators?: (number | ChannelModerator)[] | null;
+  announcements?: (number | ChannelAnnouncement)[] | null;
+  seo?: {
+    /**
+     * Search Engine Optimization & social media metadata.
+     */
+    seo?: {
+      /**
+       * Custom SEO title
+       */
+      title?: string | null;
+      /**
+       * SEO description (160 chars recommended)
+       */
+      description?: string | null;
+      /**
+       * Comma-separated (R&B, Gospel, Radio, TV)
+       */
+      keywords?: string | null;
+      /**
+       * Facebook/Twitter share image (Open Graph)
+       */
+      ogImage?: (number | null) | Media;
+      /**
+       * Hide this page from search engines
+       */
+      noIndex?: boolean | null;
+    };
+  };
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "creator-tiers".
+ */
+export interface CreatorTier {
+  id: number;
+  creator: number | Profile;
+  name: string;
+  slug?: string | null;
+  status?: ('active' | 'hidden' | 'archived') | null;
+  price: number;
+  currency?: string | null;
+  billingInterval: 'monthly' | 'yearly';
+  description?: string | null;
+  benefits?: (number | CreatorTierBenefit)[] | null;
+  mediaPreview?: (number | null) | Media;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "creator-tier-benefits".
+ */
+export interface CreatorTierBenefit {
+  id: number;
+  title: string;
+  description?: string | null;
+  /**
+   * Optional—badge shown in chats/comments.
+   */
+  badgeIcon?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "channel-moderators".
+ */
+export interface ChannelModerator {
+  id: number;
+  channel: number | CreatorChannel;
+  user: number | Profile;
+  role: 'manager' | 'editor' | 'moderator';
+  permissions?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "channel-announcements".
+ */
+export interface ChannelAnnouncement {
+  id: number;
+  channel: number | CreatorChannel;
+  title: string;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  allowedTiers?: (number | CreatorTier)[] | null;
+  pinned?: boolean | null;
+  expiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "creator-subscriptions".
+ */
+export interface CreatorSubscription {
+  id: number;
+  creator: number | Profile;
+  subscriber: number | Profile;
+  tier: number | CreatorTier;
+  status?: ('active' | 'canceled' | 'paused' | 'past_due') | null;
+  startDate: string;
+  endDate?: string | null;
+  stripeSubscriptionId?: string | null;
+  renewalAttempts?: number | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-subscriptions".
+ */
+export interface ContentSubscription {
+  id: number;
+  subscriber: number | Profile;
+  contentType:
+    | 'shows'
+    | 'episodes'
+    | 'films'
+    | 'vod'
+    | 'podcasts'
+    | 'podcast-episodes'
+    | 'articles'
+    | 'tracks'
+    | 'albums';
+  contentItem:
+    | {
+        relationTo: 'shows';
+        value: number | Show;
+      }
+    | {
+        relationTo: 'episodes';
+        value: number | Episode;
+      }
+    | {
+        relationTo: 'films';
+        value: number | Film;
+      }
+    | {
+        relationTo: 'vod';
+        value: number | Vod;
+      }
+    | {
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      }
+    | {
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      }
+    | {
+        relationTo: 'articles';
+        value: number | Article;
+      }
+    | {
+        relationTo: 'tracks';
+        value: number | Track;
+      }
+    | {
+        relationTo: 'albums';
+        value: number | Album;
+      };
+  status?: ('active' | 'expired' | 'canceled') | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  pricePaid?: number | null;
+  currency?: string | null;
+  transactionId?: string | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-plans".
+ */
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  slug?: string | null;
+  interval: 'monthly' | 'yearly';
+  price: number;
+  benefits?:
+    | {
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  status?: ('active' | 'hidden' | 'archived') | null;
+  stripeProductId?: string | null;
+  stripePriceId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "creator-earnings".
+ */
+export interface CreatorEarning {
+  id: number;
+  creator: number | Profile;
+  /**
+   * Format: 2025-03
+   */
+  month?: string | null;
+  currency?: string | null;
+  gross?: number | null;
+  platformFee?: number | null;
+  processingFee?: number | null;
+  net?: number | null;
+  payoutStatus?: ('pending' | 'paid' | 'held') | null;
+  payout?: (number | null) | CreatorPayout;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "creator-payouts".
+ */
+export interface CreatorPayout {
+  id: number;
+  creator: number | Profile;
+  payoutReference?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+  status?: ('processing' | 'paid' | 'failed' | 'reversed') | null;
+  payoutDate?: string | null;
+  notes?: string | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3811,97 +4442,6 @@ export interface ArtistSpotlight {
   featuredArticle?: (number | null) | Article;
   featuredRelease?: (number | null) | Album;
   slug: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "polls".
- */
-export interface Poll {
-  id: number;
-  question: string;
-  /**
-   * Auto-generated if empty
-   */
-  slug?: string | null;
-  status?: ('draft' | 'active' | 'closed' | 'archived') | null;
-  scope: 'global' | 'content' | 'event' | 'channel';
-  options: {
-    label: string;
-    value: string;
-    voteCount?: number | null;
-    id?: string | null;
-  }[];
-  /**
-   * If content-specific, choose content type.
-   */
-  targetContentType?:
-    | ('shows' | 'episodes' | 'films' | 'vod' | 'podcasts' | 'podcast-episodes' | 'articles' | 'tracks' | 'albums')
-    | null;
-  targetContent?:
-    | ({
-        relationTo: 'shows';
-        value: number | Show;
-      } | null)
-    | ({
-        relationTo: 'episodes';
-        value: number | Episode;
-      } | null)
-    | ({
-        relationTo: 'films';
-        value: number | Film;
-      } | null)
-    | ({
-        relationTo: 'vod';
-        value: number | Vod;
-      } | null)
-    | ({
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      } | null)
-    | ({
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      } | null)
-    | ({
-        relationTo: 'articles';
-        value: number | Article;
-      } | null)
-    | ({
-        relationTo: 'tracks';
-        value: number | Track;
-      } | null)
-    | ({
-        relationTo: 'albums';
-        value: number | Album;
-      } | null);
-  targetEvent?: (number | null) | Event;
-  targetChannel?: (number | null) | CreatorChannel;
-  /**
-   * Limit poll to certain roles (optional)
-   */
-  audienceRoles?: ('free' | 'creator' | 'pro' | 'industry' | 'host' | 'editor' | 'admin')[] | null;
-  /**
-   * Require logged-in user to vote
-   */
-  requireAuth?: boolean | null;
-  allowMultipleVotes?: boolean | null;
-  showResults?: ('always' | 'after-vote' | 'after-end' | 'admin-only') | null;
-  startAt?: string | null;
-  endAt?: string | null;
-  totalVotes?: number | null;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -5720,6 +6260,15 @@ export interface ProfilesSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  variants?:
+    | T
+    | {
+        thumbnail?: T;
+        square?: T;
+        landscape?: T;
+        portrait?: T;
+        cinematic?: T;
+      };
   filename?: T;
   mimeType?: T;
   filesize?: T;
@@ -5728,6 +6277,16 @@ export interface MediaSelect<T extends boolean = true> {
   duration?: T;
   bitrate?: T;
   dominantColor?: T;
+  caption?: T;
+  attribution?: T;
+  focalPoint?: T;
+  carouselSettings?:
+    | T
+    | {
+        enableInArticleCarousel?: T;
+        carouselCaption?: T;
+        carouselAttribution?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -6320,36 +6879,93 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
-  slug?: T;
+  type?: T;
   status?: T;
   publishedDate?: T;
-  readingTime?: T;
-  featureLevel?: T;
+  scheduledPublishDate?: T;
+  lastUpdated?: T;
+  peerReviewer?: T;
+  qualityScorecard?:
+    | T
+    | {
+        clarityScore?: T;
+        grammarScore?: T;
+        culturalScore?: T;
+        verifiedSources?: T;
+        overallQuality?: T;
+      };
   author?: T;
-  contributors?: T;
-  editors?: T;
+  slug?: T;
   heroImage?: T;
-  heroVideo?: T;
-  body?: T;
+  heroImageAlt?: T;
+  carousel?:
+    | T
+    | {
+        media?: T;
+        caption?: T;
+        attribution?: T;
+        id?: T;
+      };
+  readingTime?: T;
+  editorialNotes?: T;
   contentBlocks?:
     | T
     | {
-        textBlock?:
+        richText?:
           | T
           | {
-              text?: T;
+              content?: T;
               id?: T;
               blockName?: T;
             };
-        imageBlock?:
+        image?:
           | T
           | {
-              image?: T;
+              media?: T;
+              caption?: T;
+              attribution?: T;
+              id?: T;
+              blockName?: T;
+            };
+        video?:
+          | T
+          | {
+              media?: T;
               caption?: T;
               id?: T;
               blockName?: T;
             };
-        embedBlock?:
+        carousel?:
+          | T
+          | {
+              items?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        pullQuote?:
+          | T
+          | {
+              quote?: T;
+              source?: T;
+              id?: T;
+              blockName?: T;
+            };
+        callout?:
+          | T
+          | {
+              style?: T;
+              content?: T;
+              id?: T;
+              blockName?: T;
+            };
+        embed?:
           | T
           | {
               embedUrl?: T;
@@ -6357,14 +6973,88 @@ export interface ArticlesSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        sideBySide?:
+          | T
+          | {
+              left?: T;
+              right?: T;
+              caption?: T;
+              id?: T;
+              blockName?: T;
+            };
+        dropcap?:
+          | T
+          | {
+              text?: T;
+              id?: T;
+              blockName?: T;
+            };
+        timeline?:
+          | T
+          | {
+              events?:
+                | T
+                | {
+                    year?: T;
+                    title?: T;
+                    description?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        quoteWithImage?:
+          | T
+          | {
+              quote?: T;
+              source?: T;
+              media?: T;
+              position?: T;
+              id?: T;
+              blockName?: T;
+            };
+        authorBio?:
+          | T
+          | {
+              author?: T;
+              bio?: T;
+              photo?: T;
+              id?: T;
+              blockName?: T;
+            };
+        adUnit?:
+          | T
+          | {
+              adType?: T;
+              media?: T;
+              nativeText?: T;
+              script?: T;
+              sponsorName?: T;
+              id?: T;
+              blockName?: T;
+            };
+        footnotes?:
+          | T
+          | {
+              notes?:
+                | T
+                | {
+                    label?: T;
+                    content?: T;
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        interactivePoll?:
+          | T
+          | {
+              poll?: T;
+              showResultsInline?: T;
+              id?: T;
+              blockName?: T;
+            };
       };
-  category?: T;
-  tags?: T;
-  relatedArticles?: T;
-  relatedMedia?: T;
-  comments?: T;
-  reviews?: T;
-  reactions?: T;
   seo?:
     | T
     | {
@@ -6374,11 +7064,304 @@ export interface ArticlesSelect<T extends boolean = true> {
         ogImage?: T;
         noIndex?: T;
       };
-  views?: T;
-  shares?: T;
-  likes?: T;
-  createdBy?: T;
-  updatedBy?: T;
+  engagement?:
+    | T
+    | {
+        views?: T;
+        likes?: T;
+        shares?: T;
+        comments?: T;
+        reactions?:
+          | T
+          | {
+              type?: T;
+              count?: T;
+              id?: T;
+            };
+      };
+  standardFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        tags?: T;
+        publishDate?: T;
+        heroImage?: T;
+        heroImageAlt?: T;
+        introParagraph?: T;
+        section1Context?: T;
+        section2MainStory?: T;
+        section3CulturalAnalysis?: T;
+        section4WhatsNext?: T;
+        creditsSources?: T;
+        socialCopyShort?: T;
+        socialCopyLong?: T;
+        altTextForImages?: T;
+        engagement?:
+          | T
+          | {
+              views?: T;
+              likes?: T;
+              shares?: T;
+              comments?: T;
+              reactions?:
+                | T
+                | {
+                    type?: T;
+                    count?: T;
+                    id?: T;
+                  };
+            };
+      };
+  breakingNewsFields?:
+    | T
+    | {
+        subtitle?: T;
+        tags?: T;
+        category?: T;
+        subCategory?: T;
+        whatHappened?: T;
+        confirmedDetails?: T;
+        notYetConfirmed?: T;
+        statements?: T;
+        context?: T;
+        updates?: T;
+        socialCopyTwitter?: T;
+        socialCopyInstagram?: T;
+      };
+  musicReviewFields?:
+    | T
+    | {
+        sub?: T;
+        cat?: T;
+        subcat?: T;
+        auth?: T;
+        intro?: T;
+        taa?:
+          | T
+          | {
+              sp?: T;
+              vp?: T;
+              lt?: T;
+              st?: T;
+              wp?: T;
+            };
+        cp?: T;
+        vd?: T;
+        rt?: T;
+        tl?: T;
+        rtr?: T;
+        ral?: T;
+      };
+  filmTVReviewFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        intro?: T;
+        plotSummary?: T;
+        analysis?:
+          | T
+          | {
+              direction?: T;
+              acting?: T;
+              cinematography?: T;
+              writing?: T;
+              themes?: T;
+            };
+        culturalAnalysis?: T;
+        verdict?: T;
+        rating?: T;
+        relatedShow?: T;
+        relatedFilm?: T;
+      };
+  interviewFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        author?: T;
+        podcast?: T;
+        musicVideo?: T;
+        interviewVideo?: T;
+        intro?: T;
+        interview?:
+          | T
+          | {
+              question?: T;
+              answer?: T;
+              id?: T;
+            };
+        closingNotes?: T;
+        sidebar?:
+          | T
+          | {
+              socialLinks?:
+                | T
+                | {
+                    platform?: T;
+                    url?: T;
+                    id?: T;
+                  };
+              tourDates?:
+                | T
+                | {
+                    date?: T;
+                    id?: T;
+                  };
+              releases?:
+                | T
+                | {
+                    release?: T;
+                    id?: T;
+                  };
+            };
+        relatedArtists?: T;
+      };
+  featureFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        author?: T;
+        narrativeLede?: T;
+        sectionStory?: T;
+        sectionInsight?: T;
+        sectionVoices?: T;
+        sectionImpact?: T;
+        sectionFuture?: T;
+        creditsSources?: T;
+      };
+  eventRecapFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        intro?: T;
+        highlights?: T;
+        atmosphere?: T;
+        culturalTakeaways?: T;
+        photos?:
+          | T
+          | {
+              image?: T;
+              alt?: T;
+              id?: T;
+            };
+        relatedEvents?: T;
+      };
+  aaFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        hook?: T;
+        background?: T;
+        mainStory?: T;
+        localVoices?:
+          | T
+          | {
+              quote?: T;
+              speaker?: T;
+              id?: T;
+            };
+        connectionToWN?: T;
+        resources?:
+          | T
+          | {
+              title?: T;
+              description?: T;
+              id?: T;
+            };
+      };
+  lifestyleFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        intro?: T;
+        body?:
+          | T
+          | {
+              sectionInsight?: T;
+              sectionExamples?: T;
+              sectionAdvice?: T;
+              sectionCulturalRelevance?: T;
+            };
+        callToAction?: T;
+        imagery?:
+          | T
+          | {
+              image?: T;
+              alt?: T;
+              id?: T;
+            };
+      };
+  faithFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        openingReflection?: T;
+        message?: T;
+        application?: T;
+        closingPrayerOrAffirmation?: T;
+      };
+  sponsoredFields?:
+    | T
+    | {
+        sponsor?: T;
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        disclosure?: T;
+        intro?: T;
+        body?: T;
+        storyIntegration?: T;
+        cta?:
+          | T
+          | {
+              text?: T;
+              url?: T;
+              eventDate?: T;
+              productInfo?: T;
+            };
+        assets?:
+          | T
+          | {
+              image?: T;
+              alt?: T;
+              id?: T;
+            };
+      };
+  csFields?:
+    | T
+    | {
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        intro?: T;
+        origin?: T;
+        work?: T;
+        vision?: T;
+        mediaAssets?:
+          | T
+          | {
+              type?: T;
+              file?: T;
+              caption?: T;
+              credit?: T;
+              id?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
 }

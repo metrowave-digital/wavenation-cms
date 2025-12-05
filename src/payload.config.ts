@@ -69,7 +69,7 @@ import { Tags } from './collections/Categories/Tags'
 import { Categories } from './collections/Categories/Categories'
 
 /* Articles + Reviews */
-import { Articles } from './collections/Articles/Articles'
+import { Articles } from './collections/Articles/Articles/'
 import { Reviews } from './collections/Articles/Reviews'
 import { ReviewReactions } from './collections/Articles/ReviewReactions'
 
