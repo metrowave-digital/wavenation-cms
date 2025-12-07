@@ -1,19 +1,14 @@
-import { Field } from 'payload'
+import type { Field } from 'payload'
+import { articleBlocks } from '../blocks/allBlocks'
 
 export const breakingNewsFields: Field[] = [
+  // -----------------------------------------
+  // BASIC METADATA
+  // -----------------------------------------
   {
     type: 'text',
     name: 'subtitle',
     label: 'Subtitle',
-    required: false,
-  },
-
-  {
-    type: 'text',
-    name: 'tags',
-    label: 'Tags',
-    hasMany: true,
-    required: false,
   },
 
   {
@@ -29,84 +24,80 @@ export const breakingNewsFields: Field[] = [
     name: 'subCategory',
     label: 'Sub-Category',
     relationTo: 'categories',
-    required: false,
+  },
+
+  {
+    type: 'relationship',
+    name: 'tags',
+    label: 'Tags',
+    relationTo: 'tags',
+    hasMany: true,
   },
 
   // -----------------------------------------
-  // WHAT HAPPENED — summary
+  // HIGH-PRIORITY BREAKING DETAILS
   // -----------------------------------------
   {
-    type: 'textarea',
-    name: 'whatHappened',
-    label: 'What Happened (2–3 sentence summary)',
-    required: true,
+    type: 'text',
+    name: 'summary',
+    label: 'What Happened — 1–2 Sentence Summary',
     admin: {
-      description: 'Concise breaking news summary. Keep under 2–3 sentences.',
+      description: 'Keep extremely concise.',
     },
+    required: true,
   },
 
-  // -----------------------------------------
-  // CONFIRMED DETAILS
-  // -----------------------------------------
   {
     type: 'text',
     name: 'confirmedDetails',
     label: 'Confirmed Details',
-    required: false,
     hasMany: true,
     admin: {
-      description: 'Each entry should be a single confirmed fact.',
+      description: 'Each entry is ONE verified fact.',
     },
   },
 
-  // -----------------------------------------
-  // WHAT IS NOT YET CONFIRMED
-  // -----------------------------------------
   {
-    type: 'textarea',
+    type: 'text',
     name: 'notYetConfirmed',
-    label: 'What Is NOT Yet Confirmed',
+    label: 'Unverified / Pending Confirmation',
+    hasMany: true,
     admin: {
-      description:
-        'Prevent misinformation. Only list items that need clarification or are pending verification.',
+      description: 'Short bullet-style entries only.',
     },
   },
 
-  // -----------------------------------------
-  // OFFICIAL STATEMENTS ONLY
-  // -----------------------------------------
   {
-    type: 'textarea',
+    type: 'text',
     name: 'statements',
-    label: 'Statements (official only)',
+    label: 'Official Statements',
+    hasMany: true,
     admin: {
-      description:
-        'Include official statements from law enforcement, government, PR teams, companies, etc.',
+      description: 'Only formal statements from authorities or PR.',
     },
   },
 
-  // -----------------------------------------
-  // CONTEXT
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'context',
-    label: 'Context / Background',
-    admin: {
-      description: 'Explain related history or events.',
-    },
-  },
-
-  // -----------------------------------------
-  // UPDATES — live breaking updates
-  // -----------------------------------------
   {
     type: 'text',
     name: 'updates',
     label: 'Live Updates',
     hasMany: true,
     admin: {
-      description: 'Add updates as the story evolves.',
+      description: 'Add breaking updates as the story evolves.',
+    },
+  },
+
+  // -----------------------------------------
+  // MAIN BODY — now uses BLOCKS
+  // -----------------------------------------
+  {
+    type: 'blocks',
+    name: 'content',
+    label: 'Full Story Body',
+    blocks: articleBlocks,
+    required: false,
+    admin: {
+      description: 'Use this for extended reporting, embeds, images, quotes, etc.',
     },
   },
 
@@ -117,9 +108,6 @@ export const breakingNewsFields: Field[] = [
     type: 'text',
     name: 'socialCopyTwitter',
     label: 'Social Copy — Twitter/X',
-    admin: {
-      description: 'Short, breaking-style update.',
-    },
   },
   {
     type: 'textarea',

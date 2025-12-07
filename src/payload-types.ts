@@ -1291,7 +1291,7 @@ export interface Article {
     noIndex?: boolean | null;
   };
   /**
-   * Auto-generated analytics fields
+   * Auto-generated analytics fields (read-only)
    */
   engagement?: {
     views?: number | null;
@@ -1310,145 +1310,691 @@ export interface Article {
     subtitle?: string | null;
     category: number | Category;
     subCategory?: (number | null) | Category;
-    tags?: string[] | null;
-    publishDate?: string | null;
+    tags?: (number | Tag)[] | null;
     heroImage: number | Media;
     heroImageAlt: string;
-    introParagraph: string;
-    section1Context: string;
-    section2MainStory: string;
-    section3CulturalAnalysis?: string | null;
-    section4WhatsNext?: string | null;
-    creditsSources?: string | null;
-    socialCopyShort?: string | null;
-    socialCopyLong?: string | null;
-    altTextForImages?: string | null;
-    /**
-     * Auto-updated metrics for analytics + social proof
-     */
-    engagement?: {
-      views?: number | null;
-      likes?: number | null;
-      shares?: number | null;
-      comments?: number | null;
-      reactions?:
-        | {
-            type?: string | null;
-            count?: number | null;
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
             id?: string | null;
-          }[]
-        | null;
-    };
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
+    creditsSources?: string | null;
   };
   breakingNewsFields?: {
     subtitle?: string | null;
-    tags?: string[] | null;
     category: number | Category;
     subCategory?: (number | null) | Category;
+    tags?: (number | Tag)[] | null;
     /**
-     * Concise breaking news summary. Keep under 2–3 sentences.
+     * Keep extremely concise.
      */
-    whatHappened: string;
+    summary: string;
     /**
-     * Each entry should be a single confirmed fact.
+     * Each entry is ONE verified fact.
      */
     confirmedDetails?: string[] | null;
     /**
-     * Prevent misinformation. Only list items that need clarification or are pending verification.
+     * Short bullet-style entries only.
      */
-    notYetConfirmed?: string | null;
+    notYetConfirmed?: string[] | null;
     /**
-     * Include official statements from law enforcement, government, PR teams, companies, etc.
+     * Only formal statements from authorities or PR.
      */
-    statements?: string | null;
+    statements?: string[] | null;
     /**
-     * Explain related history or events.
-     */
-    context?: string | null;
-    /**
-     * Add updates as the story evolves.
+     * Add breaking updates as the story evolves.
      */
     updates?: string[] | null;
     /**
-     * Short, breaking-style update.
+     * Use this for extended reporting, embeds, images, quotes, etc.
      */
+    content?:
+      | (
+          | {
+              content: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'richText';
+            }
+          | {
+              media: number | Media;
+              caption?: string | null;
+              attribution?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'image';
+            }
+          | {
+              media: number | Media;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'video';
+            }
+          | {
+              items: {
+                media: number | Media;
+                caption?: string | null;
+                attribution?: string | null;
+                id?: string | null;
+              }[];
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'carousel';
+            }
+          | {
+              quote: string;
+              source?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'pullQuote';
+            }
+          | {
+              style?: ('info' | 'warning' | 'highlight') | null;
+              content: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'callout';
+            }
+          | {
+              embedUrl: string;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'embed';
+            }
+          | {
+              left: number | Media;
+              right: number | Media;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'sideBySide';
+            }
+          | {
+              text: string;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'dropcap';
+            }
+          | {
+              events?:
+                | {
+                    year: string;
+                    title: string;
+                    description: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'timeline';
+            }
+          | {
+              quote: string;
+              source?: string | null;
+              media?: (number | null) | Media;
+              position?: ('left' | 'right') | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'quoteWithImage';
+            }
+          | {
+              author: number | Profile;
+              bio?: string | null;
+              photo?: (number | null) | Media;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'authorBio';
+            }
+          | {
+              adType: 'banner' | 'native' | 'script';
+              media?: (number | null) | Media;
+              nativeText?: string | null;
+              script?: string | null;
+              sponsorName?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'adUnit';
+            }
+          | {
+              notes?:
+                | {
+                    label: string;
+                    content: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'footnotes';
+            }
+          | {
+              poll: number | Poll;
+              showResultsInline?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'interactivePoll';
+            }
+        )[]
+      | null;
     socialCopyTwitter?: string | null;
     socialCopyInstagram?: string | null;
   };
   musicReviewFields?: {
-    sub?: string | null;
-    cat: number | Category;
-    subcat?: (number | null) | Category;
-    auth: number | Profile;
+    subtitle?: string | null;
+    category: number | Category;
+    subCategory?: (number | null) | Category;
+    author: number | Profile;
     /**
-     * Brief context, release date, and why the project matters.
+     * Use blocks for intro, production analysis, vocal notes, lyrical themes, cultural positioning, verdict, embeds, images, and more.
      */
-    intro?: string | null;
-    taa?: {
-      sp?: string | null;
-      vp?: string | null;
-      lt?: string | null;
-      /**
-       * List standout tracks (one per line).
-       */
-      st?: string[] | null;
-      wp?: string | null;
-    };
-    /**
-     * How this project fits into genre trends, the scene, or the artist’s evolution.
-     */
-    cp?: string | null;
-    /**
-     * 1–2 paragraph summary conclusion of the review.
-     */
-    vd?: string | null;
-    /**
-     * Use WaveNation’s 1–10 rating scale.
-     */
-    rt: number;
-    /**
-     * Add track names in order.
-     */
-    tl?: string[] | null;
-    rtr?: (number | Track)[] | null;
-    ral?: (number | Album)[] | null;
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
+    rating: number;
+    tracklist?: string[] | null;
+    relatedTracks?: (number | Track)[] | null;
+    relatedAlbums?: (number | Album)[] | null;
   };
   filmTVReviewFields?: {
     subtitle?: string | null;
     category: number | Category;
     subCategory?: (number | null) | Category;
     /**
-     * Setup, creators, platform, release date, and why the project matters.
+     * Use blocks for intro, plot summary, creative analysis, cultural themes, verdict, embeds, screenshots, etc.
      */
-    intro?: string | null;
-    /**
-     * Write a clear plot overview without major spoilers unless noted.
-     */
-    plotSummary?: string | null;
-    /**
-     * Break down key creative elements of the film/show.
-     */
-    analysis?: {
-      direction?: string | null;
-      acting?: string | null;
-      cinematography?: string | null;
-      writing?: string | null;
-      themes?: string | null;
-    };
-    /**
-     * Discuss relevance to Black, Southern, multicultural, or urban audiences.
-     */
-    culturalAnalysis?: string | null;
-    /**
-     * 1–2 paragraph conclusion.
-     */
-    verdict?: string | null;
-    /**
-     * Use WaveNation’s 1–10 rating scale.
-     */
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
     rating: number;
-    relatedShow?: (number | Media)[] | null;
-    relatedFilm?: (number | Media)[] | null;
+    relatedShow?: (number | Show)[] | null;
+    relatedFilm?: (number | Film)[] | null;
   };
   interviewFields?: {
     subtitle?: string | null;
@@ -1459,21 +2005,329 @@ export interface Article {
     musicVideo?: (number | null) | Media;
     interviewVideo?: (number | null) | Media;
     /**
-     * Explain who the interview subject is and why they matter.
+     * Use blocks for intro, background, photos, pull quotes, and context before the Q&A.
      */
-    intro?: string | null;
-    /**
-     * Add as many Q&A blocks as needed. Each entry contains a question and answer.
-     */
+    content?:
+      | (
+          | {
+              content: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'richText';
+            }
+          | {
+              media: number | Media;
+              caption?: string | null;
+              attribution?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'image';
+            }
+          | {
+              media: number | Media;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'video';
+            }
+          | {
+              items: {
+                media: number | Media;
+                caption?: string | null;
+                attribution?: string | null;
+                id?: string | null;
+              }[];
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'carousel';
+            }
+          | {
+              quote: string;
+              source?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'pullQuote';
+            }
+          | {
+              style?: ('info' | 'warning' | 'highlight') | null;
+              content: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'callout';
+            }
+          | {
+              embedUrl: string;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'embed';
+            }
+          | {
+              left: number | Media;
+              right: number | Media;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'sideBySide';
+            }
+          | {
+              text: string;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'dropcap';
+            }
+          | {
+              events?:
+                | {
+                    year: string;
+                    title: string;
+                    description: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'timeline';
+            }
+          | {
+              quote: string;
+              source?: string | null;
+              media?: (number | null) | Media;
+              position?: ('left' | 'right') | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'quoteWithImage';
+            }
+          | {
+              author: number | Profile;
+              bio?: string | null;
+              photo?: (number | null) | Media;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'authorBio';
+            }
+          | {
+              adType: 'banner' | 'native' | 'script';
+              media?: (number | null) | Media;
+              nativeText?: string | null;
+              script?: string | null;
+              sponsorName?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'adUnit';
+            }
+          | {
+              notes?:
+                | {
+                    label: string;
+                    content: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'footnotes';
+            }
+          | {
+              poll: number | Poll;
+              showResultsInline?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'interactivePoll';
+            }
+        )[]
+      | null;
     interview: {
       question: string;
       answer: string;
       id?: string | null;
     }[];
-    /**
-     * Final thoughts, upcoming projects, or any closing commentary.
-     */
-    closingNotes?: string | null;
+    closing?:
+      | (
+          | {
+              content: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'richText';
+            }
+          | {
+              media: number | Media;
+              caption?: string | null;
+              attribution?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'image';
+            }
+          | {
+              media: number | Media;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'video';
+            }
+          | {
+              items: {
+                media: number | Media;
+                caption?: string | null;
+                attribution?: string | null;
+                id?: string | null;
+              }[];
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'carousel';
+            }
+          | {
+              quote: string;
+              source?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'pullQuote';
+            }
+          | {
+              style?: ('info' | 'warning' | 'highlight') | null;
+              content: {
+                root: {
+                  type: string;
+                  children: {
+                    type: any;
+                    version: number;
+                    [k: string]: unknown;
+                  }[];
+                  direction: ('ltr' | 'rtl') | null;
+                  format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                  indent: number;
+                  version: number;
+                };
+                [k: string]: unknown;
+              };
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'callout';
+            }
+          | {
+              embedUrl: string;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'embed';
+            }
+          | {
+              left: number | Media;
+              right: number | Media;
+              caption?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'sideBySide';
+            }
+          | {
+              text: string;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'dropcap';
+            }
+          | {
+              events?:
+                | {
+                    year: string;
+                    title: string;
+                    description: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'timeline';
+            }
+          | {
+              quote: string;
+              source?: string | null;
+              media?: (number | null) | Media;
+              position?: ('left' | 'right') | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'quoteWithImage';
+            }
+          | {
+              author: number | Profile;
+              bio?: string | null;
+              photo?: (number | null) | Media;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'authorBio';
+            }
+          | {
+              adType: 'banner' | 'native' | 'script';
+              media?: (number | null) | Media;
+              nativeText?: string | null;
+              script?: string | null;
+              sponsorName?: string | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'adUnit';
+            }
+          | {
+              notes?:
+                | {
+                    label: string;
+                    content: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'footnotes';
+            }
+          | {
+              poll: number | Poll;
+              showResultsInline?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'interactivePoll';
+            }
+        )[]
+      | null;
     sidebar?: {
       socialLinks?:
         | {
@@ -1503,32 +2357,164 @@ export interface Article {
     subCategory?: (number | null) | Category;
     author: number | Profile;
     /**
-     * A vivid opening scene or story that pulls the reader in.
+     * Build the narrative using blocks: lede, story, insights, voices, impact, future.
      */
-    narrativeLede: string;
-    /**
-     * Human-focused narrative detail.
-     */
-    sectionStory?: string | null;
-    /**
-     * Industry context or cultural analysis.
-     */
-    sectionInsight?: string | null;
-    /**
-     * Quotes from interviews or experts.
-     */
-    sectionVoices?: string | null;
-    /**
-     * Explain the significance of the story.
-     */
-    sectionImpact?: string | null;
-    /**
-     * What comes next for the subject?
-     */
-    sectionFuture?: string | null;
-    /**
-     * List all references used in this feature.
-     */
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
     creditsSources?: string | null;
   };
   eventRecapFields?: {
@@ -1536,23 +2522,170 @@ export interface Article {
     category: number | Category;
     subCategory?: (number | null) | Category;
     /**
-     * Event name, location, date, and audience size/type.
-     */
-    intro: string;
-    /**
-     * List key moments from the event.
+     * Key standout moments or performances.
      */
     highlights?: string[] | null;
     /**
-     * Describe the energy, visuals, crowd, venue, and overall experience.
+     * Use blocks to build the recap: intro, energy, visuals, cultural moments, atmosphere, etc.
      */
-    atmosphere?: string | null;
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
     /**
-     * Explain why the event resonated with the community or culture.
-     */
-    culturalTakeaways?: string | null;
-    /**
-     * Upload photos with required alt text for accessibility.
+     * Upload photos with proper alt text.
      */
     photos?:
       | {
@@ -1568,11 +2701,167 @@ export interface Article {
     category: number | Category;
     subCategory?: (number | null) | Category;
     /**
-     * An evocative moment or detail.
+     * Build your Hook → Background → Main Story → Voices → Connection using Blocks.
      */
-    hook?: string | null;
-    background?: string | null;
-    mainStory?: string | null;
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
+    /**
+     * Quotes or community voices featured in the story.
+     */
     localVoices?:
       | {
           quote: string;
@@ -1580,7 +2869,9 @@ export interface Article {
           id?: string | null;
         }[]
       | null;
-    connectionToWN?: string | null;
+    /**
+     * Optional resources, links, or cultural references.
+     */
     resources?:
       | {
           title: string;
@@ -1594,33 +2885,166 @@ export interface Article {
     category: number | Category;
     subCategory?: (number | null) | Category;
     /**
-     * Relatable hook + problem or opportunity that frames the lifestyle topic.
+     * Use blocks for intro, insights, examples, tips, cultural context, and lifestyle imagery.
      */
-    intro: string;
-    body?: {
-      /**
-       * Explain the concept or trend.
-       */
-      sectionInsight?: string | null;
-      /**
-       * Relevant scenarios, people, or situations that illustrate the insight.
-       */
-      sectionExamples?: string | null;
-      /**
-       * Actionable suggestions, recommendations, or steps.
-       */
-      sectionAdvice?: string | null;
-      /**
-       * Tie the topic to Southern, urban, or multicultural living.
-       */
-      sectionCulturalRelevance?: string | null;
-    };
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
     /**
-     * What readers should try, consider, or reflect on.
-     */
-    callToAction?: string | null;
-    /**
-     * Lifestyle photography rules apply—upload images + alt text.
+     * Upload lifestyle images with alt text.
      */
     imagery?:
       | {
@@ -1635,52 +3059,336 @@ export interface Article {
     category: number | Category;
     subCategory?: (number | null) | Category;
     /**
-     * Scripture, meditation prompt, or initial reflective thought. (Optional)
+     * Use blocks for Scripture, reflection, devotional message, application, prayer, images, quotes, and more.
      */
-    openingReflection?: string | null;
-    /**
-     * Encouragement, devotional insight, or spiritual lesson.
-     */
-    message: string;
-    /**
-     * Explain how this connects to everyday life and practice.
-     */
-    application?: string | null;
-    /**
-     * (Optional)
-     */
-    closingPrayerOrAffirmation?: string | null;
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
   };
   sponsoredFields?: {
     sponsor: string;
     subtitle?: string | null;
     category: number | Category;
     subCategory?: (number | null) | Category;
-    /**
-     * Required by WaveNation + FTC guidelines.
-     */
     disclosure: string;
     /**
-     * Brand context + cultural relevance. Why this story matters for our audience.
+     * Use blocks for intro, story integration, imagery, testimonials, product highlights, embeds, and more.
      */
-    intro?: string | null;
-    /**
-     * Highlight the product, event, or activation.
-     */
-    body?: string | null;
-    /**
-     * Real customer stories, testimonials, or community connections.
-     */
-    storyIntegration?: string | null;
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
     cta?: {
       text?: string | null;
       url?: string | null;
       eventDate?: string | null;
       productInfo?: string | null;
     };
-    /**
-     * Upload only sponsor-approved photography or graphics.
-     */
     assets?:
       | {
           image: number | Media;
@@ -1693,10 +3401,166 @@ export interface Article {
     subtitle?: string | null;
     category?: (number | null) | Category;
     subCategory?: (number | null) | Category;
-    intro?: string | null;
-    origin?: string | null;
-    work?: string | null;
-    vision?: string | null;
+    tags?: (number | Tag)[] | null;
+    /**
+     * Use blocks to construct each section of the Spotlight.
+     */
+    content: (
+      | {
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richText';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          attribution?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'image';
+        }
+      | {
+          media: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'video';
+        }
+      | {
+          items: {
+            media: number | Media;
+            caption?: string | null;
+            attribution?: string | null;
+            id?: string | null;
+          }[];
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'carousel';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'pullQuote';
+        }
+      | {
+          style?: ('info' | 'warning' | 'highlight') | null;
+          content: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callout';
+        }
+      | {
+          embedUrl: string;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'embed';
+        }
+      | {
+          left: number | Media;
+          right: number | Media;
+          caption?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'sideBySide';
+        }
+      | {
+          text: string;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'dropcap';
+        }
+      | {
+          events?:
+            | {
+                year: string;
+                title: string;
+                description: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'timeline';
+        }
+      | {
+          quote: string;
+          source?: string | null;
+          media?: (number | null) | Media;
+          position?: ('left' | 'right') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'quoteWithImage';
+        }
+      | {
+          author: number | Profile;
+          bio?: string | null;
+          photo?: (number | null) | Media;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'authorBio';
+        }
+      | {
+          adType: 'banner' | 'native' | 'script';
+          media?: (number | null) | Media;
+          nativeText?: string | null;
+          script?: string | null;
+          sponsorName?: string | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'adUnit';
+        }
+      | {
+          notes?:
+            | {
+                label: string;
+                content: string;
+                id?: string | null;
+              }[]
+            | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'footnotes';
+        }
+      | {
+          poll: number | Poll;
+          showResultsInline?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'interactivePoll';
+        }
+    )[];
     mediaAssets?:
       | {
           type: 'image' | 'video';
@@ -7086,73 +8950,477 @@ export interface ArticlesSelect<T extends boolean = true> {
         category?: T;
         subCategory?: T;
         tags?: T;
-        publishDate?: T;
         heroImage?: T;
         heroImageAlt?: T;
-        introParagraph?: T;
-        section1Context?: T;
-        section2MainStory?: T;
-        section3CulturalAnalysis?: T;
-        section4WhatsNext?: T;
-        creditsSources?: T;
-        socialCopyShort?: T;
-        socialCopyLong?: T;
-        altTextForImages?: T;
-        engagement?:
+        content?:
           | T
           | {
-              views?: T;
-              likes?: T;
-              shares?: T;
-              comments?: T;
-              reactions?:
+              richText?:
                 | T
                 | {
-                    type?: T;
-                    count?: T;
+                    content?: T;
                     id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
                   };
             };
+        creditsSources?: T;
       };
   breakingNewsFields?:
     | T
     | {
         subtitle?: T;
-        tags?: T;
         category?: T;
         subCategory?: T;
-        whatHappened?: T;
+        tags?: T;
+        summary?: T;
         confirmedDetails?: T;
         notYetConfirmed?: T;
         statements?: T;
-        context?: T;
         updates?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         socialCopyTwitter?: T;
         socialCopyInstagram?: T;
       };
   musicReviewFields?:
     | T
     | {
-        sub?: T;
-        cat?: T;
-        subcat?: T;
-        auth?: T;
-        intro?: T;
-        taa?:
+        subtitle?: T;
+        category?: T;
+        subCategory?: T;
+        author?: T;
+        content?:
           | T
           | {
-              sp?: T;
-              vp?: T;
-              lt?: T;
-              st?: T;
-              wp?: T;
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
-        cp?: T;
-        vd?: T;
-        rt?: T;
-        tl?: T;
-        rtr?: T;
-        ral?: T;
+        rating?: T;
+        tracklist?: T;
+        relatedTracks?: T;
+        relatedAlbums?: T;
       };
   filmTVReviewFields?:
     | T
@@ -7160,19 +9428,153 @@ export interface ArticlesSelect<T extends boolean = true> {
         subtitle?: T;
         category?: T;
         subCategory?: T;
-        intro?: T;
-        plotSummary?: T;
-        analysis?:
+        content?:
           | T
           | {
-              direction?: T;
-              acting?: T;
-              cinematography?: T;
-              writing?: T;
-              themes?: T;
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
-        culturalAnalysis?: T;
-        verdict?: T;
         rating?: T;
         relatedShow?: T;
         relatedFilm?: T;
@@ -7187,7 +9589,153 @@ export interface ArticlesSelect<T extends boolean = true> {
         podcast?: T;
         musicVideo?: T;
         interviewVideo?: T;
-        intro?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         interview?:
           | T
           | {
@@ -7195,7 +9743,153 @@ export interface ArticlesSelect<T extends boolean = true> {
               answer?: T;
               id?: T;
             };
-        closingNotes?: T;
+        closing?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         sidebar?:
           | T
           | {
@@ -7228,12 +9922,153 @@ export interface ArticlesSelect<T extends boolean = true> {
         category?: T;
         subCategory?: T;
         author?: T;
-        narrativeLede?: T;
-        sectionStory?: T;
-        sectionInsight?: T;
-        sectionVoices?: T;
-        sectionImpact?: T;
-        sectionFuture?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         creditsSources?: T;
       };
   eventRecapFields?:
@@ -7242,10 +10077,154 @@ export interface ArticlesSelect<T extends boolean = true> {
         subtitle?: T;
         category?: T;
         subCategory?: T;
-        intro?: T;
         highlights?: T;
-        atmosphere?: T;
-        culturalTakeaways?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         photos?:
           | T
           | {
@@ -7261,9 +10240,153 @@ export interface ArticlesSelect<T extends boolean = true> {
         subtitle?: T;
         category?: T;
         subCategory?: T;
-        hook?: T;
-        background?: T;
-        mainStory?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         localVoices?:
           | T
           | {
@@ -7271,7 +10394,6 @@ export interface ArticlesSelect<T extends boolean = true> {
               speaker?: T;
               id?: T;
             };
-        connectionToWN?: T;
         resources?:
           | T
           | {
@@ -7286,16 +10408,153 @@ export interface ArticlesSelect<T extends boolean = true> {
         subtitle?: T;
         category?: T;
         subCategory?: T;
-        intro?: T;
-        body?:
+        content?:
           | T
           | {
-              sectionInsight?: T;
-              sectionExamples?: T;
-              sectionAdvice?: T;
-              sectionCulturalRelevance?: T;
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
             };
-        callToAction?: T;
         imagery?:
           | T
           | {
@@ -7310,10 +10569,153 @@ export interface ArticlesSelect<T extends boolean = true> {
         subtitle?: T;
         category?: T;
         subCategory?: T;
-        openingReflection?: T;
-        message?: T;
-        application?: T;
-        closingPrayerOrAffirmation?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
       };
   sponsoredFields?:
     | T
@@ -7323,9 +10725,153 @@ export interface ArticlesSelect<T extends boolean = true> {
         category?: T;
         subCategory?: T;
         disclosure?: T;
-        intro?: T;
-        body?: T;
-        storyIntegration?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         cta?:
           | T
           | {
@@ -7348,10 +10894,154 @@ export interface ArticlesSelect<T extends boolean = true> {
         subtitle?: T;
         category?: T;
         subCategory?: T;
-        intro?: T;
-        origin?: T;
-        work?: T;
-        vision?: T;
+        tags?: T;
+        content?:
+          | T
+          | {
+              richText?:
+                | T
+                | {
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              image?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    attribution?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              video?:
+                | T
+                | {
+                    media?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              carousel?:
+                | T
+                | {
+                    items?:
+                      | T
+                      | {
+                          media?: T;
+                          caption?: T;
+                          attribution?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              pullQuote?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              callout?:
+                | T
+                | {
+                    style?: T;
+                    content?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              embed?:
+                | T
+                | {
+                    embedUrl?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              sideBySide?:
+                | T
+                | {
+                    left?: T;
+                    right?: T;
+                    caption?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              dropcap?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              timeline?:
+                | T
+                | {
+                    events?:
+                      | T
+                      | {
+                          year?: T;
+                          title?: T;
+                          description?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              quoteWithImage?:
+                | T
+                | {
+                    quote?: T;
+                    source?: T;
+                    media?: T;
+                    position?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              authorBio?:
+                | T
+                | {
+                    author?: T;
+                    bio?: T;
+                    photo?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              adUnit?:
+                | T
+                | {
+                    adType?: T;
+                    media?: T;
+                    nativeText?: T;
+                    script?: T;
+                    sponsorName?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+              footnotes?:
+                | T
+                | {
+                    notes?:
+                      | T
+                      | {
+                          label?: T;
+                          content?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                    blockName?: T;
+                  };
+              interactivePoll?:
+                | T
+                | {
+                    poll?: T;
+                    showResultsInline?: T;
+                    id?: T;
+                    blockName?: T;
+                  };
+            };
         mediaAssets?:
           | T
           | {

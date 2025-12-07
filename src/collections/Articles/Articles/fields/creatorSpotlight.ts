@@ -1,6 +1,10 @@
 import type { Field } from 'payload'
+import { articleBlocks } from '../blocks/allBlocks'
 
 export const creatorSpotlightFields: Field[] = [
+  // ------------------------------------------
+  // BASIC METADATA
+  // ------------------------------------------
   {
     type: 'text',
     name: 'subtitle',
@@ -22,44 +26,40 @@ export const creatorSpotlightFields: Field[] = [
   },
 
   {
-    type: 'textarea',
-    name: 'intro',
-    label: 'Intro',
+    type: 'relationship',
+    name: 'tags',
+    label: 'Tags',
+    relationTo: 'tags',
+    hasMany: true,
   },
 
-  // SECTION: ORIGIN
+  // ------------------------------------------
+  // BODY — FULL BLOCKS EDITOR
+  // ------------------------------------------
   {
-    type: 'textarea',
-    name: 'origin',
-    label: 'Origin',
+    type: 'blocks',
+    name: 'content',
+    label: 'Feature Body (Intro → Origin → Work → Vision)',
+    required: true,
+    blocks: articleBlocks,
+    admin: {
+      description: 'Use blocks to construct each section of the Spotlight.',
+    },
   },
 
-  // SECTION: WORK
-  {
-    type: 'textarea',
-    name: 'work',
-    label: 'Work Highlights',
-  },
-
-  // SECTION: VISION
-  {
-    type: 'textarea',
-    name: 'vision',
-    label: 'Creator Vision',
-  },
-
-  // MEDIA ASSETS — THE PART CAUSING THE ERROR
+  // ------------------------------------------
+  // MEDIA ASSETS
+  // ------------------------------------------
   {
     type: 'array',
     name: 'mediaAssets',
-    dbName: 'cs_media', // << FIX: shorten table name
+    dbName: 'cs_media',
     label: 'Videos & Photos',
     fields: [
       {
         type: 'select',
         name: 'type',
         label: 'Media Type',
-        // ❌ dbName NOT allowed on select fields — Payload will error
         options: [
           { label: 'Image', value: 'image' },
           { label: 'Video', value: 'video' },

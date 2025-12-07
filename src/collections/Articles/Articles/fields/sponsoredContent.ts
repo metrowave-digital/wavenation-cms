@@ -1,8 +1,9 @@
-import { Field } from 'payload'
+import type { Field } from 'payload'
+import { articleBlocks } from '../blocks/allBlocks'
 
 export const sponsoredContentFields: Field[] = [
   // -----------------------------------------
-  // SPONSOR
+  // SPONSOR IDENTIFICATION
   // -----------------------------------------
   {
     type: 'text',
@@ -20,7 +21,6 @@ export const sponsoredContentFields: Field[] = [
   {
     type: 'relationship',
     name: 'category',
-    label: 'Category',
     relationTo: 'categories',
     required: true,
   },
@@ -28,12 +28,11 @@ export const sponsoredContentFields: Field[] = [
   {
     type: 'relationship',
     name: 'subCategory',
-    label: 'Sub-Category',
     relationTo: 'categories',
   },
 
   // -----------------------------------------
-  // DISCLOSURE (Required, auto-filled)
+  // MANDATORY DISCLOSURE
   // -----------------------------------------
   {
     type: 'textarea',
@@ -42,44 +41,20 @@ export const sponsoredContentFields: Field[] = [
     required: true,
     defaultValue:
       'This article is produced in partnership with [Brand]. All opinions expressed are editorially independent.',
-    admin: {
-      description: 'Required by WaveNation + FTC guidelines.',
-    },
   },
 
   // -----------------------------------------
-  // INTRO
+  // MAIN BODY — full block editor
   // -----------------------------------------
   {
-    type: 'textarea',
-    name: 'intro',
-    label: 'Intro',
+    type: 'blocks',
+    name: 'content',
+    label: 'Sponsored Content Body',
+    required: true,
+    blocks: articleBlocks,
     admin: {
-      description: 'Brand context + cultural relevance. Why this story matters for our audience.',
-    },
-  },
-
-  // -----------------------------------------
-  // BODY
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'body',
-    label: 'Body',
-    admin: {
-      description: 'Highlight the product, event, or activation.',
-    },
-  },
-
-  // -----------------------------------------
-  // STORY INTEGRATION
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'storyIntegration',
-    label: 'Story Integration',
-    admin: {
-      description: 'Real customer stories, testimonials, or community connections.',
+      description:
+        'Use blocks for intro, story integration, imagery, testimonials, product highlights, embeds, and more.',
     },
   },
 
@@ -91,22 +66,9 @@ export const sponsoredContentFields: Field[] = [
     name: 'cta',
     label: 'Call To Action',
     fields: [
-      {
-        type: 'text',
-        name: 'text',
-        label: 'CTA Text',
-        admin: { placeholder: 'Learn More, Buy Now, RSVP, etc.' },
-      },
-      {
-        type: 'text',
-        name: 'url',
-        label: 'CTA Link',
-      },
-      {
-        type: 'date',
-        name: 'eventDate',
-        label: 'Event Date (if applicable)',
-      },
+      { type: 'text', name: 'text', label: 'CTA Text' },
+      { type: 'text', name: 'url', label: 'CTA Link' },
+      { type: 'date', name: 'eventDate', label: 'Event Date (Optional)' },
       {
         type: 'textarea',
         name: 'productInfo',
@@ -121,23 +83,17 @@ export const sponsoredContentFields: Field[] = [
   {
     type: 'array',
     name: 'assets',
-    label: 'Brand-Approved Visuals',
-    labels: { singular: 'Asset', plural: 'Assets' },
-    admin: {
-      description: 'Upload only sponsor-approved photography or graphics.',
-    },
+    label: 'Brand Assets',
     fields: [
       {
         type: 'upload',
         name: 'image',
-        label: 'Image',
         relationTo: 'media',
         required: true,
       },
       {
         type: 'text',
         name: 'alt',
-        label: 'Alt Text',
         required: true,
       },
     ],

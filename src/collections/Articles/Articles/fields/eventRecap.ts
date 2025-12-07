@@ -1,17 +1,19 @@
-import { Field } from 'payload'
+import type { Field } from 'payload'
+import { articleBlocks } from '../blocks/allBlocks'
 
 export const eventRecapFields: Field[] = [
+  // -----------------------------------------
+  // BASIC METADATA
+  // -----------------------------------------
   {
     type: 'text',
     name: 'subtitle',
     label: 'Subtitle',
-    required: false,
   },
 
   {
     type: 'relationship',
     name: 'category',
-    label: 'Category',
     relationTo: 'categories',
     required: true,
   },
@@ -19,26 +21,11 @@ export const eventRecapFields: Field[] = [
   {
     type: 'relationship',
     name: 'subCategory',
-    label: 'Sub-Category',
     relationTo: 'categories',
-    required: false,
   },
 
   // -----------------------------------------
-  // INTRO
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'intro',
-    label: 'Intro',
-    admin: {
-      description: 'Event name, location, date, and audience size/type.',
-    },
-    required: true,
-  },
-
-  // -----------------------------------------
-  // HIGHLIGHTS (bullet list)
+  // HIGHLIGHTS (short bullets)
   // -----------------------------------------
   {
     type: 'text',
@@ -46,36 +33,27 @@ export const eventRecapFields: Field[] = [
     label: 'Highlights',
     hasMany: true,
     admin: {
-      description: 'List key moments from the event.',
+      description: 'Key standout moments or performances.',
     },
   },
 
   // -----------------------------------------
-  // ATMOSPHERE
+  // MAIN BODY — now entirely block-based
   // -----------------------------------------
   {
-    type: 'textarea',
-    name: 'atmosphere',
-    label: 'Atmosphere',
+    type: 'blocks',
+    name: 'content',
+    label: 'Event Recap Content',
+    required: true,
+    blocks: articleBlocks,
     admin: {
-      description: 'Describe the energy, visuals, crowd, venue, and overall experience.',
+      description:
+        'Use blocks to build the recap: intro, energy, visuals, cultural moments, atmosphere, etc.',
     },
   },
 
   // -----------------------------------------
-  // CULTURAL TAKEAWAYS
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'culturalTakeaways',
-    label: 'Cultural Takeaways',
-    admin: {
-      description: 'Explain why the event resonated with the community or culture.',
-    },
-  },
-
-  // -----------------------------------------
-  // PHOTOS (Image + Alt)
+  // PHOTO GALLERY
   // -----------------------------------------
   {
     type: 'array',
@@ -84,6 +62,9 @@ export const eventRecapFields: Field[] = [
     labels: {
       singular: 'Photo',
       plural: 'Photos',
+    },
+    admin: {
+      description: 'Upload photos with proper alt text.',
     },
     fields: [
       {
@@ -100,13 +81,10 @@ export const eventRecapFields: Field[] = [
         required: true,
       },
     ],
-    admin: {
-      description: 'Upload photos with required alt text for accessibility.',
-    },
   },
 
   // -----------------------------------------
-  // RELATED EVENTS (optional)
+  // RELATED EVENTS
   // -----------------------------------------
   {
     type: 'relationship',

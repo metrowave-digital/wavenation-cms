@@ -1,6 +1,10 @@
 import type { Field } from 'payload'
+import { articleBlocks } from '../blocks/allBlocks'
 
 export const africanAmericanCultureStoryFields: Field[] = [
+  // ------------------------------------------
+  // BASIC METADATA
+  // ------------------------------------------
   {
     type: 'text',
     name: 'subtitle',
@@ -22,36 +26,35 @@ export const africanAmericanCultureStoryFields: Field[] = [
     relationTo: 'categories',
   },
 
-  // HOOK
+  // ------------------------------------------
+  // MAIN ARTICLE BODY (Blocks)
+  // ------------------------------------------
   {
-    type: 'textarea',
-    name: 'hook',
-    label: 'Hook',
+    type: 'blocks',
+    name: 'content',
+    label: 'Article Content',
+    required: true,
+    blocks: articleBlocks,
     admin: {
-      description: 'An evocative moment or detail.',
+      description: 'Build your Hook → Background → Main Story → Voices → Connection using Blocks.',
     },
   },
 
-  // BACKGROUND
-  {
-    type: 'textarea',
-    name: 'background',
-    label: 'Background',
-  },
-
-  // MAIN STORY
-  {
-    type: 'textarea',
-    name: 'mainStory',
-    label: 'Main Story',
-  },
-
-  // LOCAL VOICES — ONLY the array field gets dbName
+  // ------------------------------------------
+  // LOCAL VOICES (array)
+  // ------------------------------------------
   {
     type: 'array',
     name: 'localVoices',
-    dbName: 'aa_localvoices', // ✅ allowed here
+    dbName: 'aa_localvoices', // safe
     label: 'Local Voices',
+    labels: {
+      singular: 'Voice',
+      plural: 'Voices',
+    },
+    admin: {
+      description: 'Quotes or community voices featured in the story.',
+    },
     fields: [
       {
         type: 'textarea',
@@ -67,19 +70,21 @@ export const africanAmericanCultureStoryFields: Field[] = [
     ],
   },
 
-  // CONNECTION
-  {
-    type: 'textarea',
-    name: 'connectionToWN',
-    label: 'Connection to WaveNation Audience',
-  },
-
-  // RESOURCES — ONLY the array field gets dbName
+  // ------------------------------------------
+  // RESOURCES (array)
+  // ------------------------------------------
   {
     type: 'array',
     name: 'resources',
-    dbName: 'aa_resources', // ✅ allowed here
+    dbName: 'aa_resources',
     label: 'Resources',
+    labels: {
+      singular: 'Resource',
+      plural: 'Resources',
+    },
+    admin: {
+      description: 'Optional resources, links, or cultural references.',
+    },
     fields: [
       {
         type: 'text',

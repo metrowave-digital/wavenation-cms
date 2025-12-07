@@ -1,17 +1,19 @@
-import { Field } from 'payload'
+import type { Field } from 'payload'
+import { articleBlocks } from '../blocks/allBlocks'
 
 export const interviewFields: Field[] = [
+  // -----------------------------------------
+  // BASIC METADATA
+  // -----------------------------------------
   {
     type: 'text',
     name: 'subtitle',
     label: 'Subtitle',
-    required: false,
   },
 
   {
     type: 'relationship',
     name: 'category',
-    label: 'Category',
     relationTo: 'categories',
     required: true,
   },
@@ -19,15 +21,12 @@ export const interviewFields: Field[] = [
   {
     type: 'relationship',
     name: 'subCategory',
-    label: 'Sub-Category',
     relationTo: 'categories',
-    required: false,
   },
 
   {
     type: 'relationship',
     name: 'author',
-    label: 'Author',
     relationTo: 'profiles',
     required: true,
   },
@@ -35,41 +34,38 @@ export const interviewFields: Field[] = [
   {
     type: 'relationship',
     name: 'podcast',
-    label: 'Podcast',
     relationTo: 'podcast-episodes',
-    required: false,
   },
 
   {
     type: 'relationship',
     name: 'musicVideo',
-    label: 'Music Video',
     relationTo: 'media',
-    required: false,
   },
 
   {
     type: 'relationship',
     name: 'interviewVideo',
-    label: 'Interview Video',
     relationTo: 'media',
-    required: false,
   },
 
   // -----------------------------------------
-  // INTRO
+  // BLOCK-BASED INTRO & CONTEXT
   // -----------------------------------------
   {
-    type: 'textarea',
-    name: 'intro',
-    label: 'Intro',
+    type: 'blocks',
+    name: 'content',
+    label: 'Interview Intro & Context',
+    required: false,
+    blocks: articleBlocks,
     admin: {
-      description: 'Explain who the interview subject is and why they matter.',
+      description:
+        'Use blocks for intro, background, photos, pull quotes, and context before the Q&A.',
     },
   },
 
   // -----------------------------------------
-  // INTERVIEW Q/A BLOCKS
+  // INTERVIEW Q&A (structured)
   // -----------------------------------------
   {
     type: 'array',
@@ -80,9 +76,6 @@ export const interviewFields: Field[] = [
       plural: 'Q&A Entries',
     },
     required: true,
-    admin: {
-      description: 'Add as many Q&A blocks as needed. Each entry contains a question and answer.',
-    },
     fields: [
       {
         type: 'text',
@@ -100,72 +93,44 @@ export const interviewFields: Field[] = [
   },
 
   // -----------------------------------------
-  // CLOSING NOTES
+  // POST-INTERVIEW NOTES (block-based)
   // -----------------------------------------
   {
-    type: 'textarea',
-    name: 'closingNotes',
-    label: 'Closing Notes',
-    admin: {
-      description: 'Final thoughts, upcoming projects, or any closing commentary.',
-    },
+    type: 'blocks',
+    name: 'closing',
+    label: 'Closing Notes / Additional Content',
+    required: false,
+    blocks: articleBlocks,
   },
 
   // -----------------------------------------
-  // SIDEBAR
+  // SIDEBAR GROUP
   // -----------------------------------------
   {
     type: 'group',
     name: 'sidebar',
     label: 'Sidebar',
     fields: [
-      // Social Links
       {
         type: 'array',
         name: 'socialLinks',
         label: 'Social Links',
         fields: [
-          {
-            type: 'text',
-            name: 'platform',
-            label: 'Platform',
-            required: true,
-          },
-          {
-            type: 'text',
-            name: 'url',
-            label: 'URL',
-            required: true,
-          },
+          { type: 'text', name: 'platform', required: true },
+          { type: 'text', name: 'url', required: true },
         ],
       },
-
-      // Tour Dates
       {
         type: 'array',
         name: 'tourDates',
         label: 'Tour Dates',
-        fields: [
-          {
-            type: 'text',
-            name: 'date',
-            label: 'Tour Date',
-          },
-        ],
+        fields: [{ type: 'text', name: 'date' }],
       },
-
-      // Releases
       {
         type: 'array',
         name: 'releases',
         label: 'Releases',
-        fields: [
-          {
-            type: 'text',
-            name: 'release',
-            label: 'Release',
-          },
-        ],
+        fields: [{ type: 'text', name: 'release' }],
       },
     ],
   },
@@ -176,7 +141,7 @@ export const interviewFields: Field[] = [
   {
     type: 'relationship',
     name: 'relatedArtists',
-    label: 'Related Artist(s) (Optional)',
+    label: 'Related Artist(s)',
     relationTo: 'profiles',
     hasMany: true,
   },

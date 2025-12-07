@@ -1,7 +1,9 @@
 import type { Field } from 'payload'
 
+// Global SEO
 import { seoFields } from '@/fields/seo'
 
+// Article Type Field Groups
 import { standardArticleFields } from './standard'
 import { breakingNewsFields } from './breakingNews'
 import { musicReviewFields } from './musicReview'
@@ -16,21 +18,21 @@ import { sponsoredContentFields } from './sponsoredContent'
 import { creatorSpotlightFields } from './creatorSpotlight'
 
 export const articleFields: Field[] = [
-  // ------------------------------------------
+  // ------------------------------------------------------
   // ✅ GLOBAL SEO — applies to ALL article types
-  // ------------------------------------------
+  // ------------------------------------------------------
   seoFields,
 
-  // ------------------------------------------
-  // ✅ GLOBAL ENGAGEMENT METRICS (optional)
-  // ------------------------------------------
+  // ------------------------------------------------------
+  // ✅ GLOBAL ENGAGEMENT METRICS (shared across all types)
+  // ------------------------------------------------------
   {
     type: 'group',
     name: 'engagement',
     label: 'Engagement Metrics',
     admin: {
       position: 'sidebar',
-      description: 'Auto-generated analytics fields',
+      description: 'Auto-generated analytics fields (read-only)',
     },
     fields: [
       { name: 'views', type: 'number', defaultValue: 0, admin: { readOnly: true } },
@@ -50,9 +52,10 @@ export const articleFields: Field[] = [
     ],
   },
 
-  // ------------------------------------------
-  // ARTICLE TYPE GROUPS (conditional)
-  // ------------------------------------------
+  // ------------------------------------------------------
+  // ARTICLE TYPE GROUPS (conditional visibility)
+  // ------------------------------------------------------
+
   {
     type: 'group',
     name: 'standardFields',

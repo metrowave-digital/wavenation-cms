@@ -1,17 +1,19 @@
-import { Field } from 'payload'
+import type { Field } from 'payload'
+import { articleBlocks } from '../blocks/allBlocks'
 
 export const filmTVReviewFields: Field[] = [
+  // -----------------------------------------
+  // BASIC METADATA
+  // -----------------------------------------
   {
     type: 'text',
     name: 'subtitle',
     label: 'Subtitle',
-    required: false,
   },
 
   {
     type: 'relationship',
     name: 'category',
-    label: 'Category',
     relationTo: 'categories',
     required: true,
   },
@@ -19,100 +21,26 @@ export const filmTVReviewFields: Field[] = [
   {
     type: 'relationship',
     name: 'subCategory',
-    label: 'Sub-Category',
     relationTo: 'categories',
-    required: false,
   },
 
   // -----------------------------------------
-  // INTRO
+  // MULTI-SECTION REVIEW BODY (replaces intro, plot, analysis, cultural analysis, verdict)
   // -----------------------------------------
   {
-    type: 'textarea',
-    name: 'intro',
-    label: 'Intro',
+    type: 'blocks',
+    name: 'content',
+    label: 'Review Content',
+    required: true,
+    blocks: articleBlocks,
     admin: {
-      description: 'Setup, creators, platform, release date, and why the project matters.',
+      description:
+        'Use blocks for intro, plot summary, creative analysis, cultural themes, verdict, embeds, screenshots, etc.',
     },
   },
 
   // -----------------------------------------
-  // PLOT SUMMARY
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'plotSummary',
-    label: 'Plot Summary (Spoiler Controlled)',
-    admin: {
-      description: 'Write a clear plot overview without major spoilers unless noted.',
-    },
-  },
-
-  // -----------------------------------------
-  // ANALYSIS (Grouped)
-  // -----------------------------------------
-  {
-    type: 'group',
-    name: 'analysis',
-    label: 'Analysis',
-    fields: [
-      {
-        type: 'textarea',
-        name: 'direction',
-        label: 'Direction',
-      },
-      {
-        type: 'textarea',
-        name: 'acting',
-        label: 'Acting',
-      },
-      {
-        type: 'textarea',
-        name: 'cinematography',
-        label: 'Cinematography',
-      },
-      {
-        type: 'textarea',
-        name: 'writing',
-        label: 'Writing',
-      },
-      {
-        type: 'textarea',
-        name: 'themes',
-        label: 'Themes',
-      },
-    ],
-    admin: {
-      description: 'Break down key creative elements of the film/show.',
-    },
-  },
-
-  // -----------------------------------------
-  // CULTURAL ANALYSIS
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'culturalAnalysis',
-    label: 'Cultural Analysis',
-    admin: {
-      description: 'Discuss relevance to Black, Southern, multicultural, or urban audiences.',
-    },
-  },
-
-  // -----------------------------------------
-  // VERDICT
-  // -----------------------------------------
-  {
-    type: 'textarea',
-    name: 'verdict',
-    label: 'Verdict',
-    admin: {
-      description: '1–2 paragraph conclusion.',
-    },
-  },
-
-  // -----------------------------------------
-  // RATING (1–10)
+  // RATING
   // -----------------------------------------
   {
     type: 'number',
@@ -123,25 +51,24 @@ export const filmTVReviewFields: Field[] = [
     max: 10,
     admin: {
       width: '33%',
-      description: 'Use WaveNation’s 1–10 rating scale.',
     },
   },
 
   // -----------------------------------------
-  // OPTIONAL RELATIONSHIPS
+  // OPTIONAL RELATIONS
   // -----------------------------------------
   {
     type: 'relationship',
     name: 'relatedShow',
-    label: 'Related Show (Optional)',
-    relationTo: 'media',
+    label: 'Related Show',
+    relationTo: 'shows',
     hasMany: true,
   },
   {
     type: 'relationship',
     name: 'relatedFilm',
-    label: 'Related Film (Optional)',
-    relationTo: 'media',
+    label: 'Related Film',
+    relationTo: 'films',
     hasMany: true,
   },
 ]
