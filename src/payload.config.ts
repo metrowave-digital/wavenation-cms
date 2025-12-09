@@ -187,6 +187,7 @@ export default buildConfig({
 
     'https://wavenation.online',
     'https://www.wavenation.online',
+    'https://vercel.com/wavenation-fm/wavenation-web/5SMLmUZvGTY6jtsQu6ogX1M8pCJd',
 
     'https://portal.wavenation.online',
 
@@ -203,6 +204,7 @@ export default buildConfig({
 
     'https://wavenation.online',
     'https://www.wavenation.online',
+    'https://vercel.com/wavenation-fm/wavenation-web/5SMLmUZvGTY6jtsQu6ogX1M8pCJd',
 
     'https://portal.wavenation.online',
 
