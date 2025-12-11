@@ -1028,7 +1028,7 @@ export interface Schedule {
    */
   title: string;
   description?: string | null;
-  dayOfWeek: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+  dayOfWeek: ('sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday')[];
   startTime: string;
   endTime: string;
   timeZone?: string | null;

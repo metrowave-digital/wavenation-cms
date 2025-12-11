@@ -36,6 +36,7 @@ export const Schedule: CollectionConfig = {
     {
       name: 'dayOfWeek',
       type: 'select',
+      hasMany: true,
       required: true,
       options: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(
         (d) => ({ label: d, value: d.toLowerCase() }),
