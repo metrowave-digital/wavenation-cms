@@ -163,12 +163,21 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 /* ============================
-   CONFIG
+   CMS CONFIG
 ============================ */
 
 export default buildConfig({
+  /* Required for production (Render) */
+  serverURL: process.env.SERVER_URL || 'http://localhost:3001',
+
+  /* Ensure GraphQL + API routes resolve correctly */
+  routes: {
+    api: '/api',
+    admin: '/admin',
+  },
+
   /* -----------------------------------------------------------
-     ADMIN PANEL CONFIG (AUTH0)
+     ADMIN PANEL (AUTH0)
   ----------------------------------------------------------- */
   admin: {
     user: Users.slug,
@@ -176,22 +185,17 @@ export default buildConfig({
   },
 
   /* -----------------------------------------------------------
-     ENABLE CORS (REQUIRED FOR RENDER)
+     CORS (REQUIRED FOR RENDER + VERCEL FRONTEND)
   ----------------------------------------------------------- */
   cors: [
     'http://localhost:3000',
     'http://localhost:3001',
-
     'https://wavenation.media',
     'https://www.wavenation.media',
-
     'https://wavenation.online',
     'https://www.wavenation.online',
-    'https://vercel.com/wavenation-fm/wavenation-web/5SMLmUZvGTY6jtsQu6ogX1M8pCJd',
     'https://wavenation-web.vercel.app',
-
     'https://portal.wavenation.online',
-
     'https://wavenation.plus',
     'https://www.wavenation.plus',
   ],
@@ -199,17 +203,12 @@ export default buildConfig({
   csrf: [
     'http://localhost:3000',
     'http://localhost:3001',
-
     'https://wavenation.media',
     'https://www.wavenation.media',
-
     'https://wavenation.online',
     'https://www.wavenation.online',
-    'https://vercel.com/wavenation-fm/wavenation-web/5SMLmUZvGTY6jtsQu6ogX1M8pCJd',
     'https://wavenation-web.vercel.app',
-
     'https://portal.wavenation.online',
-
     'https://wavenation.plus',
     'https://www.wavenation.plus',
   ],
@@ -224,39 +223,30 @@ export default buildConfig({
     Users,
     Profiles,
     Media,
-
     Shows,
     Episodes,
     Schedule,
     EPGEntries,
-
     Films,
     VOD,
-
     Podcasts,
     PodcastEpisodes,
-
     Tracks,
     Albums,
     Playlists,
     Charts,
-
     Tags,
     Categories,
-
     Articles,
     Reviews,
     ReviewReactions,
     ArtistSpotlight,
-
     Polls,
     PollVotes,
-
     Groups,
     GroupEvents,
     GroupMessages,
     GroupPosts,
-
     Events,
     TicketTypes,
     Tickets,
@@ -268,7 +258,6 @@ export default buildConfig({
     EventReports,
     EventAnalytics,
     Venues,
-
     Products,
     ProductVariants,
     Carts,
@@ -276,7 +265,6 @@ export default buildConfig({
     ShippingAddresses,
     PaymentRecords,
     Orders,
-
     SubscriptionPlans,
     Subscriptions,
     CreatorTiers,
@@ -286,10 +274,8 @@ export default buildConfig({
     CreatorPayouts,
     CreatorRedemptions,
     BillingCycles,
-
     ContentSubscriptions,
     ContentAccess,
-
     Messages,
     Chats,
     MessageThreads,
@@ -298,7 +284,6 @@ export default buildConfig({
     ChatMedia,
     Announcements,
     MessageReactions,
-
     CreatorChannels,
     ChannelPosts,
     ChannelMedia,
@@ -311,7 +296,6 @@ export default buildConfig({
     ChannelAnalytics,
     ChannelPolls,
     ChannelChat,
-
     Blocks,
     Comments,
     CommentReactions,
@@ -321,7 +305,6 @@ export default buildConfig({
     Notifications,
     NotificationRules,
     Reactions,
-
     Ads,
     AdPlacements,
     Campaigns,
