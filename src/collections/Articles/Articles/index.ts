@@ -12,10 +12,12 @@ const canUpdateArticle: Access = ({ req, data }: AccessArgs) => {
   const creatorCanEdit = isCreator({ req } as AccessArgs)
   const staffCanEdit = isStaff({ req } as AccessArgs)
 
+  // Only staff can publish or schedule
   if (data?.status === 'published' || data?.status === 'scheduled') {
     return staffCanEdit
   }
 
+  // Draft / review / needs-correction
   return creatorCanEdit || staffCanEdit
 }
 
@@ -53,12 +55,14 @@ export const Articles: CollectionConfig = {
         {
           type: 'text',
           name: 'title',
+          label: 'Title',
           required: true,
           admin: { width: '70%' },
         },
         {
           type: 'select',
           name: 'type',
+          label: 'Article Type',
           required: true,
           admin: { width: '30%' },
           options: [
@@ -69,7 +73,10 @@ export const Articles: CollectionConfig = {
             { label: 'Interview', value: 'interview' },
             { label: 'Feature', value: 'feature' },
             { label: 'Event Recap', value: 'event-recap' },
-            { label: 'African-American / Southern Culture', value: 'african-american-culture' },
+            {
+              label: 'African-American / Southern Culture',
+              value: 'african-american-culture',
+            },
             { label: 'Lifestyle', value: 'lifestyle' },
             { label: 'Faith & Inspiration', value: 'faith-inspiration' },
             { label: 'Sponsored Content', value: 'sponsored' },
@@ -83,8 +90,9 @@ export const Articles: CollectionConfig = {
     {
       type: 'select',
       name: 'status',
-      defaultValue: 'draft',
+      label: 'Editorial Status',
       required: true,
+      defaultValue: 'draft',
       options: [
         { label: 'Draft', value: 'draft' },
         { label: 'In Review', value: 'review' },
@@ -122,21 +130,87 @@ export const Articles: CollectionConfig = {
     },
 
     /* ================= PUBLISHING ================= */
-    { type: 'date', name: 'publishedDate', admin: { position: 'sidebar' } },
-    { type: 'date', name: 'scheduledPublishDate', admin: { position: 'sidebar' } },
-    { type: 'date', name: 'lastUpdated', admin: { position: 'sidebar', readOnly: true } },
+    {
+      type: 'date',
+      name: 'publishedDate',
+      label: 'Publish Date',
+      admin: { position: 'sidebar' },
+    },
+    {
+      type: 'date',
+      name: 'scheduledPublishDate',
+      label: 'Scheduled Publish Date',
+      admin: { position: 'sidebar' },
+    },
+    {
+      type: 'date',
+      name: 'lastUpdated',
+      label: 'Last Updated',
+      admin: { position: 'sidebar', readOnly: true },
+    },
 
     /* ================= AUTHOR ================= */
     {
       type: 'relationship',
       name: 'author',
+      label: 'Author',
       relationTo: 'profiles',
     },
 
     /* ================= SLUG + HERO ================= */
-    { type: 'text', name: 'slug', unique: true, admin: { position: 'sidebar' } },
-    { type: 'upload', name: 'heroImage', relationTo: 'media' },
-    { type: 'text', name: 'heroImageAlt' },
+    {
+      type: 'text',
+      name: 'slug',
+      unique: true,
+      admin: { position: 'sidebar' },
+    },
+    {
+      type: 'upload',
+      name: 'heroImage',
+      relationTo: 'media',
+    },
+    {
+      type: 'text',
+      name: 'heroImageAlt',
+      label: 'Hero Image Alt Text',
+    },
+
+    /* ================= ARTICLE CAROUSEL ================= */
+    {
+      type: 'array',
+      name: 'carousel',
+      label: 'Article Carousel',
+      fields: [
+        {
+          type: 'upload',
+          name: 'media',
+          relationTo: 'media',
+          required: true,
+        },
+        { type: 'textarea', name: 'caption' },
+        { type: 'text', name: 'attribution' },
+      ],
+    },
+
+    /* ================= READING TIME (DERIVED) ================= */
+    {
+      type: 'number',
+      name: 'readingTime',
+      label: 'Reading Time (minutes)',
+      admin: { position: 'sidebar', readOnly: true },
+      access: {
+        create: () => true,
+        update: () => true, // 🔑 allows hooks to write
+      },
+    },
+
+    /* ================= EDITORIAL NOTES ================= */
+    {
+      type: 'textarea',
+      name: 'editorialNotes',
+      label: 'Editorial Notes',
+      admin: { position: 'sidebar' },
+    },
 
     /* ================= MEDIA TIE-IN ================= */
     {
@@ -197,6 +271,7 @@ export const Articles: CollectionConfig = {
     {
       type: 'blocks',
       name: 'contentBlocks',
+      label: 'Article Content Blocks',
       blocks: [
         ArticleBlocks.RichTextBlock,
         ArticleBlocks.ImageBlock,

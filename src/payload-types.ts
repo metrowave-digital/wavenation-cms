@@ -1100,6 +1100,16 @@ export interface Article {
   slug?: string | null;
   heroImage?: (number | null) | Media;
   heroImageAlt?: string | null;
+  carousel?:
+    | {
+        media: number | Media;
+        caption?: string | null;
+        attribution?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  readingTime?: number | null;
+  editorialNotes?: string | null;
   mediaTieIn?: {
     type?: ('radio' | 'tv' | 'playlist') | null;
     label?: string | null;
@@ -8812,6 +8822,16 @@ export interface ArticlesSelect<T extends boolean = true> {
   slug?: T;
   heroImage?: T;
   heroImageAlt?: T;
+  carousel?:
+    | T
+    | {
+        media?: T;
+        caption?: T;
+        attribution?: T;
+        id?: T;
+      };
+  readingTime?: T;
+  editorialNotes?: T;
   mediaTieIn?:
     | T
     | {
