@@ -418,7 +418,7 @@ export interface Popup {
 export interface Media {
   id: number;
   /**
-   * Auto-generated image crops
+   * Generated image variants
    */
   variants?: {
     thumbnail?: string | null;
@@ -427,28 +427,55 @@ export interface Media {
     portrait?: string | null;
     cinematic?: string | null;
   };
+  /**
+   * Manual crop overrides (0–1 normalized values)
+   */
+  cropOverrides?: {
+    thumbnail?: {
+      x?: number | null;
+      y?: number | null;
+      width?: number | null;
+      height?: number | null;
+    };
+    square?: {
+      x?: number | null;
+      y?: number | null;
+      width?: number | null;
+      height?: number | null;
+    };
+    landscape?: {
+      x?: number | null;
+      y?: number | null;
+      width?: number | null;
+      height?: number | null;
+    };
+    portrait?: {
+      x?: number | null;
+      y?: number | null;
+      width?: number | null;
+      height?: number | null;
+    };
+    cinematic?: {
+      x?: number | null;
+      y?: number | null;
+      width?: number | null;
+      height?: number | null;
+    };
+  };
   filename?: string | null;
   mimeType?: string | null;
   filesize?: number | null;
   width?: number | null;
   height?: number | null;
-  duration?: number | null;
-  bitrate?: number | null;
-  dominantColor?: string | null;
   caption?: string | null;
   attribution?: string | null;
   /**
-   * Primary focus for smart cropping
+   * Click the image to set the focal point
    *
    * @minItems 2
    * @maxItems 2
    */
   focalPoint?: [number, number] | null;
-  carouselSettings?: {
-    enableInArticleCarousel?: boolean | null;
-    carouselCaption?: string | null;
-    carouselAttribution?: string | null;
-  };
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1064,49 +1091,37 @@ export interface Article {
     | 'sponsored'
     | 'creator-spotlight';
   status: 'draft' | 'review' | 'needs-correction' | 'scheduled' | 'published';
+  badges?: ('breaking' | 'staff-pick' | 'radio' | 'tv' | 'sponsored')[] | null;
+  sponsorDisclosure?: string | null;
   publishedDate?: string | null;
-  /**
-   * Set a future date/time to auto-publish.
-   */
   scheduledPublishDate?: string | null;
   lastUpdated?: string | null;
-  /**
-   * Assign an editor to review this article.
-   */
-  peerReviewer?: (number | null) | Profile;
-  qualityScorecard?: {
-    clarityScore?: number | null;
-    grammarScore?: number | null;
-    culturalScore?: number | null;
-    verifiedSources?: number | null;
-    /**
-     * Auto or manually determined.
-     */
-    overallQuality?: number | null;
-  };
   author?: (number | null) | Profile;
   slug?: string | null;
   heroImage?: (number | null) | Media;
   heroImageAlt?: string | null;
-  /**
-   * Add multiple images/videos to display as a scrollable gallery.
-   */
-  carousel?:
-    | {
-        media: number | Media;
-        caption?: string | null;
-        attribution?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  readingTime?: number | null;
-  /**
-   * Required when editing published content or marking Needs Correction.
-   */
-  editorialNotes?: string | null;
-  /**
-   * Build the article using rich text, media, embeds, quotes, callouts, and more.
-   */
+  mediaTieIn?: {
+    type?: ('radio' | 'tv' | 'playlist') | null;
+    label?: string | null;
+    relatedEntity?:
+      | ({
+          relationTo: 'shows';
+          value: number | Show;
+        } | null)
+      | ({
+          relationTo: 'playlists';
+          value: number | Playlist;
+        } | null);
+    url?: string | null;
+  };
+  relatedArticles?: (number | Article)[] | null;
+  cta?: {
+    type?: ('subscribe' | 'listen-live' | 'watch-more' | 'join-plus') | null;
+    headline?: string | null;
+    description?: string | null;
+    buttonLabel?: string | null;
+    buttonUrl?: string | null;
+  };
   contentBlocks?:
     | (
         | {
@@ -1311,8 +1326,8 @@ export interface Article {
     category: number | Category;
     subCategory?: (number | null) | Category;
     tags?: (number | Tag)[] | null;
-    heroImage: number | Media;
-    heroImageAlt: string;
+    standardHeroImage: number | Media;
+    standardHeroImageAlt: string;
     content: (
       | {
           content: {
@@ -1469,6 +1484,15 @@ export interface Article {
           blockType: 'interactivePoll';
         }
     )[];
+    contextModule?: {
+      type?: ('news' | 'culture' | 'review') | null;
+      items?:
+        | {
+            text?: string | null;
+            id?: string | null;
+          }[]
+        | null;
+    };
     creditsSources?: string | null;
   };
   breakingNewsFields?: {
@@ -3576,388 +3600,80 @@ export interface Article {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "polls".
+ * via the `definition` "playlists".
  */
-export interface Poll {
-  id: number;
-  question: string;
-  /**
-   * Auto-generated if empty
-   */
-  slug?: string | null;
-  status?: ('draft' | 'active' | 'closed' | 'archived') | null;
-  scope: 'global' | 'content' | 'event' | 'channel';
-  options: {
-    label: string;
-    value: string;
-    voteCount?: number | null;
-    id?: string | null;
-  }[];
-  /**
-   * If content-specific, choose content type.
-   */
-  targetContentType?:
-    | ('shows' | 'episodes' | 'films' | 'vod' | 'podcasts' | 'podcast-episodes' | 'articles' | 'tracks' | 'albums')
-    | null;
-  targetContent?:
-    | ({
-        relationTo: 'shows';
-        value: number | Show;
-      } | null)
-    | ({
-        relationTo: 'episodes';
-        value: number | Episode;
-      } | null)
-    | ({
-        relationTo: 'films';
-        value: number | Film;
-      } | null)
-    | ({
-        relationTo: 'vod';
-        value: number | Vod;
-      } | null)
-    | ({
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      } | null)
-    | ({
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      } | null)
-    | ({
-        relationTo: 'articles';
-        value: number | Article;
-      } | null)
-    | ({
-        relationTo: 'tracks';
-        value: number | Track;
-      } | null)
-    | ({
-        relationTo: 'albums';
-        value: number | Album;
-      } | null);
-  targetEvent?: (number | null) | Event;
-  targetChannel?: (number | null) | CreatorChannel;
-  /**
-   * Limit poll to certain roles (optional)
-   */
-  audienceRoles?: ('free' | 'creator' | 'pro' | 'industry' | 'host' | 'editor' | 'admin')[] | null;
-  /**
-   * Require logged-in user to vote
-   */
-  requireAuth?: boolean | null;
-  allowMultipleVotes?: boolean | null;
-  showResults?: ('always' | 'after-vote' | 'after-end' | 'admin-only') | null;
-  startAt?: string | null;
-  endAt?: string | null;
-  totalVotes?: number | null;
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "films".
- */
-export interface Film {
+export interface Playlist {
   id: number;
   title: string;
   /**
    * Auto-generated if empty.
    */
   slug?: string | null;
-  filmType: 'feature' | 'documentary' | 'short' | 'pilot' | 'music-film';
-  releaseYear?: number | null;
-  status?: ('published' | 'coming-soon' | 'scheduled' | 'archived') | null;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  videoProvider: 'cloudflare' | 's3' | 'external';
   /**
-   * Cloudflare video UID
+   * Optional description for the playlist.
    */
-  cloudflareVideoId?: string | null;
+  description?: string | null;
   /**
-   * HLS/DASH playback URL
+   * Playlist cover image.
    */
-  cloudflarePlaybackUrl?: string | null;
+  coverImage?: (number | null) | Media;
+  type: 'podcasts' | 'podcast-episodes' | 'vod' | 'tv-episodes' | 'tracks' | 'mixed';
   /**
-   * Upload MP4 or WEBM
+   * Media items for non-music playlists.
    */
-  s3VideoFile?: (number | null) | Media;
-  /**
-   * YouTube, Vimeo, or custom stream URL
-   */
-  externalUrl?: string | null;
-  poster?: (number | null) | Media;
-  bannerImage?: (number | null) | Media;
-  stillImages?: (number | Media)[] | null;
-  brandColor?: string | null;
-  directors?: (number | Profile)[] | null;
-  writers?: (number | Profile)[] | null;
-  producers?: (number | Profile)[] | null;
-  cast?:
-    | {
-        profile?: (number | null) | Profile;
-        roleName?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  runtimeMinutes?: number | null;
-  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
-  genre?: (number | null) | Category;
-  tags?: (number | Tag)[] | null;
-  trailer?: (number | null) | Media;
-  transcript?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  clips?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  behindTheScenes?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  promos?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
+  items?:
+    | (
+        | {
+            relationTo: 'podcasts';
+            value: number | Podcast;
+          }
+        | {
+            relationTo: 'podcast-episodes';
+            value: number | PodcastEpisode;
+          }
+        | {
+            relationTo: 'vod';
+            value: number | Vod;
+          }
+        | {
+            relationTo: 'episodes';
+            value: number | Episode;
+          }
+        | {
+            relationTo: 'tracks';
+            value: number | Track;
+          }
+        | {
+            relationTo: 'films';
+            value: number | Film;
+          }
+      )[]
     | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * For tracks not yet created in the Tracks collection.
    */
-  seo?: {
-    /**
-     * Custom SEO title
-     */
-    title?: string | null;
-    /**
-     * SEO description (160 chars recommended)
-     */
-    description?: string | null;
-    /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
-     */
-    keywords?: string | null;
-    /**
-     * Facebook/Twitter share image (Open Graph)
-     */
-    ogImage?: (number | null) | Media;
-    /**
-     * Hide this page from search engines
-     */
-    noIndex?: boolean | null;
-  };
-  views?: number | null;
-  likes?: number | null;
-  shares?: number | null;
-  engagementScore?: number | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "vod".
- */
-export interface Vod {
-  id: number;
-  title: string;
-  /**
-   * Auto-generated if left empty.
-   */
-  slug?: string | null;
-  vodType:
-    | 'special'
-    | 'exclusive'
-    | 'interview'
-    | 'performance'
-    | 'event-replay'
-    | 'sermon'
-    | 'short'
-    | 'doc-short'
-    | 'feature-clip';
-  status?: ('published' | 'scheduled' | 'draft' | 'archived') | null;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  publishedDate?: string | null;
-  videoProvider: 'cloudflare' | 's3' | 'external';
-  /**
-   * Cloudflare Stream UID
-   */
-  cloudflareVideoId?: string | null;
-  /**
-   * Cloudflare playback URL (HLS/DASH)
-   */
-  cloudflarePlaybackUrl?: string | null;
-  /**
-   * Upload MP4 / WEBM file
-   */
-  s3VideoFile?: (number | null) | Media;
-  /**
-   * YouTube, Vimeo, or direct URL
-   */
-  externalUrl?: string | null;
-  thumbnail?: (number | null) | Media;
-  bannerImage?: (number | null) | Media;
-  stillImages?: (number | Media)[] | null;
-  /**
-   * Optional HEX theme color
-   */
-  brandColor?: string | null;
-  hosts?: (number | Profile)[] | null;
-  guests?: (number | Profile)[] | null;
-  /**
-   * Directors, producers, editors, creators
-   */
-  creators?: (number | Profile)[] | null;
-  /**
-   * Optional grouping to TV or Radio shows
-   */
-  relatedShows?: (number | Show)[] | null;
-  /**
-   * Optional — if this VOD belongs with specific episodes
-   */
-  relatedEpisodes?: (number | Episode)[] | null;
-  runtimeMinutes?: number | null;
-  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
-  genre?: (number | null) | Category;
-  tags?: (number | Tag)[] | null;
-  transcript?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  clips?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  behindTheScenes?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  promos?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Group VOD items into curated playlists
-   */
-  collections?:
+  manualTracks?:
     | {
         title: string;
+        artist: string;
+        album?: string | null;
         /**
-         * Add other VOD videos to this collection
+         * Example: 3:25
          */
-        items?: (number | Vod)[] | null;
+        duration?: string | null;
+        /**
+         * Optional artwork.
+         */
+        coverArt?: (number | null) | Media;
+        /**
+         * Optional link to Spotify, Apple Music, YouTube, etc.
+         */
+        externalUrl?: string | null;
         id?: string | null;
       }[]
     | null;
-  /**
-   * Search Engine Optimization & social media metadata.
-   */
-  seo?: {
-    /**
-     * Custom SEO title
-     */
-    title?: string | null;
-    /**
-     * SEO description (160 chars recommended)
-     */
-    description?: string | null;
-    /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
-     */
-    keywords?: string | null;
-    /**
-     * Facebook/Twitter share image (Open Graph)
-     */
-    ogImage?: (number | null) | Media;
-    /**
-     * Hide this page from search engines
-     */
-    noIndex?: boolean | null;
-  };
-  views?: number | null;
-  likes?: number | null;
-  shares?: number | null;
-  engagementScore?: number | null;
+  sortOrder?: ('manual' | 'newest' | 'oldest' | 'popular') | null;
+  visibility?: ('public' | 'private' | 'unlisted') | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -4148,80 +3864,162 @@ export interface PodcastEpisode {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "playlists".
+ * via the `definition` "vod".
  */
-export interface Playlist {
+export interface Vod {
   id: number;
   title: string;
   /**
-   * Auto-generated if empty.
+   * Auto-generated if left empty.
    */
   slug?: string | null;
+  vodType:
+    | 'special'
+    | 'exclusive'
+    | 'interview'
+    | 'performance'
+    | 'event-replay'
+    | 'sermon'
+    | 'short'
+    | 'doc-short'
+    | 'feature-clip';
+  status?: ('published' | 'scheduled' | 'draft' | 'archived') | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  publishedDate?: string | null;
+  videoProvider: 'cloudflare' | 's3' | 'external';
   /**
-   * Optional description for the playlist.
+   * Cloudflare Stream UID
    */
-  description?: string | null;
+  cloudflareVideoId?: string | null;
   /**
-   * Playlist cover image.
+   * Cloudflare playback URL (HLS/DASH)
    */
-  coverImage?: (number | null) | Media;
-  type: 'podcasts' | 'podcast-episodes' | 'vod' | 'tv-episodes' | 'tracks' | 'mixed';
+  cloudflarePlaybackUrl?: string | null;
   /**
-   * Media items for non-music playlists.
+   * Upload MP4 / WEBM file
    */
-  items?:
-    | (
-        | {
-            relationTo: 'podcasts';
-            value: number | Podcast;
-          }
-        | {
-            relationTo: 'podcast-episodes';
-            value: number | PodcastEpisode;
-          }
-        | {
-            relationTo: 'vod';
-            value: number | Vod;
-          }
-        | {
-            relationTo: 'episodes';
-            value: number | Episode;
-          }
-        | {
-            relationTo: 'tracks';
-            value: number | Track;
-          }
-        | {
-            relationTo: 'films';
-            value: number | Film;
-          }
-      )[]
-    | null;
+  s3VideoFile?: (number | null) | Media;
   /**
-   * For tracks not yet created in the Tracks collection.
+   * YouTube, Vimeo, or direct URL
    */
-  manualTracks?:
+  externalUrl?: string | null;
+  thumbnail?: (number | null) | Media;
+  bannerImage?: (number | null) | Media;
+  stillImages?: (number | Media)[] | null;
+  /**
+   * Optional HEX theme color
+   */
+  brandColor?: string | null;
+  hosts?: (number | Profile)[] | null;
+  guests?: (number | Profile)[] | null;
+  /**
+   * Directors, producers, editors, creators
+   */
+  creators?: (number | Profile)[] | null;
+  /**
+   * Optional grouping to TV or Radio shows
+   */
+  relatedShows?: (number | Show)[] | null;
+  /**
+   * Optional — if this VOD belongs with specific episodes
+   */
+  relatedEpisodes?: (number | Episode)[] | null;
+  runtimeMinutes?: number | null;
+  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
+  genre?: (number | null) | Category;
+  tags?: (number | Tag)[] | null;
+  transcript?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  clips?:
     | {
-        title: string;
-        artist: string;
-        album?: string | null;
-        /**
-         * Example: 3:25
-         */
-        duration?: string | null;
-        /**
-         * Optional artwork.
-         */
-        coverArt?: (number | null) | Media;
-        /**
-         * Optional link to Spotify, Apple Music, YouTube, etc.
-         */
-        externalUrl?: string | null;
+        title?: string | null;
+        video?: (number | null) | Media;
         id?: string | null;
       }[]
     | null;
-  sortOrder?: ('manual' | 'newest' | 'oldest' | 'popular') | null;
-  visibility?: ('public' | 'private' | 'unlisted') | null;
+  behindTheScenes?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  promos?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Group VOD items into curated playlists
+   */
+  collections?:
+    | {
+        title: string;
+        /**
+         * Add other VOD videos to this collection
+         */
+        items?: (number | Vod)[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Search Engine Optimization & social media metadata.
+   */
+  seo?: {
+    /**
+     * Custom SEO title
+     */
+    title?: string | null;
+    /**
+     * SEO description (160 chars recommended)
+     */
+    description?: string | null;
+    /**
+     * Comma-separated (R&B, Gospel, Radio, TV)
+     */
+    keywords?: string | null;
+    /**
+     * Facebook/Twitter share image (Open Graph)
+     */
+    ogImage?: (number | null) | Media;
+    /**
+     * Hide this page from search engines
+     */
+    noIndex?: boolean | null;
+  };
+  views?: number | null;
+  likes?: number | null;
+  shares?: number | null;
+  engagementScore?: number | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -4389,6 +4187,232 @@ export interface Album {
   likes?: number | null;
   shares?: number | null;
   engagementScore?: number | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "films".
+ */
+export interface Film {
+  id: number;
+  title: string;
+  /**
+   * Auto-generated if empty.
+   */
+  slug?: string | null;
+  filmType: 'feature' | 'documentary' | 'short' | 'pilot' | 'music-film';
+  releaseYear?: number | null;
+  status?: ('published' | 'coming-soon' | 'scheduled' | 'archived') | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  videoProvider: 'cloudflare' | 's3' | 'external';
+  /**
+   * Cloudflare video UID
+   */
+  cloudflareVideoId?: string | null;
+  /**
+   * HLS/DASH playback URL
+   */
+  cloudflarePlaybackUrl?: string | null;
+  /**
+   * Upload MP4 or WEBM
+   */
+  s3VideoFile?: (number | null) | Media;
+  /**
+   * YouTube, Vimeo, or custom stream URL
+   */
+  externalUrl?: string | null;
+  poster?: (number | null) | Media;
+  bannerImage?: (number | null) | Media;
+  stillImages?: (number | Media)[] | null;
+  brandColor?: string | null;
+  directors?: (number | Profile)[] | null;
+  writers?: (number | Profile)[] | null;
+  producers?: (number | Profile)[] | null;
+  cast?:
+    | {
+        profile?: (number | null) | Profile;
+        roleName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  runtimeMinutes?: number | null;
+  contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
+  genre?: (number | null) | Category;
+  tags?: (number | Tag)[] | null;
+  trailer?: (number | null) | Media;
+  transcript?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  clips?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  behindTheScenes?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  promos?:
+    | {
+        title?: string | null;
+        video?: (number | null) | Media;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Search Engine Optimization & social media metadata.
+   */
+  seo?: {
+    /**
+     * Custom SEO title
+     */
+    title?: string | null;
+    /**
+     * SEO description (160 chars recommended)
+     */
+    description?: string | null;
+    /**
+     * Comma-separated (R&B, Gospel, Radio, TV)
+     */
+    keywords?: string | null;
+    /**
+     * Facebook/Twitter share image (Open Graph)
+     */
+    ogImage?: (number | null) | Media;
+    /**
+     * Hide this page from search engines
+     */
+    noIndex?: boolean | null;
+  };
+  views?: number | null;
+  likes?: number | null;
+  shares?: number | null;
+  engagementScore?: number | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "polls".
+ */
+export interface Poll {
+  id: number;
+  question: string;
+  /**
+   * Auto-generated if empty
+   */
+  slug?: string | null;
+  status?: ('draft' | 'active' | 'closed' | 'archived') | null;
+  scope: 'global' | 'content' | 'event' | 'channel';
+  options: {
+    label: string;
+    value: string;
+    voteCount?: number | null;
+    id?: string | null;
+  }[];
+  /**
+   * If content-specific, choose content type.
+   */
+  targetContentType?:
+    | ('shows' | 'episodes' | 'films' | 'vod' | 'podcasts' | 'podcast-episodes' | 'articles' | 'tracks' | 'albums')
+    | null;
+  targetContent?:
+    | ({
+        relationTo: 'shows';
+        value: number | Show;
+      } | null)
+    | ({
+        relationTo: 'episodes';
+        value: number | Episode;
+      } | null)
+    | ({
+        relationTo: 'films';
+        value: number | Film;
+      } | null)
+    | ({
+        relationTo: 'vod';
+        value: number | Vod;
+      } | null)
+    | ({
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      } | null)
+    | ({
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      } | null)
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'tracks';
+        value: number | Track;
+      } | null)
+    | ({
+        relationTo: 'albums';
+        value: number | Album;
+      } | null);
+  targetEvent?: (number | null) | Event;
+  targetChannel?: (number | null) | CreatorChannel;
+  /**
+   * Limit poll to certain roles (optional)
+   */
+  audienceRoles?: ('free' | 'creator' | 'pro' | 'industry' | 'host' | 'editor' | 'admin')[] | null;
+  /**
+   * Require logged-in user to vote
+   */
+  requireAuth?: boolean | null;
+  allowMultipleVotes?: boolean | null;
+  showResults?: ('always' | 'after-vote' | 'after-end' | 'admin-only') | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  totalVotes?: number | null;
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -8133,24 +8157,58 @@ export interface MediaSelect<T extends boolean = true> {
         portrait?: T;
         cinematic?: T;
       };
+  cropOverrides?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              x?: T;
+              y?: T;
+              width?: T;
+              height?: T;
+            };
+        square?:
+          | T
+          | {
+              x?: T;
+              y?: T;
+              width?: T;
+              height?: T;
+            };
+        landscape?:
+          | T
+          | {
+              x?: T;
+              y?: T;
+              width?: T;
+              height?: T;
+            };
+        portrait?:
+          | T
+          | {
+              x?: T;
+              y?: T;
+              width?: T;
+              height?: T;
+            };
+        cinematic?:
+          | T
+          | {
+              x?: T;
+              y?: T;
+              width?: T;
+              height?: T;
+            };
+      };
   filename?: T;
   mimeType?: T;
   filesize?: T;
   width?: T;
   height?: T;
-  duration?: T;
-  bitrate?: T;
-  dominantColor?: T;
   caption?: T;
   attribution?: T;
   focalPoint?: T;
-  carouselSettings?:
-    | T
-    | {
-        enableInArticleCarousel?: T;
-        carouselCaption?: T;
-        carouselAttribution?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -8745,33 +8803,33 @@ export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
   type?: T;
   status?: T;
+  badges?: T;
+  sponsorDisclosure?: T;
   publishedDate?: T;
   scheduledPublishDate?: T;
   lastUpdated?: T;
-  peerReviewer?: T;
-  qualityScorecard?:
-    | T
-    | {
-        clarityScore?: T;
-        grammarScore?: T;
-        culturalScore?: T;
-        verifiedSources?: T;
-        overallQuality?: T;
-      };
   author?: T;
   slug?: T;
   heroImage?: T;
   heroImageAlt?: T;
-  carousel?:
+  mediaTieIn?:
     | T
     | {
-        media?: T;
-        caption?: T;
-        attribution?: T;
-        id?: T;
+        type?: T;
+        label?: T;
+        relatedEntity?: T;
+        url?: T;
       };
-  readingTime?: T;
-  editorialNotes?: T;
+  relatedArticles?: T;
+  cta?:
+    | T
+    | {
+        type?: T;
+        headline?: T;
+        description?: T;
+        buttonLabel?: T;
+        buttonUrl?: T;
+      };
   contentBlocks?:
     | T
     | {
@@ -8950,8 +9008,8 @@ export interface ArticlesSelect<T extends boolean = true> {
         category?: T;
         subCategory?: T;
         tags?: T;
-        heroImage?: T;
-        heroImageAlt?: T;
+        standardHeroImage?: T;
+        standardHeroImageAlt?: T;
         content?:
           | T
           | {
@@ -9097,6 +9155,17 @@ export interface ArticlesSelect<T extends boolean = true> {
                     showResultsInline?: T;
                     id?: T;
                     blockName?: T;
+                  };
+            };
+        contextModule?:
+          | T
+          | {
+              type?: T;
+              items?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
                   };
             };
         creditsSources?: T;

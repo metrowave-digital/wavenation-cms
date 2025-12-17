@@ -2,9 +2,9 @@ import type { Field } from 'payload'
 import { articleBlocks } from '../blocks/allBlocks'
 
 export const standardArticleFields: Field[] = [
-  // ------------------------------------------
-  // BASIC METADATA
-  // ------------------------------------------
+  /* ===============================
+     BASIC METADATA
+  ================================ */
   {
     type: 'text',
     name: 'subtitle',
@@ -31,25 +31,27 @@ export const standardArticleFields: Field[] = [
     hasMany: true,
   },
 
-  // ------------------------------------------
-  // HERO IMAGE
-  // ------------------------------------------
+  /* ===============================
+     HERO IMAGE (STANDARD TEMPLATE)
+  ================================ */
   {
     type: 'upload',
-    name: 'heroImage',
+    name: 'standardHeroImage',
+    label: 'Hero Image (Standard)',
     relationTo: 'media',
     required: true,
   },
 
   {
     type: 'text',
-    name: 'heroImageAlt',
+    name: 'standardHeroImageAlt',
+    label: 'Hero Image Alt Text',
     required: true,
   },
 
-  // ------------------------------------------
-  // MAIN ARTICLE CONTENT (Blocks)
-  // ------------------------------------------
+  /* ===============================
+     ARTICLE BODY
+  ================================ */
   {
     type: 'blocks',
     name: 'content',
@@ -58,9 +60,36 @@ export const standardArticleFields: Field[] = [
     blocks: articleBlocks,
   },
 
-  // ------------------------------------------
-  // CREDITS & SOURCES
-  // ------------------------------------------
+  /* ===============================
+     CONTEXT MODULE (OPTIONAL)
+  ================================ */
+  {
+    type: 'group',
+    name: 'contextModule',
+    label: 'Context Module',
+    fields: [
+      {
+        type: 'select',
+        name: 'type',
+        label: 'Context Type',
+        options: [
+          { label: 'What You Need to Know (News)', value: 'news' },
+          { label: 'Why This Matters (Culture)', value: 'culture' },
+          { label: 'Review Breakdown', value: 'review' },
+        ],
+      },
+      {
+        type: 'array',
+        name: 'items',
+        label: 'Context Items',
+        fields: [{ type: 'text', name: 'text', label: 'Item' }],
+      },
+    ],
+  },
+
+  /* ===============================
+     CREDITS & SOURCES
+  ================================ */
   {
     type: 'textarea',
     name: 'creditsSources',

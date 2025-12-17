@@ -17,7 +17,7 @@ const s3 = new S3Client({
 })
 
 // -----------------------------------------------------------
-// AUTO-CROP VARIANTS
+// IMAGE VARIANTS
 // -----------------------------------------------------------
 const CROP_VARIANTS = [
   { name: 'thumbnail', width: 400, height: 300 },
@@ -27,6 +27,9 @@ const CROP_VARIANTS = [
   { name: 'cinematic', width: 2400, height: 1020 },
 ]
 
+// -----------------------------------------------------------
+// COLLECTION
+// -----------------------------------------------------------
 export const Media: CollectionConfig = {
   slug: 'media',
 
@@ -56,11 +59,11 @@ export const Media: CollectionConfig = {
   },
 
   // -----------------------------------------------------------
-  // THE FIX: BEFORE CHANGE (NOT afterChange)
+  // IMAGE PROCESSING (MANUAL CROP + FOCAL POINT)
   // -----------------------------------------------------------
   hooks: {
     beforeChange: [
-      async ({ data, req, originalDoc }) => {
+      async ({ data, originalDoc }) => {
         try {
           const url = originalDoc?.url
           const mime = originalDoc?.mimeType
@@ -73,13 +76,59 @@ export const Media: CollectionConfig = {
           data.variants ??= {}
 
           for (const variant of CROP_VARIANTS) {
-            const processed = await sharp(buffer)
-              .resize(variant.width, variant.height, { fit: 'cover' })
+            let image = sharp(buffer)
+
+            const manualCrop =
+              data.cropOverrides?.[variant.name] ?? originalDoc?.cropOverrides?.[variant.name]
+
+            const metadata = await image.metadata()
+
+            // -----------------------------------
+            // MANUAL CROP OVERRIDE
+            // -----------------------------------
+            if (manualCrop && metadata.width && metadata.height) {
+              image = image.extract({
+                left: Math.round(manualCrop.x * metadata.width),
+                top: Math.round(manualCrop.y * metadata.height),
+                width: Math.round(manualCrop.width * metadata.width),
+                height: Math.round(manualCrop.height * metadata.height),
+              })
+            }
+
+            // -----------------------------------
+            // FOCAL POINT SMART CROP (SAFE)
+            // -----------------------------------
+            if (!manualCrop && data.focalPoint && metadata.width && metadata.height) {
+              const aspect = variant.width / variant.height
+
+              const cropWidth = Math.min(metadata.width, Math.round(metadata.height * aspect))
+
+              const cropHeight = Math.min(metadata.height, Math.round(metadata.width / aspect))
+
+              const left = Math.round(data.focalPoint.x * metadata.width - cropWidth / 2)
+
+              const top = Math.round(data.focalPoint.y * metadata.height - cropHeight / 2)
+
+              image = image.extract({
+                left: Math.max(0, left),
+                top: Math.max(0, top),
+                width: Math.min(cropWidth, metadata.width),
+                height: Math.min(cropHeight, metadata.height),
+              })
+            }
+
+            // -----------------------------------
+            // FINAL RESIZE
+            // -----------------------------------
+            const processed = await image
+              .resize(variant.width, variant.height, {
+                fit: 'cover',
+                position: 'centre',
+              })
               .webp({ quality: 85 })
               .toBuffer()
 
             const hash = crypto.randomBytes(6).toString('hex')
-
             const key = `media/${originalDoc.id}/${variant.name}-${hash}.webp`
 
             await s3.send(
@@ -96,7 +145,7 @@ export const Media: CollectionConfig = {
 
           return data
         } catch (err) {
-          console.error('AUTO-CROP ERROR:', err)
+          console.error('IMAGE PROCESSING ERROR:', err)
           return data
         }
       },
@@ -107,19 +156,44 @@ export const Media: CollectionConfig = {
   // FIELDS
   // -----------------------------------------------------------
   fields: [
+    // -----------------------------------
+    // GENERATED VARIANTS
+    // -----------------------------------
     {
       name: 'variants',
       type: 'group',
-      admin: { description: 'Auto-generated image crops' },
-      fields: [
-        { name: 'thumbnail', type: 'text', admin: { readOnly: true } },
-        { name: 'square', type: 'text', admin: { readOnly: true } },
-        { name: 'landscape', type: 'text', admin: { readOnly: true } },
-        { name: 'portrait', type: 'text', admin: { readOnly: true } },
-        { name: 'cinematic', type: 'text', admin: { readOnly: true } },
-      ],
+      admin: { description: 'Generated image variants' },
+      fields: CROP_VARIANTS.map((v) => ({
+        name: v.name,
+        type: 'text',
+        admin: { readOnly: true },
+      })),
     },
 
+    // -----------------------------------
+    // MANUAL CROP OVERRIDES
+    // -----------------------------------
+    {
+      name: 'cropOverrides',
+      type: 'group',
+      admin: {
+        description: 'Manual crop overrides (0–1 normalized values)',
+      },
+      fields: CROP_VARIANTS.map((v) => ({
+        name: v.name,
+        type: 'group',
+        fields: [
+          { name: 'x', type: 'number', min: 0, max: 1 },
+          { name: 'y', type: 'number', min: 0, max: 1 },
+          { name: 'width', type: 'number', min: 0, max: 1 },
+          { name: 'height', type: 'number', min: 0, max: 1 },
+        ],
+      })),
+    },
+
+    // -----------------------------------
+    // TABS
+    // -----------------------------------
     {
       type: 'tabs',
       tabs: [
@@ -136,9 +210,6 @@ export const Media: CollectionConfig = {
                 { name: 'height', type: 'number', admin: { readOnly: true } },
               ],
             },
-            { name: 'duration', type: 'number', admin: { readOnly: true } },
-            { name: 'bitrate', type: 'number', admin: { readOnly: true } },
-            { name: 'dominantColor', type: 'text', admin: { readOnly: true } },
           ],
         },
 
@@ -147,27 +218,19 @@ export const Media: CollectionConfig = {
           fields: [
             { name: 'caption', type: 'textarea' },
             { name: 'attribution', type: 'text' },
+
+            // -----------------------------------
+            // VISUAL FOCAL POINT PICKER
+            // -----------------------------------
             {
               name: 'focalPoint',
               type: 'point',
               admin: {
-                description: 'Primary focus for smart cropping',
+                description: 'Click the image to set the focal point',
+                components: {
+                  Field: '@/components/admin/FocalPointPicker',
+                },
               },
-            },
-          ],
-        },
-
-        {
-          label: 'Carousel Settings',
-          fields: [
-            {
-              name: 'carouselSettings',
-              type: 'group',
-              fields: [
-                { name: 'enableInArticleCarousel', type: 'checkbox' },
-                { name: 'carouselCaption', type: 'textarea' },
-                { name: 'carouselAttribution', type: 'text' },
-              ],
             },
           ],
         },
