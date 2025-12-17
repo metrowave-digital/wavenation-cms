@@ -22,7 +22,7 @@ import * as Roles from './access/roles'
    COLLECTION IMPORTS
 ============================ */
 
-/* Global Config */
+/* Globals */
 import { GlobalSettings } from './collections/Globals/GlobalSettings'
 
 /* Ads */
@@ -32,25 +32,24 @@ import { Ads } from './collections/Ads/Ads'
 import { Advertisers } from './collections/Ads/Advertisers'
 import { Campaigns } from './collections/Ads/Campaigns'
 
-/* Engagement (NEW) */
+/* Engagement */
 import { Alerts } from './collections/Engagement/Alerts'
 import { Popups } from './collections/Engagement/Popups'
 
-/* Core User System */
+/* Users */
 import { Users } from './collections/Users/Users'
 import { Profiles } from './collections/Users/Profiles'
 
-/* Global Media */
+/* Media */
 import { Media } from './collections/Media/Media'
 
-/* Content — Shows / Episodes / TV / Radio */
+/* Shows / TV / Radio */
 import { Shows } from './collections/Shows/Shows'
 import { Episodes } from './collections/Shows/Episodes'
 import { Schedule } from './collections/Shows/Schedule'
 import { EPGEntries } from './collections/Shows/EPGEntries'
-import ArtistSpotlight from './collections/Articles/ArtistSpotlight'
 
-/* Film + VOD */
+/* Film / VOD */
 import { Films } from './collections/VOD/Films'
 import { VOD } from './collections/VOD/VOD'
 
@@ -64,14 +63,15 @@ import { Albums } from './collections/Music/Albums'
 import { Playlists } from './collections/Music/Playlists'
 import { Charts } from './collections/Music/Charts'
 
-/* Tags / Categories / SEO */
+/* Taxonomy */
 import { Tags } from './collections/Categories/Tags'
 import { Categories } from './collections/Categories/Categories'
 
-/* Articles + Reviews */
-import { Articles } from './collections/Articles/Articles/'
+/* Articles */
+import { Articles } from './collections/Articles/Articles'
 import { Reviews } from './collections/Articles/Reviews'
 import { ReviewReactions } from './collections/Articles/ReviewReactions'
+import ArtistSpotlight from './collections/Articles/ArtistSpotlight'
 
 /* Polls */
 import { Polls } from './collections/Polls/Polls'
@@ -116,7 +116,7 @@ import { CreatorPayouts } from './collections/Subscriptions/CreatorPayouts'
 import { CreatorRedemptions } from './collections/Subscriptions/CreatorRedemptions'
 import { BillingCycles } from './collections/Monetization/BillingCycles'
 
-/* Content Monetization */
+/* Monetization */
 import { ContentSubscriptions } from './collections/Monetization/ContentSubscriptions'
 import { ContentAccess } from './collections/Monetization/ContentAccess'
 
@@ -144,7 +144,7 @@ import { ChannelAnalytics } from './collections/Channels/ChannelAnalytics'
 import { ChannelPolls } from './collections/Channels/ChannelPolls'
 import { ChannelChat } from './collections/Channels/ChannelChat'
 
-/* Engagement Basics */
+/* Engagement Core */
 import { Blocks } from './collections/Engagement/Blocks'
 import { Followers } from './collections/Engagement/Followers'
 import { Following } from './collections/Engagement/Following'
@@ -167,50 +167,85 @@ const dirname = path.dirname(filename)
 ============================ */
 
 export default buildConfig({
-  /* Required for production (Render) */
-  serverURL: process.env.SERVER_URL || 'http://localhost:3001',
+  /* -----------------------------------------------------------
+     SERVER URL (CANONICAL CMS ORIGIN)
+  ----------------------------------------------------------- */
+  serverURL: 'https://wavenation.media',
 
-  /* Ensure GraphQL + API routes resolve correctly */
   routes: {
     api: '/api',
     admin: '/admin',
   },
 
   /* -----------------------------------------------------------
-     ADMIN PANEL (AUTH0)
+     AUTH (COOKIE SAFE FOR MODERN BROWSERS)
   ----------------------------------------------------------- */
-  admin: {
-    user: Users.slug,
-    importMap: { baseDir: path.resolve(dirname) },
+  auth: {
+    jwtOrder: ['cookie', 'Bearer'],
   },
 
   /* -----------------------------------------------------------
-     CORS (REQUIRED FOR RENDER + VERCEL FRONTEND)
+     ADMIN
+  ----------------------------------------------------------- */
+  admin: {
+    user: Users.slug,
+    importMap: {
+      baseDir: path.resolve(dirname),
+    },
+  },
+
+  /* -----------------------------------------------------------
+     CORS — ALL APPROVED FRONTENDS
   ----------------------------------------------------------- */
   cors: [
+    // Local
     'http://localhost:3000',
     'http://localhost:3001',
+
+    // Primary brand
     'https://wavenation.media',
     'https://www.wavenation.media',
+
+    // ✅ REQUIRED: wavenation.online
     'https://wavenation.online',
     'https://www.wavenation.online',
-    'https://wavenation-web.vercel.app',
-    'https://portal.wavenation.online',
+
+    // WaveNation Plus
     'https://wavenation.plus',
     'https://www.wavenation.plus',
+
+    // Portals / Apps
+    'https://portal.wavenation.online',
+
+    // Vercel frontends
+    'https://wavenation-web.vercel.app',
   ],
 
+  /* -----------------------------------------------------------
+     CSRF — MUST MATCH CORS FOR ADMIN + FORMS
+  ----------------------------------------------------------- */
   csrf: [
+    // Local
     'http://localhost:3000',
     'http://localhost:3001',
+
+    // Primary brand
     'https://wavenation.media',
     'https://www.wavenation.media',
+
+    // ✅ REQUIRED: wavenation.online
     'https://wavenation.online',
     'https://www.wavenation.online',
-    'https://wavenation-web.vercel.app',
-    'https://portal.wavenation.online',
+
+    // WaveNation Plus
     'https://wavenation.plus',
     'https://www.wavenation.plus',
+
+    // Portals / Apps
+    'https://portal.wavenation.online',
+
+    // Vercel
+    'https://wavenation-web.vercel.app',
   ],
 
   /* -----------------------------------------------------------
@@ -313,12 +348,12 @@ export default buildConfig({
   ],
 
   /* -----------------------------------------------------------
-     RICH TEXT EDITOR
+     RICH TEXT
   ----------------------------------------------------------- */
   editor: lexicalEditor(),
 
   /* -----------------------------------------------------------
-     DATABASE — Neon Postgres
+     DATABASE
   ----------------------------------------------------------- */
   db: postgresAdapter({
     pool: {
@@ -327,7 +362,7 @@ export default buildConfig({
   }),
 
   /* -----------------------------------------------------------
-     STORAGE — Cloudflare R2
+     STORAGE — CLOUDFLARE R2
   ----------------------------------------------------------- */
   plugins: [
     s3Storage({
@@ -348,13 +383,13 @@ export default buildConfig({
   ],
 
   /* -----------------------------------------------------------
-     PAYLOAD CORE
+     CORE
   ----------------------------------------------------------- */
   secret: process.env.PAYLOAD_SECRET!,
   sharp,
 
   /* -----------------------------------------------------------
-     TYPESCRIPT TYPES
+     TYPESCRIPT
   ----------------------------------------------------------- */
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
