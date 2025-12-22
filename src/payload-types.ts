@@ -5238,6 +5238,25 @@ export interface Chart {
   period?: string | null;
   status?: ('draft' | 'published' | 'archived') | null;
   description?: string | null;
+  /**
+   * Optional sponsor overlay for this chart.
+   */
+  sponsorship?: {
+    enabled?: boolean | null;
+    tier?: ('flagship' | 'moment' | 'accent') | null;
+    sponsorName?: string | null;
+    /**
+     * Optional logo (used for flagship tier)
+     */
+    sponsorLogo?: (number | null) | Media;
+    /**
+     * Optional outbound link
+     */
+    sponsorUrl?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    disclosureText?: string | null;
+  };
   entries?:
     | {
         rank: number;
@@ -8759,6 +8778,18 @@ export interface ChartsSelect<T extends boolean = true> {
   period?: T;
   status?: T;
   description?: T;
+  sponsorship?:
+    | T
+    | {
+        enabled?: T;
+        tier?: T;
+        sponsorName?: T;
+        sponsorLogo?: T;
+        sponsorUrl?: T;
+        startDate?: T;
+        endDate?: T;
+        disclosureText?: T;
+      };
   entries?:
     | T
     | {

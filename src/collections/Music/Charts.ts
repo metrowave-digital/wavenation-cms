@@ -81,6 +81,100 @@ export const Charts: CollectionConfig = {
     },
 
     /* --------------------------------------------------------
+ * SPONSORSHIP (OPTIONAL / NON-INTRUSIVE)
+-------------------------------------------------------- */
+    {
+      name: 'sponsorship',
+      type: 'group',
+      label: 'Chart Sponsorship',
+      admin: {
+        description: 'Optional sponsor overlay for this chart.',
+      },
+      fields: [
+        {
+          name: 'enabled',
+          type: 'checkbox',
+          defaultValue: false,
+          label: 'Enable Sponsorship',
+        },
+
+        {
+          name: 'tier',
+          type: 'select',
+          required: true,
+          defaultValue: 'accent',
+          admin: {
+            condition: (_, siblingData) => siblingData?.enabled,
+          },
+          options: [
+            { label: 'Flagship (Hero / #1)', value: 'flagship' },
+            { label: 'Moment (Gainer / Drop)', value: 'moment' },
+            { label: 'Accent (Subtle)', value: 'accent' },
+          ],
+        },
+
+        {
+          name: 'sponsorName',
+          type: 'text',
+          required: true,
+          admin: {
+            condition: (_, siblingData) => siblingData?.enabled,
+          },
+        },
+
+        {
+          name: 'sponsorLogo',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            condition: (_, siblingData) => siblingData?.enabled,
+            description: 'Optional logo (used for flagship tier)',
+          },
+        },
+
+        {
+          name: 'sponsorUrl',
+          type: 'text',
+          admin: {
+            condition: (_, siblingData) => siblingData?.enabled,
+            description: 'Optional outbound link',
+          },
+        },
+
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'startDate',
+              type: 'date',
+              admin: {
+                width: '50%',
+                condition: (_, siblingData) => siblingData?.enabled,
+              },
+            },
+            {
+              name: 'endDate',
+              type: 'date',
+              admin: {
+                width: '50%',
+                condition: (_, siblingData) => siblingData?.enabled,
+              },
+            },
+          ],
+        },
+
+        {
+          name: 'disclosureText',
+          type: 'text',
+          defaultValue: 'Sponsored',
+          admin: {
+            condition: (_, siblingData) => siblingData?.enabled,
+          },
+        },
+      ],
+    },
+
+    /* --------------------------------------------------------
      * CHART POSITIONS
      -------------------------------------------------------- */
     {
