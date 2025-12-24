@@ -168,3 +168,265 @@ export interface BreakingNewsArticle extends BaseArticle {
   socialCopyTwitter?: string
   socialCopyInstagram?: string
 }
+
+export interface MusicReviewArticle extends BaseArticle {
+  type: ArticleType.MusicReview;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  author?: string;
+
+  intro?: string;
+
+  trackAlbumAnalysis?: {
+    soundProduction?: string;
+    vocalPerformance?: string;
+    lyricsThemes?: string;
+    standoutTracks?: string[];
+    weakPoints?: string;
+  };
+
+  culturalPositioning?: string;
+
+  verdict?: string;
+
+  rating?: number; // 1–10 WaveNation scale
+
+  tracklist?: string[]; // optional list
+
+  relatedTracks?: string[];   // media relationships (audio)
+  relatedAlbums?: string[];   // media or article relationships
+}
+
+export interface FilmTVReviewArticle extends BaseArticle {
+  type: ArticleType.FilmTVReview;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  intro?: string;
+
+  plotSummary?: string;
+
+  analysis?: {
+    direction?: string;
+    acting?: string;
+    cinematography?: string;
+    writing?: string;
+    themes?: string;
+  };
+
+  culturalAnalysis?: string;
+
+  verdict?: string;
+
+  rating?: number; // 1–10 WaveNation scale
+
+  relatedShow?: string[]; // references to other media or articles
+  relatedFilm?: string[]; // same
+}
+
+export interface InterviewArticle extends BaseArticle {
+  type: ArticleType.Interview;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  author?: string;
+
+  intro?: string;
+
+  interview?: {
+    question: string;
+    answer: string;
+  }[];
+
+  closingNotes?: string;
+
+  sidebar?: {
+    socialLinks?: {
+      platform: string;
+      url: string;
+    }[];
+    tourDates?: string[];
+    releases?: string[];
+  };
+
+  relatedArtists?: string[]; // profiles or media relationships
+}
+
+export interface FeatureArticle extends BaseArticle {
+  type: ArticleType.Feature;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  author?: string;
+
+  narrativeLede?: string;
+
+  sectionStory?: string;
+  sectionInsight?: string;
+  sectionVoices?: string;
+  sectionImpact?: string;
+  sectionFuture?: string;
+
+  creditsSources?: string;
+}
+
+export interface EventRecapArticle extends BaseArticle {
+  type: ArticleType.EventRecap;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  intro?: string;
+
+  highlights?: string[]; // list of bullet-style moments
+
+  atmosphere?: string;
+  culturalTakeaways?: string;
+
+  photos?: {
+    image: string;
+    alt: string;
+  }[];
+
+  relatedEvents?: string[]; // relationship to Events collection
+}
+
+export interface AfricanAmericanCultureStoryArticle extends BaseArticle {
+  type: ArticleType.AfricanAmericanCulture;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  hook?: string;
+
+  background?: string;
+
+  mainStory?: string;
+
+  localVoices?: {
+    quote: string;
+    speaker?: string;
+  }[];
+
+  connectionToWN?: string;
+
+  resources?: {
+    title: string;
+    description?: string;
+  }[];
+}
+
+export interface LifestyleArticle extends BaseArticle {
+  type: ArticleType.Lifestyle;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  intro?: string;
+
+  body?: {
+    sectionInsight?: string;
+    sectionExamples?: string;
+    sectionAdvice?: string;
+    sectionCulturalRelevance?: string;
+  };
+
+  callToAction?: string;
+
+  imagery?: {
+    image: string;
+    alt: string;
+  }[];
+}
+
+export interface FaithInspirationArticle extends BaseArticle {
+  type: ArticleType.FaithInspiration;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  openingReflection?: string; // scripture or thought prompt
+
+  message?: string; // core encouragement or lesson
+
+  application?: string; // how it applies to daily life
+
+  closingPrayerOrAffirmation?: string; // optional
+}
+
+export interface SponsoredContentArticle extends BaseArticle {
+  type: ArticleType.Sponsored;
+
+  sponsor?: string;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  disclosure?: string;
+
+  intro?: string;
+
+  body?: string;
+
+  storyIntegration?: string;
+
+  cta?: {
+    text?: string;
+    url?: string;
+    eventDate?: string;
+    productInfo?: string;
+  };
+
+  assets?: {
+    image: string;
+    alt: string;
+  }[];
+}
+
+export interface CreatorSpotlightArticle extends BaseArticle {
+  type: ArticleType.CreatorSpotlight;
+
+  subtitle?: string;
+
+  category?: string;
+  subCategory?: string;
+
+  intro?: string;
+
+  sectionOrigin?: string;
+  sectionWork?: string;
+  sectionVision?: string;
+  sectionAlignment?: string;
+
+  mediaAssets?: {
+    type: "photo" | "video";
+    file: string;
+    credit?: string;
+    permission?: string;
+  }[];
+
+  relatedCreator?: string; // relationship to Profiles or Creator collection
+}

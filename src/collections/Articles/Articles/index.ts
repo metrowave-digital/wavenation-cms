@@ -131,6 +131,9 @@ export const Articles: CollectionConfig = {
         { label: 'Discussed on WaveNation FM', value: 'radio' },
         { label: 'Watch on WaveNation One', value: 'tv' },
         { label: 'Sponsored', value: 'sponsored' },
+        { label: 'Exclusive', value: 'exclusive' },
+        { label: 'News Menu Feature', value: 'news-menu-feature' },
+        { label: 'Discover Menu Feature', value: 'discover-menu-feature' },
       ],
     },
 

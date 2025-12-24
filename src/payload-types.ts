@@ -1091,7 +1091,18 @@ export interface Article {
     | 'sponsored'
     | 'creator-spotlight';
   status: 'draft' | 'review' | 'needs-correction' | 'scheduled' | 'published';
-  badges?: ('breaking' | 'staff-pick' | 'radio' | 'tv' | 'sponsored')[] | null;
+  badges?:
+    | (
+        | 'breaking'
+        | 'staff-pick'
+        | 'radio'
+        | 'tv'
+        | 'sponsored'
+        | 'exclusive'
+        | 'news-menu-feature'
+        | 'discover-menu-feature'
+      )[]
+    | null;
   sponsorDisclosure?: string | null;
   publishedDate?: string | null;
   scheduledPublishDate?: string | null;
