@@ -1,7 +1,9 @@
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 export const PhotoGallery: CollectionConfig = {
   slug: 'photo-galleries',
+
   labels: {
     singular: 'Photo Gallery',
     plural: 'Photo Galleries',
@@ -11,6 +13,19 @@ export const PhotoGallery: CollectionConfig = {
     group: 'Media',
     useAsTitle: 'title',
     defaultColumns: ['title', 'photos'],
+  },
+
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+     - Public read
+     - Staff manage galleries
+     - Admin can delete
+  ----------------------------------------------------------- */
+  access: {
+    read: () => true,
+    create: AccessControl.isStaff,
+    update: AccessControl.isStaff,
+    delete: AccessControl.isAdmin,
   },
 
   fields: [
@@ -23,7 +38,6 @@ export const PhotoGallery: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
-      required: false,
     },
 
     {
@@ -41,14 +55,20 @@ export const PhotoGallery: CollectionConfig = {
         {
           name: 'caption',
           type: 'textarea',
-          admin: { description: 'Optional caption for this image.' },
+          admin: {
+            description: 'Optional caption for this image.',
+          },
         },
         {
           name: 'attribution',
           type: 'text',
-          admin: { description: 'Credit for this image.' },
+          admin: {
+            description: 'Credit for this image.',
+          },
         },
       ],
     },
   ],
 }
+
+export default PhotoGallery

@@ -21,18 +21,17 @@ const isAdminOrSelf = ({ req, id }: AccessArgs): boolean => {
     roles.includes('admin') ||
     roles.includes('super-admin') ||
     roles.includes('system') ||
-    req.user.id === id // <--- FIXED
+    req.user.id === id
   )
 }
 
 /* ============================================================
-   USERS COLLECTION
-   (Fully Payload v3 Compatible)
+   USERS COLLECTION (FIXED)
 ============================================================ */
 
 export const Users: CollectionConfig = {
   slug: 'users',
-  auth: true, // <--- Automatically adds: email + password + hashing + login
+  auth: true,
 
   admin: {
     useAsTitle: 'email',
@@ -41,18 +40,17 @@ export const Users: CollectionConfig = {
   },
 
   access: {
-    read: isAdmin, // Only admins can view users
-    create: isAdmin, // Only admins can create users
-    update: isAdminOrSelf, // Admin or the user themselves
-    delete: isAdmin, // Only admins can delete users
+    // ✅ CRITICAL FIX: allow self-read
+    read: isAdminOrSelf,
+
+    create: isAdmin,
+    update: isAdminOrSelf,
+    delete: isAdmin,
   },
 
   timestamps: true,
 
   fields: [
-    /* -----------------------------------------------------------
-     * ROLES (fully aligned with your roles.ts)
-     ----------------------------------------------------------- */
     {
       name: 'roles',
       type: 'select',
@@ -63,10 +61,7 @@ export const Users: CollectionConfig = {
         description: 'Defines the user access level within WaveNation CMS.',
       },
       options: [
-        // baseline
         { label: 'Free User', value: 'free' },
-
-        // creators + performers
         { label: 'Creator', value: 'creator' },
         { label: 'Pro Creator', value: 'pro' },
         { label: 'Host / DJ', value: 'host' },
@@ -74,79 +69,38 @@ export const Users: CollectionConfig = {
         { label: 'VJ', value: 'vj' },
         { label: 'Industry', value: 'industry' },
         { label: 'Contributor', value: 'contributor' },
-
-        // editorial & staff
         { label: 'Editor', value: 'editor' },
         { label: 'Staff', value: 'staff' },
         { label: 'Moderator', value: 'moderator' },
-
-        // core admin
         { label: 'Admin', value: 'admin' },
         { label: 'Super Admin', value: 'super-admin' },
         { label: 'System', value: 'system' },
       ],
     },
 
-    /* -----------------------------------------------------------
-     * NAME FIELDS
-     ----------------------------------------------------------- */
     {
       type: 'row',
       fields: [
-        {
-          name: 'firstName',
-          type: 'text',
-          required: true,
-          admin: { width: '33%' },
-        },
-        {
-          name: 'middleInitial',
-          type: 'text',
-          admin: { width: '33%' },
-        },
-        {
-          name: 'lastName',
-          type: 'text',
-          required: true,
-          admin: { width: '33%' },
-        },
+        { name: 'firstName', type: 'text', required: true },
+        { name: 'middleInitial', type: 'text' },
+        { name: 'lastName', type: 'text', required: true },
       ],
     },
 
-    {
-      name: 'dateOfBirth',
-      type: 'date',
-    },
+    { name: 'dateOfBirth', type: 'date' },
+    { name: 'phone', type: 'text' },
 
-    {
-      name: 'phone',
-      type: 'text',
-    },
-
-    /* -----------------------------------------------------------
-     * PROFILE RELATION
-     ----------------------------------------------------------- */
     {
       name: 'profile',
       type: 'relationship',
       relationTo: 'profiles',
-      required: false,
-      admin: {
-        description: 'Linked profile data for this user.',
-      },
     },
 
-    /* -----------------------------------------------------------
-     * TERMS ACCEPTANCE
-     ----------------------------------------------------------- */
     {
       name: 'acceptTerms',
       type: 'checkbox',
       required: true,
       defaultValue: false,
-      admin: {
-        description: 'User must accept terms of service.',
-      },
     },
   ],
 }

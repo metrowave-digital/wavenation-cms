@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 export const MediaTags: CollectionConfig = {
   slug: 'media-tags',
@@ -8,15 +9,25 @@ export const MediaTags: CollectionConfig = {
     useAsTitle: 'label',
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+     - Public read (search-safe)
+     - Staff manage tags
+     - Admin can delete
+  ----------------------------------------------------------- */
   access: {
     read: () => true,
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user),
+    create: AccessControl.isStaff,
+    update: AccessControl.isStaff,
+    delete: AccessControl.isAdmin,
   },
 
   fields: [
-    { name: 'label', type: 'text', required: true },
+    {
+      name: 'label',
+      type: 'text',
+      required: true,
+    },
     {
       name: 'value',
       type: 'text',
@@ -30,11 +41,16 @@ export const MediaTags: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data }) => {
-        if (data.label) {
-          data.value = data.label.toLowerCase().replace(/\s+/g, '-')
+        if (data?.label) {
+          data.value = data.label
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
         }
         return data
       },
     ],
   },
 }
+
+export default MediaTags

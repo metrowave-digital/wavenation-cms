@@ -2,18 +2,40 @@ import type { CollectionConfig, Access, FieldAccess, AccessArgs } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 
 /* ============================================================
-   ROLE HELPERS
+   ROLE HELPERS (ADMIN = ABSOLUTE)
 ============================================================ */
 
 const getUserRoles = (req: AccessArgs['req']): string[] =>
   Array.isArray(req.user?.roles) ? req.user.roles : []
 
-const isAdmin = (roles: string[]) =>
-  roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')
+const isAdminRole = (req: AccessArgs['req']) => {
+  const roles = getUserRoles(req)
+  return roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')
+}
 
-const isStaff = (roles: string[]) => isAdmin(roles) || roles.includes('staff')
+const isStaffRole = (req: AccessArgs['req']) =>
+  isAdminRole(req) || getUserRoles(req).includes('staff')
 
-const isModeratorRole = (roles: string[]) => isStaff(roles) || roles.includes('moderator')
+const isModeratorRole = (req: AccessArgs['req']) =>
+  isStaffRole(req) || getUserRoles(req).includes('moderator')
+
+/* ============================================================
+   ID NORMALIZATION (CRITICAL FIX)
+============================================================ */
+
+const toStringID = (value: unknown): string | null => {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'object' && value && 'id' in value) {
+    const id = (value as any).id
+    if (typeof id === 'string') return id
+    if (typeof id === 'number') return String(id)
+  }
+  return null
+}
+
+const normalizeIDArray = (values: unknown[]): string[] =>
+  values.map(toStringID).filter(Boolean) as string[]
 
 /* ============================================================
    COLLECTION-LEVEL ACCESS
@@ -22,74 +44,56 @@ const isModeratorRole = (roles: string[]) => isStaff(roles) || roles.includes('m
 const isLoggedIn: Access = ({ req }) => Boolean(req.user)
 
 /**
- * Collection-level: owner OR admin/staff
+ * Owner OR admin (admin always wins)
  */
 const isOwnerOrAdmin: Access = async ({ req, id }) => {
   if (!req.user) return false
 
-  const roles = getUserRoles(req)
-  if (isAdmin(roles)) return true
+  // 🔑 ADMIN OVERRIDE
+  if (isAdminRole(req)) return true
 
-  if (id == null) return false
+  const docID = toStringID(id)
+  if (!docID) return false
 
   const group = await req.payload.findByID({
     collection: 'groups',
-    id: id as string | number, // ensure correct type for TS
+    id: docID,
   })
 
-  const ownerId = typeof group.owner === 'string' ? group.owner : (group.owner as any)?.id
+  const ownerId = toStringID(group.owner)
+  const userId = String(req.user.id)
 
-  return ownerId === req.user.id
+  return ownerId === userId
 }
 
 /* ============================================================
-   FIELD-LEVEL ACCESS (BOOLEAN-ONLY)
+   FIELD-LEVEL ACCESS (BOOLEAN ONLY)
 ============================================================ */
 
-/**
- * Field-level: admin-only
- */
-const isAdminFieldAccess: FieldAccess = ({ req }) => {
-  const roles = getUserRoles(req)
-  return isAdmin(roles)
-}
+const isAdminFieldAccess: FieldAccess = ({ req }) => Boolean(req.user && isAdminRole(req))
 
-/**
- * Field-level: admin/staff/moderator
- */
-const isModeratorFieldAccess: FieldAccess = ({ req }) => {
-  const roles = getUserRoles(req)
-  return isModeratorRole(roles)
-}
+const isModeratorFieldAccess: FieldAccess = ({ req }) => Boolean(req.user && isModeratorRole(req))
 
-/**
- * Field-level: can manage membership-related fields
- * Uses the current doc instead of findByID to avoid TS id issues.
- */
 const canManageGroupMembersField: FieldAccess = ({ req, doc }) => {
   if (!req.user) return false
-  const roles = getUserRoles(req)
 
-  // Admin/staff always allowed
-  if (isStaff(roles)) return true
+  const userId = String(req.user.id)
+
+  // 🔑 ADMIN ALWAYS ALLOWED
+  if (isAdminRole(req)) return true
+  if (isStaffRole(req)) return true
 
   const group = doc as any
   if (!group) return false
 
-  // Owner allowed
-  const ownerId = typeof group.owner === 'string' ? group.owner : group.owner?.id
+  const ownerId = toStringID(group.owner)
+  if (ownerId === userId) return true
 
-  if (ownerId === req.user.id) return true
+  const adminIDs = normalizeIDArray(group.admins || [])
+  if (adminIDs.includes(userId)) return true
 
-  // Group admins allowed
-  const adminIDs = (group.admins || []).map((a: any) => (typeof a === 'string' ? a : a?.id))
-  if (adminIDs.includes(req.user.id)) return true
-
-  // Group moderators allowed
-  const modIDs = (group.moderators || []).map((m: any) => (typeof m === 'string' ? m : m?.id))
-  if (modIDs.includes(req.user.id)) return true
-
-  return false
+  const modIDs = normalizeIDArray(group.moderators || [])
+  return modIDs.includes(userId)
 }
 
 /* ============================================================
@@ -118,128 +122,21 @@ export const Groups: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
-        /* ============================================================
-           TAB 1 — BASIC INFO
-        ============================================================ */
         {
           label: 'Basic Info',
           fields: [
-            {
-              name: 'name',
-              type: 'text',
-              required: true,
-              admin: {
-                description: "Group name (e.g., 'Worship Leaders Circle', 'Indie Artists Guild')",
-              },
-            },
-
-            {
-              name: 'slug',
-              type: 'text',
-              unique: true,
-              index: true,
-              admin: {
-                description: 'Auto-generated from group name; used in URLs.',
-              },
-            },
-
+            { name: 'name', type: 'text', required: true },
+            { name: 'slug', type: 'text', unique: true, index: true },
             {
               name: 'description',
               type: 'richText',
               editor: lexicalEditor(),
-              admin: {
-                description: 'Describe what this group is about.',
-              },
             },
-
-            {
-              name: 'category',
-              type: 'select',
-              admin: {
-                description: 'Choose the main category of this group.',
-              },
-              options: [
-                'Music',
-                'Film',
-                'TV / Streaming',
-                'Podcasts',
-                'Digital Media',
-                'Culture',
-                'Lifestyle',
-                'Faith & Spirituality',
-                'Gospel',
-                'Hip-Hop',
-                'R&B',
-                'Soul',
-                'Southern Soul',
-                'Business / Entrepreneurship',
-                'Leadership',
-                'Social Justice',
-                'Community',
-                'Youth',
-                'Creative Collective',
-                'Events',
-              ].map((label) => ({
-                label,
-                value: label.toLowerCase().replace(/[\s/]+/g, '-'),
-              })),
-            },
-
-            {
-              name: 'tags',
-              type: 'select',
-              hasMany: true,
-              admin: {
-                description: 'Additional topics this group covers.',
-              },
-              options: [
-                'Music Discussion',
-                'Worship',
-                'Prayer',
-                'Production',
-                'Songwriting',
-                'Film Production',
-                'Acting',
-                'Directing',
-                'Podcasting',
-                'Reviews',
-                'Events',
-                'Festivals',
-                'Live Shows',
-                'Spiritual Growth',
-                'Community Service',
-                'Networking',
-                'Creatives',
-                'Business',
-                'Marketing',
-                'Mental Health',
-                'Youth & Young Adult',
-              ].map((label) => ({
-                label,
-                value: label.toLowerCase().replace(/[\s&]+/g, '-'),
-              })),
-            },
-
-            {
-              name: 'avatar',
-              type: 'upload',
-              relationTo: 'media',
-              admin: { description: 'Group avatar icon.' },
-            },
-            {
-              name: 'coverPhoto',
-              type: 'upload',
-              relationTo: 'media',
-              admin: {
-                description: 'Large banner image for the group page.',
-              },
-            },
+            { name: 'avatar', type: 'upload', relationTo: 'media' },
+            { name: 'coverPhoto', type: 'upload', relationTo: 'media' },
           ],
         },
 
-        /* ============================================================
-           TAB 2 — OWNER & ADMINS
-        ============================================================ */
         {
           label: 'Owner & Admins',
           fields: [
@@ -248,37 +145,25 @@ export const Groups: CollectionConfig = {
               type: 'relationship',
               relationTo: 'profiles',
               required: true,
-              admin: {
-                description: 'The creator of the group.',
-              },
-              access: {
-                update: isAdminFieldAccess,
-              },
+              access: { update: isAdminFieldAccess },
             },
             {
               name: 'admins',
               type: 'relationship',
               relationTo: 'profiles',
               hasMany: true,
-              access: {
-                update: canManageGroupMembersField,
-              },
+              access: { update: canManageGroupMembersField },
             },
             {
               name: 'moderators',
               type: 'relationship',
               relationTo: 'profiles',
               hasMany: true,
-              access: {
-                update: canManageGroupMembersField,
-              },
+              access: { update: canManageGroupMembersField },
             },
           ],
         },
 
-        /* ============================================================
-           TAB 3 — MEMBERSHIP SETTINGS
-        ============================================================ */
         {
           label: 'Membership',
           fields: [
@@ -286,55 +171,19 @@ export const Groups: CollectionConfig = {
               name: 'privacy',
               type: 'select',
               defaultValue: 'public',
-              required: true,
-              admin: {
-                description:
-                  'Public = anyone can join. Private = request required. Hidden = invite-only and invisible.',
-              },
               options: [
                 { label: 'Public', value: 'public' },
                 { label: 'Private', value: 'private' },
                 { label: 'Hidden', value: 'hidden' },
               ],
             },
-
-            {
-              name: 'autoApproveMembers',
-              type: 'checkbox',
-              label: 'Auto-approve joining members',
-              defaultValue: false,
-            },
-
             {
               name: 'members',
               type: 'relationship',
               relationTo: 'profiles',
               hasMany: true,
-              access: {
-                update: canManageGroupMembersField,
-              },
+              access: { update: canManageGroupMembersField },
             },
-
-            {
-              name: 'pendingMembers',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-              access: {
-                update: canManageGroupMembersField,
-              },
-            },
-
-            {
-              name: 'blockedProfiles',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-              access: {
-                update: canManageGroupMembersField,
-              },
-            },
-
             {
               name: 'memberCount',
               type: 'number',
@@ -344,102 +193,18 @@ export const Groups: CollectionConfig = {
           ],
         },
 
-        /* ============================================================
-           TAB 4 — POSTS, THREADS, EVENTS
-        ============================================================ */
-        {
-          label: 'Content & Engagement',
-          fields: [
-            {
-              name: 'posts',
-              type: 'relationship',
-              relationTo: 'articles',
-              hasMany: true,
-            },
-            {
-              name: 'chatThreads',
-              type: 'relationship',
-              relationTo: 'chats',
-              hasMany: true,
-            },
-            {
-              name: 'events',
-              type: 'relationship',
-              relationTo: 'events',
-              hasMany: true,
-            },
-          ],
-        },
-
-        /* ============================================================
-           TAB 5 — ANNOUNCEMENTS
-        ============================================================ */
-        {
-          label: 'Announcements',
-          fields: [
-            {
-              name: 'announcements',
-              type: 'relationship',
-              relationTo: 'notifications',
-              hasMany: true,
-            },
-          ],
-        },
-
-        /* ============================================================
-           TAB 6 — SAFETY & MODERATION
-        ============================================================ */
         {
           label: 'Safety & Moderation',
           fields: [
             {
               name: 'flaggedForReview',
               type: 'checkbox',
-              access: {
-                update: isModeratorFieldAccess,
-              },
-            },
-            {
-              name: 'banStatus',
-              type: 'select',
-              defaultValue: 'active',
-              options: [
-                { label: 'Active', value: 'active' },
-                { label: 'Suspended', value: 'suspended' },
-                { label: 'Terminated', value: 'terminated' },
-              ],
-              access: {
-                update: isModeratorFieldAccess,
-              },
-            },
-            {
-              type: 'row',
-              fields: [
-                {
-                  name: 'bannedAt',
-                  type: 'date',
-                  admin: { width: '50%' },
-                  access: {
-                    update: isModeratorFieldAccess,
-                  },
-                },
-                {
-                  name: 'banReason',
-                  type: 'textarea',
-                  admin: { width: '50%' },
-                  access: {
-                    update: isModeratorFieldAccess,
-                  },
-                },
-              ],
+              access: { update: isModeratorFieldAccess },
             },
             {
               name: 'internalNotes',
               type: 'richText',
               editor: lexicalEditor(),
-              admin: {
-                description: 'Admin-only moderation notes.',
-              },
               access: {
                 read: isAdminFieldAccess,
                 update: isAdminFieldAccess,
@@ -448,48 +213,8 @@ export const Groups: CollectionConfig = {
           ],
         },
 
-        /* ============================================================
-           TAB 7 — ANALYTICS
-        ============================================================ */
         {
-          label: 'Analytics',
-          fields: [
-            {
-              type: 'row',
-              fields: [
-                {
-                  name: 'views',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '33%' },
-                },
-                {
-                  name: 'engagementScore',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '33%' },
-                },
-                {
-                  name: 'activityLevel',
-                  type: 'select',
-                  defaultValue: 'low',
-                  admin: { readOnly: true, width: '33%' },
-                  options: [
-                    { label: 'Low', value: 'low' },
-                    { label: 'Moderate', value: 'moderate' },
-                    { label: 'High', value: 'high' },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-
-        /* ============================================================
-           TAB 8 — SYSTEM & AUDIT
-        ============================================================ */
-        {
-          label: 'System & Audit',
+          label: 'System',
           fields: [
             {
               name: 'createdBy',
@@ -509,34 +234,21 @@ export const Groups: CollectionConfig = {
     },
   ],
 
-  /* ============================================================
-     HOOKS
-  ============================================================ */
   hooks: {
     beforeChange: [
       async ({ data, req, operation }) => {
         if (!req.user) return data
 
-        const roles = getUserRoles(req)
+        const userId = String(req.user.id)
 
         if (operation === 'create') {
-          // Owner is always creator
-          data.owner = req.user.id
-
-          // Owner becomes first admin
-          data.admins = [req.user.id]
-
-          // Staff auto-becomes moderator
-          if (isStaff(roles)) {
-            data.moderators = [req.user.id]
-          }
-
-          data.createdBy = req.user.id
+          data.owner = userId
+          data.admins = [userId]
+          data.createdBy = userId
         }
 
-        data.updatedBy = req.user.id
+        data.updatedBy = userId
 
-        // Slug generation
         if (data.name && !data.slug) {
           data.slug = data.name
             .toLowerCase()
@@ -549,3 +261,5 @@ export const Groups: CollectionConfig = {
     ],
   },
 }
+
+export default Groups

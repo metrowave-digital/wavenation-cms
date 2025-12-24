@@ -1,7 +1,9 @@
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 export const VideoGallery: CollectionConfig = {
   slug: 'video-galleries',
+
   labels: {
     singular: 'Video Gallery',
     plural: 'Video Galleries',
@@ -11,6 +13,19 @@ export const VideoGallery: CollectionConfig = {
     group: 'Media',
     useAsTitle: 'title',
     defaultColumns: ['title', 'videos'],
+  },
+
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+     - Public read (frontend safe)
+     - Staff manage galleries
+     - Admin delete only
+  ----------------------------------------------------------- */
+  access: {
+    read: () => true,
+    create: AccessControl.isStaff,
+    update: AccessControl.isStaff,
+    delete: AccessControl.isAdmin,
   },
 
   fields: [
@@ -23,7 +38,6 @@ export const VideoGallery: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
-      required: false,
     },
 
     {
@@ -41,14 +55,20 @@ export const VideoGallery: CollectionConfig = {
         {
           name: 'caption',
           type: 'textarea',
-          admin: { description: 'Optional caption for this video.' },
+          admin: {
+            description: 'Optional caption for this video.',
+          },
         },
         {
           name: 'attribution',
           type: 'text',
-          admin: { description: 'Credit for this video.' },
+          admin: {
+            description: 'Credit for this video.',
+          },
         },
       ],
     },
   ],
 }
+
+export default VideoGallery

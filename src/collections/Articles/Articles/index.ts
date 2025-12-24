@@ -1,4 +1,4 @@
-import type { CollectionConfig, Access, AccessArgs } from 'payload'
+import type { CollectionConfig, Access, FieldAccess } from 'payload'
 
 import { articleFields } from './fields'
 import { articleHooks } from './hooks'
@@ -8,23 +8,21 @@ import * as ArticleBlocks from './blocks'
    ACCESS CONTROL
 ============================================================ */
 
-import * as AccessControl from '@/access/control'
-import { isCreator, isStaff } from '@/access/control'
+import { isCreator, isStaff, isPublic, hasRoleAtOrAbove } from '@/access/control'
+import { Roles } from '@/access/roles'
 
-/* -----------------------------------------
-   UPDATE RULES
------------------------------------------- */
-const canUpdateArticle: Access = ({ req, data }: AccessArgs) => {
-  const creatorCanEdit = isCreator({ req } as AccessArgs)
-  const staffCanEdit = isStaff({ req } as AccessArgs)
+/* ============================================================
+   ACCESS HELPERS (TYPE-SAFE)
+============================================================ */
 
-  // Only staff can publish or schedule
-  if (data?.status === 'published' || data?.status === 'scheduled') {
-    return staffCanEdit
-  }
+const canUpdateArticle: Access = ({ req }) => {
+  if (!req?.user) return false
+  return hasRoleAtOrAbove(req, Roles.EDITOR)
+}
 
-  // Draft / review / needs-correction
-  return creatorCanEdit || staffCanEdit
+const editorialFieldUpdate: FieldAccess = ({ req }) => {
+  if (!req?.user) return false
+  return hasRoleAtOrAbove(req, Roles.EDITOR)
 }
 
 /* ============================================================
@@ -49,19 +47,16 @@ export const Articles: CollectionConfig = {
 
   /* -----------------------------------------------------------
      ACCESS
-     🔑 IMPORTANT:
-     - read MUST be public for GraphQL + search
-     - write rules remain role-based
   ----------------------------------------------------------- */
   access: {
-    read: AccessControl.isPublic, // ✅ FIX: public read for search
-    create: isCreator as Access,
+    read: isPublic,
+    create: isCreator,
     update: canUpdateArticle,
-    delete: isStaff as Access,
+    delete: isStaff,
   },
 
   /* -----------------------------------------------------------
-     FIELDS
+     FIELDS — DATA SAFE
   ----------------------------------------------------------- */
   fields: [
     /* ================= TITLE + TYPE ================= */
@@ -71,14 +66,12 @@ export const Articles: CollectionConfig = {
         {
           type: 'text',
           name: 'title',
-          label: 'Title',
           required: true,
           admin: { width: '70%' },
         },
         {
           type: 'select',
           name: 'type',
-          label: 'Article Type',
           required: true,
           admin: { width: '30%' },
           options: [
@@ -89,10 +82,7 @@ export const Articles: CollectionConfig = {
             { label: 'Interview', value: 'interview' },
             { label: 'Feature', value: 'feature' },
             { label: 'Event Recap', value: 'event-recap' },
-            {
-              label: 'African-American / Southern Culture',
-              value: 'african-american-culture',
-            },
+            { label: 'African-American / Southern Culture', value: 'african-american-culture' },
             { label: 'Lifestyle', value: 'lifestyle' },
             { label: 'Faith & Inspiration', value: 'faith-inspiration' },
             { label: 'Sponsored Content', value: 'sponsored' },
@@ -106,9 +96,10 @@ export const Articles: CollectionConfig = {
     {
       type: 'select',
       name: 'status',
-      label: 'Editorial Status',
       required: true,
       defaultValue: 'draft',
+      access: { update: editorialFieldUpdate },
+      admin: { position: 'sidebar' },
       options: [
         { label: 'Draft', value: 'draft' },
         { label: 'In Review', value: 'review' },
@@ -116,7 +107,6 @@ export const Articles: CollectionConfig = {
         { label: 'Scheduled', value: 'scheduled' },
         { label: 'Published', value: 'published' },
       ],
-      admin: { position: 'sidebar' },
     },
 
     /* ================= BADGES ================= */
@@ -125,6 +115,7 @@ export const Articles: CollectionConfig = {
       name: 'badges',
       hasMany: true,
       admin: { position: 'sidebar' },
+      access: { update: editorialFieldUpdate },
       options: [
         { label: 'Breaking News', value: 'breaking' },
         { label: 'Staff Pick', value: 'staff-pick' },
@@ -137,104 +128,77 @@ export const Articles: CollectionConfig = {
       ],
     },
 
-    /* ================= SPONSORED DISCLOSURE ================= */
+    /* ================= HERO IMAGE ================= */
     {
-      type: 'textarea',
-      name: 'sponsorDisclosure',
-      label: 'Sponsor Disclosure',
-      admin: {
-        position: 'sidebar',
-        condition: (_, siblingData) => siblingData?.type === 'sponsored',
-      },
+      type: 'upload',
+      name: 'heroImage',
+      relationTo: 'media',
+      access: { update: editorialFieldUpdate },
+    },
+    {
+      type: 'text',
+      name: 'heroImageAlt',
+      access: { update: editorialFieldUpdate },
     },
 
     /* ================= PUBLISHING ================= */
     {
       type: 'date',
       name: 'publishedDate',
-      label: 'Publish Date',
       admin: { position: 'sidebar' },
+      access: { update: editorialFieldUpdate },
     },
     {
       type: 'date',
       name: 'scheduledPublishDate',
-      label: 'Scheduled Publish Date',
       admin: { position: 'sidebar' },
+      access: { update: editorialFieldUpdate },
     },
     {
       type: 'date',
       name: 'lastUpdated',
-      label: 'Last Updated',
       admin: { position: 'sidebar', readOnly: true },
     },
 
-    /* ================= AUTHOR ================= */
+    /* ================= AUTHOR (UI-SAFE) ================= */
     {
       type: 'relationship',
       name: 'author',
-      label: 'Author',
       relationTo: 'profiles',
+      access: { update: editorialFieldUpdate },
+      admin: {
+        condition: (_, data) => Boolean(data?.author),
+      },
     },
 
-    /* ================= SLUG + HERO ================= */
+    /* ================= SLUG ================= */
     {
       type: 'text',
       name: 'slug',
       unique: true,
       admin: { position: 'sidebar' },
-    },
-    {
-      type: 'upload',
-      name: 'heroImage',
-      relationTo: 'media',
-    },
-    {
-      type: 'text',
-      name: 'heroImageAlt',
-      label: 'Hero Image Alt Text',
+      access: { update: editorialFieldUpdate },
     },
 
-    /* ================= ARTICLE CAROUSEL ================= */
-    {
-      type: 'array',
-      name: 'carousel',
-      label: 'Article Carousel',
-      fields: [
-        {
-          type: 'upload',
-          name: 'media',
-          relationTo: 'media',
-          required: true,
-        },
-        { type: 'textarea', name: 'caption' },
-        { type: 'text', name: 'attribution' },
-      ],
-    },
-
-    /* ================= READING TIME (DERIVED) ================= */
-    {
-      type: 'number',
-      name: 'readingTime',
-      label: 'Reading Time (minutes)',
-      admin: { position: 'sidebar', readOnly: true },
-      access: {
-        create: () => true,
-        update: () => true, // allows hooks to write
-      },
-    },
-
-    /* ================= EDITORIAL NOTES ================= */
+    /* ================= SPONSOR DISCLOSURE ================= */
     {
       type: 'textarea',
-      name: 'editorialNotes',
-      label: 'Editorial Notes',
-      admin: { position: 'sidebar' },
+      name: 'sponsorDisclosure',
+      admin: {
+        position: 'sidebar',
+        condition: (_, siblingData) => siblingData?.type === 'sponsored',
+      },
+      access: { update: editorialFieldUpdate },
     },
 
-    /* ================= MEDIA TIE-IN ================= */
+    /* ================= MEDIA TIE-IN (UI-SAFE) ================= */
     {
       type: 'group',
       name: 'mediaTieIn',
+      access: { update: editorialFieldUpdate },
+      admin: {
+        condition: (_, data) => Boolean(data?.mediaTieIn),
+      },
       fields: [
         {
           type: 'select',
@@ -250,24 +214,19 @@ export const Articles: CollectionConfig = {
           type: 'relationship',
           name: 'relatedEntity',
           relationTo: ['shows', 'playlists'],
+          admin: {
+            condition: (_, siblingData) => Boolean(siblingData?.relatedEntity),
+          },
         },
         { type: 'text', name: 'url' },
       ],
-    },
-
-    /* ================= RELATED ARTICLES ================= */
-    {
-      type: 'relationship',
-      name: 'relatedArticles',
-      relationTo: 'articles',
-      hasMany: true,
-      maxRows: 2,
     },
 
     /* ================= CTA ================= */
     {
       type: 'group',
       name: 'cta',
+      access: { update: editorialFieldUpdate },
       fields: [
         {
           type: 'select',
@@ -286,11 +245,41 @@ export const Articles: CollectionConfig = {
       ],
     },
 
+    /* ================= READING TIME ================= */
+    {
+      type: 'number',
+      name: 'readingTime',
+      admin: { readOnly: true },
+      access: {
+        create: () => true,
+        update: () => true,
+      },
+    },
+
+    /* ================= EDITORIAL NOTES ================= */
+    {
+      type: 'textarea',
+      name: 'editorialNotes',
+      admin: { position: 'sidebar' },
+      access: { update: editorialFieldUpdate },
+    },
+
+    /* ================= PLAYLISTS (UI-SAFE) ================= */
+    {
+      type: 'relationship',
+      name: 'playlists',
+      relationTo: 'playlists',
+      hasMany: true,
+      access: { update: editorialFieldUpdate },
+      admin: {
+        condition: (_, data) => Array.isArray(data?.playlists) && data.playlists.length > 0,
+      },
+    },
+
     /* ================= CONTENT BLOCKS ================= */
     {
       type: 'blocks',
       name: 'contentBlocks',
-      label: 'Article Content Blocks',
       blocks: [
         ArticleBlocks.RichTextBlock,
         ArticleBlocks.ImageBlock,

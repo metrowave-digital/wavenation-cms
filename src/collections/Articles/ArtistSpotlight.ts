@@ -18,11 +18,12 @@ const ArtistSpotlight: CollectionConfig = {
 
   /* -----------------------------------------------------------
      ACCESS CONTROL
-     🔑 Public read is REQUIRED for search
-     ✍🏽 Write access restricted to staff/admin
+     - Public read (search + frontend safe)
+     - Staff create/update
+     - Admin delete
   ----------------------------------------------------------- */
   access: {
-    read: AccessControl.isPublic, // 🔓 search-safe
+    read: AccessControl.isPublic,
     create: AccessControl.isStaff,
     update: AccessControl.isStaff,
     delete: AccessControl.isAdmin,
@@ -44,7 +45,7 @@ const ArtistSpotlight: CollectionConfig = {
       required: true,
     },
 
-    /* ---------------- ARTIST RELATIONSHIP ---------------- */
+    /* ---------------- ARTIST ---------------- */
     {
       name: 'artist',
       type: 'relationship',
@@ -69,14 +70,13 @@ const ArtistSpotlight: CollectionConfig = {
       type: 'textarea',
     },
 
-    /* ---------------- FEATURED ARTICLE ---------------- */
+    /* ---------------- FEATURED CONTENT ---------------- */
     {
       name: 'featuredArticle',
       type: 'relationship',
       relationTo: 'articles',
     },
 
-    /* ---------------- FEATURED RELEASE ---------------- */
     {
       name: 'featuredRelease',
       type: 'relationship',
@@ -87,8 +87,12 @@ const ArtistSpotlight: CollectionConfig = {
     {
       name: 'slug',
       type: 'text',
-      required: true,
-      admin: { position: 'sidebar' },
+      unique: true,
+      index: true,
+      admin: {
+        position: 'sidebar',
+        description: 'Auto-generated from title if left blank.',
+      },
       hooks: {
         beforeValidate: [
           ({ data }) => {
@@ -98,11 +102,41 @@ const ArtistSpotlight: CollectionConfig = {
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '')
             }
+            return data
           },
         ],
       },
     },
+
+    /* ---------------- AUDIT ---------------- */
+    {
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'updatedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
   ],
+
+  hooks: {
+    beforeChange: [
+      ({ data, req, operation }) => {
+        if (!req.user) return data
+
+        if (operation === 'create') {
+          data.createdBy = req.user.id
+        }
+        data.updatedBy = req.user.id
+
+        return data
+      },
+    ],
+  },
 }
 
 export default ArtistSpotlight

@@ -1,4 +1,15 @@
-import type { GlobalConfig } from 'payload'
+import type { GlobalConfig, Access } from 'payload'
+import * as AccessControl from '@/access/control'
+
+/* ============================================================
+   ACCESS
+============================================================ */
+
+const isAdminOnly: Access = ({ req }) => AccessControl.isAdmin({ req })
+
+/* ============================================================
+   GLOBAL
+============================================================ */
 
 export const MediaFolders: GlobalConfig = {
   slug: 'media-folders',
@@ -7,12 +18,21 @@ export const MediaFolders: GlobalConfig = {
     group: 'Core',
   },
 
+  access: {
+    read: () => true, // public-safe (used by media UI)
+    update: isAdminOnly, // 🔒 admin only
+  },
+
   fields: [
     {
       name: 'folders',
       type: 'array',
       fields: [
-        { name: 'name', type: 'text', required: true },
+        {
+          name: 'name',
+          type: 'text',
+          required: true,
+        },
         {
           name: 'slug',
           type: 'text',
@@ -23,3 +43,5 @@ export const MediaFolders: GlobalConfig = {
     },
   ],
 }
+
+export default MediaFolders

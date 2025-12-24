@@ -1,4 +1,37 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Access, AccessArgs } from 'payload'
+import * as AccessControl from '@/access/control'
+
+/* ============================================================
+   ACCESS HELPERS
+============================================================ */
+
+const isLoggedIn: Access = ({ req }) => Boolean(req.user)
+
+/**
+ * Owner OR admin (collection-level, Payload-correct)
+ */
+const isOwnerOrAdmin: Access = async ({ req, id }: AccessArgs) => {
+  if (!req.user) return false
+
+  // 🔑 ADMIN ALWAYS WINS
+  if (AccessControl.isAdmin({ req })) return true
+
+  if (!id) return false
+
+  const chart = await req.payload.findByID({
+    collection: 'charts',
+    id: String(id),
+  })
+
+  const ownerId =
+    typeof chart.createdBy === 'string' ? chart.createdBy : (chart.createdBy as any)?.id
+
+  return ownerId === String(req.user.id)
+}
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Charts: CollectionConfig = {
   slug: 'charts',
@@ -11,12 +44,9 @@ export const Charts: CollectionConfig = {
 
   access: {
     read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => {
-      const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-      return roles.includes('admin') || roles.includes('super-admin')
-    },
+    create: isLoggedIn,
+    update: isOwnerOrAdmin, // ✅ FIX
+    delete: AccessControl.isAdmin,
   },
 
   timestamps: true,
@@ -84,18 +114,14 @@ export const Charts: CollectionConfig = {
     },
 
     /* ======================================================
-       SPONSORSHIP (OPTIONAL)
+       SPONSORSHIP
     ====================================================== */
     {
       name: 'sponsorship',
       type: 'group',
       label: 'Chart Sponsorship',
       fields: [
-        {
-          name: 'enabled',
-          type: 'checkbox',
-          defaultValue: false,
-        },
+        { name: 'enabled', type: 'checkbox', defaultValue: false },
         {
           name: 'tier',
           type: 'select',
@@ -175,13 +201,11 @@ export const Charts: CollectionConfig = {
             },
           ],
         },
-
         {
           name: 'track',
           type: 'relationship',
           relationTo: 'tracks',
         },
-
         {
           name: 'manualTrackInfo',
           type: 'group',
@@ -225,18 +249,18 @@ export const Charts: CollectionConfig = {
     },
   ],
 
-  /* ======================================================
-     HOOKS
-  ====================================================== */
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
-        if (req.user) {
-          if (operation === 'create') {
-            data.createdBy = String(req.user.id)
-          }
-          data.updatedBy = String(req.user.id)
+        if (!req.user) return data
+
+        const userId = String(req.user.id)
+
+        if (operation === 'create') {
+          data.createdBy = userId
         }
+
+        data.updatedBy = userId
 
         if (data.title && !data.slug) {
           data.slug = data.title

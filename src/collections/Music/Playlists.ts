@@ -1,11 +1,30 @@
-import type { CollectionConfig, Access } from 'payload'
+import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import * as AccessControl from '@/access/control'
 
 /* ============================================================
-   ACCESS
+   ACCESS HELPERS
 ============================================================ */
 
 const isLoggedIn: Access = ({ req }) => Boolean(req.user)
+
+/**
+ * Owner OR admin (collection-level)
+ */
+const isOwnerOrAdmin: Access = async ({ req, id }: AccessArgs) => {
+  if (!req.user) return false
+  if (AccessControl.isAdmin({ req })) return true
+  if (!id) return false
+
+  const playlist = await req.payload.findByID({
+    collection: 'playlists',
+    id: String(id),
+  })
+
+  const ownerId =
+    typeof playlist.createdBy === 'string' ? playlist.createdBy : (playlist.createdBy as any)?.id
+
+  return ownerId === String(req.user.id)
+}
 
 /* ============================================================
    COLLECTION
@@ -13,6 +32,7 @@ const isLoggedIn: Access = ({ req }) => Boolean(req.user)
 
 export const Playlists: CollectionConfig = {
   slug: 'playlists',
+  versions: true,
 
   admin: {
     useAsTitle: 'title',
@@ -23,7 +43,7 @@ export const Playlists: CollectionConfig = {
   access: {
     read: AccessControl.isPublic,
     create: isLoggedIn,
-    update: isLoggedIn,
+    update: isOwnerOrAdmin,
     delete: AccessControl.isAdmin,
   },
 
@@ -31,29 +51,10 @@ export const Playlists: CollectionConfig = {
 
   fields: [
     /* ---------------- BASIC ---------------- */
-    {
-      name: 'title',
-      type: 'text',
-      required: true,
-    },
-
-    {
-      name: 'slug',
-      type: 'text',
-      unique: true,
-      index: true,
-    },
-
-    {
-      name: 'description',
-      type: 'textarea',
-    },
-
-    {
-      name: 'coverImage',
-      type: 'upload',
-      relationTo: 'media',
-    },
+    { name: 'title', type: 'text', required: true },
+    { name: 'slug', type: 'text', unique: true, index: true },
+    { name: 'description', type: 'textarea' },
+    { name: 'coverImage', type: 'upload', relationTo: 'media' },
 
     {
       name: 'type',
@@ -70,12 +71,12 @@ export const Playlists: CollectionConfig = {
       ],
     },
 
-    /* ---------------- 🔒 PRESERVED FIELD ---------------- */
+    /* ---------------- LEGACY ---------------- */
     {
       name: 'sortOrder',
       type: 'text',
       admin: {
-        description: 'Legacy playlist sort order (stored as text)',
+        description: 'Legacy playlist sort order',
         position: 'sidebar',
       },
     },
@@ -91,42 +92,39 @@ export const Playlists: CollectionConfig = {
       },
     },
 
-    /* ---------------- MANUAL TRACKS ---------------- */
+    /* ---------------- MANUAL TRACKS (TOP-LEVEL ARRAY) ---------------- */
     {
-      label: 'Manual Music Entries',
-      type: 'collapsible',
-      admin: { condition: (data) => data?.type === 'tracks' },
+      name: 'manualTracks',
+      type: 'array',
+      admin: {
+        condition: (data) => data?.type === 'tracks',
+      },
       fields: [
         {
-          name: 'manualTracks',
-          type: 'array',
+          type: 'row',
           fields: [
-            {
-              type: 'row',
-              fields: [
-                { name: 'title', type: 'text', required: true },
-                { name: 'artist', type: 'text', required: true },
-              ],
-            },
-            {
-              type: 'row',
-              fields: [
-                { name: 'album', type: 'text' },
-                { name: 'duration', type: 'text' },
-              ],
-            },
-            {
-              name: 'coverArt',
-              type: 'upload',
-              relationTo: 'media',
-            },
-            {
-              name: 'externalUrl',
-              type: 'text',
-            },
+            { name: 'title', type: 'text', required: true },
+            { name: 'artist', type: 'text', required: true },
           ],
         },
+        {
+          type: 'row',
+          fields: [
+            { name: 'album', type: 'text' },
+            { name: 'duration', type: 'text' },
+          ],
+        },
+        { name: 'coverArt', type: 'upload', relationTo: 'media' },
+        { name: 'externalUrl', type: 'text' },
       ],
+    },
+
+    /* ---------------- ARTICLES ---------------- */
+    {
+      type: 'relationship',
+      name: 'articles',
+      relationTo: 'articles',
+      hasMany: true,
     },
 
     /* ---------------- VISIBILITY ---------------- */
@@ -142,29 +140,18 @@ export const Playlists: CollectionConfig = {
     },
 
     /* ---------------- AUDIT ---------------- */
-    {
-      name: 'createdBy',
-      type: 'relationship',
-      relationTo: 'users',
-      admin: { readOnly: true },
-    },
-    {
-      name: 'updatedBy',
-      type: 'relationship',
-      relationTo: 'users',
-      admin: { readOnly: true },
-    },
+    { name: 'createdBy', type: 'relationship', relationTo: 'users', admin: { readOnly: true } },
+    { name: 'updatedBy', type: 'relationship', relationTo: 'users', admin: { readOnly: true } },
   ],
 
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
         if (!req.user) return data
+        const userId = String(req.user.id)
 
-        if (operation === 'create') {
-          data.createdBy = String(req.user.id)
-        }
-        data.updatedBy = String(req.user.id)
+        if (operation === 'create') data.createdBy = userId
+        data.updatedBy = userId
 
         if (data.type === 'tracks') {
           data.items = []

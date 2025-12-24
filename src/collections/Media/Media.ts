@@ -1,7 +1,8 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import sharp from 'sharp'
 import crypto from 'crypto'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import * as AccessControl from '@/access/control'
 
 // -----------------------------------------------------------
 // Cloudflare R2 Client
@@ -28,6 +29,34 @@ const CROP_VARIANTS = [
 ]
 
 // -----------------------------------------------------------
+// ACCESS HELPERS
+// -----------------------------------------------------------
+
+const isLoggedIn: Access = ({ req }) => Boolean(req.user)
+
+/**
+ * Owner OR admin (Payload-correct)
+ */
+const isOwnerOrAdmin: Access = async ({ req, id }: AccessArgs) => {
+  if (!req.user) return false
+
+  // 🔑 ADMIN ALWAYS WINS
+  if (AccessControl.isAdmin({ req })) return true
+
+  if (!id) return false
+
+  const media = await req.payload.findByID({
+    collection: 'media',
+    id: String(id),
+  })
+
+  const ownerId =
+    typeof media.createdBy === 'string' ? media.createdBy : (media.createdBy as any)?.id
+
+  return ownerId === String(req.user.id)
+}
+
+// -----------------------------------------------------------
 // COLLECTION
 // -----------------------------------------------------------
 export const Media: CollectionConfig = {
@@ -46,12 +75,9 @@ export const Media: CollectionConfig = {
 
   access: {
     read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => {
-      const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-      return roles.includes('admin') || roles.includes('super-admin')
-    },
+    create: isLoggedIn,
+    update: isOwnerOrAdmin,
+    delete: AccessControl.isAdmin,
   },
 
   upload: {
@@ -59,11 +85,21 @@ export const Media: CollectionConfig = {
   },
 
   // -----------------------------------------------------------
-  // IMAGE PROCESSING (MANUAL CROP + FOCAL POINT)
+  // IMAGE PROCESSING (UNCHANGED)
   // -----------------------------------------------------------
   hooks: {
     beforeChange: [
-      async ({ data, originalDoc }) => {
+      async ({ data, originalDoc, req, operation }) => {
+        if (req.user) {
+          const userId = String(req.user.id)
+
+          if (operation === 'create') {
+            data.createdBy = userId
+          }
+
+          data.updatedBy = userId
+        }
+
         try {
           const url = originalDoc?.url
           const mime = originalDoc?.mimeType
@@ -83,9 +119,6 @@ export const Media: CollectionConfig = {
 
             const metadata = await image.metadata()
 
-            // -----------------------------------
-            // MANUAL CROP OVERRIDE
-            // -----------------------------------
             if (manualCrop && metadata.width && metadata.height) {
               image = image.extract({
                 left: Math.round(manualCrop.x * metadata.width),
@@ -95,18 +128,11 @@ export const Media: CollectionConfig = {
               })
             }
 
-            // -----------------------------------
-            // FOCAL POINT SMART CROP (SAFE)
-            // -----------------------------------
             if (!manualCrop && data.focalPoint && metadata.width && metadata.height) {
               const aspect = variant.width / variant.height
-
               const cropWidth = Math.min(metadata.width, Math.round(metadata.height * aspect))
-
               const cropHeight = Math.min(metadata.height, Math.round(metadata.width / aspect))
-
               const left = Math.round(data.focalPoint.x * metadata.width - cropWidth / 2)
-
               const top = Math.round(data.focalPoint.y * metadata.height - cropHeight / 2)
 
               image = image.extract({
@@ -117,9 +143,6 @@ export const Media: CollectionConfig = {
               })
             }
 
-            // -----------------------------------
-            // FINAL RESIZE
-            // -----------------------------------
             const processed = await image
               .resize(variant.width, variant.height, {
                 fit: 'cover',
@@ -156,9 +179,7 @@ export const Media: CollectionConfig = {
   // FIELDS
   // -----------------------------------------------------------
   fields: [
-    // -----------------------------------
-    // GENERATED VARIANTS
-    // -----------------------------------
+    /* ---------- GENERATED VARIANTS ---------- */
     {
       name: 'variants',
       type: 'group',
@@ -170,15 +191,11 @@ export const Media: CollectionConfig = {
       })),
     },
 
-    // -----------------------------------
-    // MANUAL CROP OVERRIDES
-    // -----------------------------------
+    /* ---------- MANUAL CROP OVERRIDES ---------- */
     {
       name: 'cropOverrides',
       type: 'group',
-      admin: {
-        description: 'Manual crop overrides (0–1 normalized values)',
-      },
+      admin: { description: 'Manual crop overrides (0–1 normalized values)' },
       fields: CROP_VARIANTS.map((v) => ({
         name: v.name,
         type: 'group',
@@ -191,9 +208,7 @@ export const Media: CollectionConfig = {
       })),
     },
 
-    // -----------------------------------
-    // TABS
-    // -----------------------------------
+    /* ---------- FILE INFO ---------- */
     {
       type: 'tabs',
       tabs: [
@@ -212,16 +227,11 @@ export const Media: CollectionConfig = {
             },
           ],
         },
-
         {
           label: 'Details',
           fields: [
             { name: 'caption', type: 'textarea' },
             { name: 'attribution', type: 'text' },
-
-            // -----------------------------------
-            // VISUAL FOCAL POINT PICKER
-            // -----------------------------------
             {
               name: 'focalPoint',
               type: 'point',
@@ -236,5 +246,21 @@ export const Media: CollectionConfig = {
         },
       ],
     },
+
+    /* ---------- AUDIT ---------- */
+    {
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: { readOnly: true },
+    },
+    {
+      name: 'updatedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: { readOnly: true },
+    },
   ],
 }
+
+export default Media

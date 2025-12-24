@@ -476,6 +476,8 @@ export interface Media {
    * @maxItems 2
    */
   focalPoint?: [number, number] | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -513,13 +515,7 @@ export interface User {
   lastName: string;
   dateOfBirth?: string | null;
   phone?: string | null;
-  /**
-   * Linked profile data for this user.
-   */
   profile?: (number | null) | Profile;
-  /**
-   * User must accept terms of service.
-   */
   acceptTerms: boolean;
   updatedAt: string;
   createdAt: string;
@@ -1103,24 +1099,14 @@ export interface Article {
         | 'discover-menu-feature'
       )[]
     | null;
-  sponsorDisclosure?: string | null;
+  heroImage?: (number | null) | Media;
+  heroImageAlt?: string | null;
   publishedDate?: string | null;
   scheduledPublishDate?: string | null;
   lastUpdated?: string | null;
   author?: (number | null) | Profile;
   slug?: string | null;
-  heroImage?: (number | null) | Media;
-  heroImageAlt?: string | null;
-  carousel?:
-    | {
-        media: number | Media;
-        caption?: string | null;
-        attribution?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  readingTime?: number | null;
-  editorialNotes?: string | null;
+  sponsorDisclosure?: string | null;
   mediaTieIn?: {
     type?: ('radio' | 'tv' | 'playlist') | null;
     label?: string | null;
@@ -1135,7 +1121,6 @@ export interface Article {
         } | null);
     url?: string | null;
   };
-  relatedArticles?: (number | Article)[] | null;
   cta?: {
     type?: ('subscribe' | 'listen-live' | 'watch-more' | 'join-plus') | null;
     headline?: string | null;
@@ -1143,6 +1128,9 @@ export interface Article {
     buttonLabel?: string | null;
     buttonUrl?: string | null;
   };
+  readingTime?: number | null;
+  editorialNotes?: string | null;
+  playlists?: (number | Playlist)[] | null;
   contentBlocks?:
     | (
         | {
@@ -3631,7 +3619,7 @@ export interface Playlist {
   coverImage?: (number | null) | Media;
   type: 'podcasts' | 'podcast-episodes' | 'vod' | 'tv-episodes' | 'tracks' | 'mixed';
   /**
-   * Legacy playlist sort order (stored as text)
+   * Legacy playlist sort order
    */
   sortOrder?: string | null;
   items?:
@@ -3673,6 +3661,7 @@ export interface Playlist {
         id?: string | null;
       }[]
     | null;
+  articles?: (number | Article)[] | null;
   visibility?: ('public' | 'private' | 'unlisted') | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
@@ -4597,17 +4586,8 @@ export interface TicketType {
  */
 export interface Group {
   id: number;
-  /**
-   * Group name (e.g., 'Worship Leaders Circle', 'Indie Artists Guild')
-   */
   name: string;
-  /**
-   * Auto-generated from group name; used in URLs.
-   */
   slug?: string | null;
-  /**
-   * Describe what this group is about.
-   */
   description?: {
     root: {
       type: string;
@@ -4623,95 +4603,15 @@ export interface Group {
     };
     [k: string]: unknown;
   } | null;
-  /**
-   * Choose the main category of this group.
-   */
-  category?:
-    | (
-        | 'music'
-        | 'film'
-        | 'tv-streaming'
-        | 'podcasts'
-        | 'digital-media'
-        | 'culture'
-        | 'lifestyle'
-        | 'faith-&-spirituality'
-        | 'gospel'
-        | 'hip-hop'
-        | 'r&b'
-        | 'soul'
-        | 'southern-soul'
-        | 'business-entrepreneurship'
-        | 'leadership'
-        | 'social-justice'
-        | 'community'
-        | 'youth'
-        | 'creative-collective'
-        | 'events'
-      )
-    | null;
-  /**
-   * Additional topics this group covers.
-   */
-  tags?:
-    | (
-        | 'music-discussion'
-        | 'worship'
-        | 'prayer'
-        | 'production'
-        | 'songwriting'
-        | 'film-production'
-        | 'acting'
-        | 'directing'
-        | 'podcasting'
-        | 'reviews'
-        | 'events'
-        | 'festivals'
-        | 'live-shows'
-        | 'spiritual-growth'
-        | 'community-service'
-        | 'networking'
-        | 'creatives'
-        | 'business'
-        | 'marketing'
-        | 'mental-health'
-        | 'youth-young-adult'
-      )[]
-    | null;
-  /**
-   * Group avatar icon.
-   */
   avatar?: (number | null) | Media;
-  /**
-   * Large banner image for the group page.
-   */
   coverPhoto?: (number | null) | Media;
-  /**
-   * The creator of the group.
-   */
   owner: number | Profile;
   admins?: (number | Profile)[] | null;
   moderators?: (number | Profile)[] | null;
-  /**
-   * Public = anyone can join. Private = request required. Hidden = invite-only and invisible.
-   */
-  privacy: 'public' | 'private' | 'hidden';
-  autoApproveMembers?: boolean | null;
+  privacy?: ('public' | 'private' | 'hidden') | null;
   members?: (number | Profile)[] | null;
-  pendingMembers?: (number | Profile)[] | null;
-  blockedProfiles?: (number | Profile)[] | null;
   memberCount?: number | null;
-  posts?: (number | Article)[] | null;
-  chatThreads?: (number | Chat)[] | null;
-  events?: (number | Event)[] | null;
-  announcements?: (number | Notification)[] | null;
   flaggedForReview?: boolean | null;
-  banStatus?: ('active' | 'suspended' | 'terminated') | null;
-  bannedAt?: string | null;
-  banReason?: string | null;
-  /**
-   * Admin-only moderation notes.
-   */
   internalNotes?: {
     root: {
       type: string;
@@ -4727,523 +4627,6 @@ export interface Group {
     };
     [k: string]: unknown;
   } | null;
-  views?: number | null;
-  engagementScore?: number | null;
-  activityLevel?: ('low' | 'moderate' | 'high') | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "chats".
- */
-export interface Chat {
-  id: number;
-  /**
-   * Chat title (auto-filled for DMs; editable for group chats).
-   */
-  title?: string | null;
-  chatType: 'dm' | 'group' | 'creator' | 'team' | 'support';
-  isGroup?: boolean | null;
-  members: (number | Profile)[];
-  lastMessage?: (number | null) | Message;
-  lastActivity?: string | null;
-  mutedBy?: (number | Profile)[] | null;
-  /**
-   * Admins can lock chat from further messages.
-   */
-  isLocked?: boolean | null;
-  /**
-   * Restrict chat to specific roles (optional)
-   */
-  allowedRoles?: ('creator' | 'pro' | 'industry' | 'host' | 'editor' | 'dj' | 'admin')[] | null;
-  pinnedMessages?: (number | Message)[] | null;
-  reactions?: (number | Reaction)[] | null;
-  description?: string | null;
-  bannerImage?: (number | null) | Media;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "messages".
- */
-export interface Message {
-  id: number;
-  sender: number | Profile;
-  chat: number | Chat;
-  /**
-   * Message content (optional if attachments exist)
-   */
-  text?: string | null;
-  /**
-   * Images, audio, video, files.
-   */
-  attachments?: (number | Media)[] | null;
-  /**
-   * Threaded replies (optional)
-   */
-  replyTo?: (number | null) | Message;
-  status?: ('sent' | 'delivered' | 'read' | 'failed') | null;
-  /**
-   * Profiles who have read this message
-   */
-  readBy?: (number | Profile)[] | null;
-  reactions?: (number | MessageReaction)[] | null;
-  /**
-   * AI toxicity score (0–1)
-   */
-  toxicityScore?: number | null;
-  isToxic?: boolean | null;
-  /**
-   * Moderation flag
-   */
-  isFlagged?: boolean | null;
-  createdBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "message-reactions".
- */
-export interface MessageReaction {
-  id: number;
-  reaction: number | Reaction;
-  message: number | Message;
-  user: number | Profile;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "reactions".
- */
-export interface Reaction {
-  id: number;
-  label: string;
-  /**
-   * Emoji to display (🔥, 💯, 😂, ❤️, 👎)
-   */
-  emoji: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "notifications".
- */
-export interface Notification {
-  id: number;
-  /**
-   * Short notification headline.
-   */
-  title: string;
-  /**
-   * The notification content shown to the user.
-   */
-  message: string;
-  type:
-    | 'general'
-    | 'comment'
-    | 'reply'
-    | 'review'
-    | 'reaction'
-    | 'follow'
-    | 'message'
-    | 'release'
-    | 'playlist'
-    | 'article'
-    | 'show'
-    | 'episode'
-    | 'podcast'
-    | 'chart'
-    | 'system';
-  isRead?: boolean | null;
-  isArchived?: boolean | null;
-  /**
-   * Mark notification as high priority.
-   */
-  urgent?: boolean | null;
-  /**
-   * User who triggered the notification.
-   */
-  actor?: (number | null) | Profile;
-  /**
-   * User who receives the notification.
-   */
-  recipient: number | Profile;
-  /**
-   * Optional — attach media to this notification.
-   */
-  mediaType?:
-    | (
-        | 'tracks'
-        | 'albums'
-        | 'films'
-        | 'podcasts'
-        | 'podcast-episodes'
-        | 'shows'
-        | 'episodes'
-        | 'vod'
-        | 'articles'
-        | 'reviews'
-        | 'playlists'
-        | 'charts'
-      )
-    | null;
-  /**
-   * Attach specific content this notification refers to.
-   */
-  mediaItem?:
-    | ({
-        relationTo: 'tracks';
-        value: number | Track;
-      } | null)
-    | ({
-        relationTo: 'albums';
-        value: number | Album;
-      } | null)
-    | ({
-        relationTo: 'films';
-        value: number | Film;
-      } | null)
-    | ({
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      } | null)
-    | ({
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      } | null)
-    | ({
-        relationTo: 'shows';
-        value: number | Show;
-      } | null)
-    | ({
-        relationTo: 'episodes';
-        value: number | Episode;
-      } | null)
-    | ({
-        relationTo: 'vod';
-        value: number | Vod;
-      } | null)
-    | ({
-        relationTo: 'articles';
-        value: number | Article;
-      } | null)
-    | ({
-        relationTo: 'reviews';
-        value: number | Review;
-      } | null)
-    | ({
-        relationTo: 'playlists';
-        value: number | Playlist;
-      } | null)
-    | ({
-        relationTo: 'charts';
-        value: number | Chart;
-      } | null);
-  /**
-   * Button label, e.g., 'View', 'Open Now', 'Reply'.
-   */
-  ctaLabel?: string | null;
-  /**
-   * Where the user is taken when clicking the CTA.
-   */
-  ctaUrl?: string | null;
-  /**
-   * Any custom data passed to the frontend (JSON).
-   */
-  metadata?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "reviews".
- */
-export interface Review {
-  id: number;
-  title: string;
-  rating: number;
-  /**
-   * Optional critic rating (weighted)
-   */
-  criticRating?: number | null;
-  /**
-   * Mark review as containing spoilers
-   */
-  spoiler?: boolean | null;
-  body?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * Internal-only editorial notes for moderation.
-   */
-  editorNotes?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
-  reviewer: number | Profile;
-  mediaType:
-    | 'tracks'
-    | 'albums'
-    | 'films'
-    | 'vod'
-    | 'podcasts'
-    | 'podcast-episodes'
-    | 'shows'
-    | 'episodes'
-    | 'articles';
-  mediaItem:
-    | {
-        relationTo: 'tracks';
-        value: number | Track;
-      }
-    | {
-        relationTo: 'albums';
-        value: number | Album;
-      }
-    | {
-        relationTo: 'films';
-        value: number | Film;
-      }
-    | {
-        relationTo: 'vod';
-        value: number | Vod;
-      }
-    | {
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      }
-    | {
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      }
-    | {
-        relationTo: 'shows';
-        value: number | Show;
-      }
-    | {
-        relationTo: 'episodes';
-        value: number | Episode;
-      }
-    | {
-        relationTo: 'articles';
-        value: number | Article;
-      };
-  reactions?: (number | ReviewReaction)[] | null;
-  comments?: (number | Comment)[] | null;
-  /**
-   * AI toxicity score (0-1).
-   */
-  toxicityScore?: number | null;
-  /**
-   * Automatically flagged if toxicity is high.
-   */
-  isToxic?: boolean | null;
-  createdBy?: (number | null) | User;
-  updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "review-reactions".
- */
-export interface ReviewReaction {
-  id: number;
-  reaction: number | Reaction;
-  review: number | Review;
-  user: number | Profile;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "comments".
- */
-export interface Comment {
-  id: number;
-  author: number | Profile;
-  body: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
-  /**
-   * Threaded comment support
-   */
-  parent?: (number | null) | Comment;
-  mediaType:
-    | 'tracks'
-    | 'albums'
-    | 'podcasts'
-    | 'podcast-episodes'
-    | 'vod'
-    | 'films'
-    | 'shows'
-    | 'episodes'
-    | 'articles'
-    | 'reviews';
-  mediaItem:
-    | {
-        relationTo: 'tracks';
-        value: number | Track;
-      }
-    | {
-        relationTo: 'albums';
-        value: number | Album;
-      }
-    | {
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      }
-    | {
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      }
-    | {
-        relationTo: 'vod';
-        value: number | Vod;
-      }
-    | {
-        relationTo: 'films';
-        value: number | Film;
-      }
-    | {
-        relationTo: 'shows';
-        value: number | Show;
-      }
-    | {
-        relationTo: 'episodes';
-        value: number | Episode;
-      }
-    | {
-        relationTo: 'articles';
-        value: number | Article;
-      }
-    | {
-        relationTo: 'reviews';
-        value: number | Review;
-      };
-  reactions?: (number | CommentReaction)[] | null;
-  /**
-   * AI-generated toxicity score (0–1). Used for moderation.
-   */
-  toxicityScore?: number | null;
-  /**
-   * Automatically flagged when toxicity exceeds threshold.
-   */
-  isToxic?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "comment-reactions".
- */
-export interface CommentReaction {
-  id: number;
-  reaction: number | Reaction;
-  comment: number | Comment;
-  user: number | Profile;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "charts".
- */
-export interface Chart {
-  id: number;
-  title: string;
-  slug?: string | null;
-  chartType: 'weekly' | 'daily' | 'monthly' | 'trending' | 'staff-picks' | 'algorithmic';
-  /**
-   * Week / Month this chart represents
-   */
-  period?: string | null;
-  status?: ('draft' | 'published' | 'archived') | null;
-  description?: string | null;
-  sponsorship?: {
-    enabled?: boolean | null;
-    tier?: ('flagship' | 'moment' | 'accent') | null;
-    sponsorName?: string | null;
-    sponsorLogo?: (number | null) | Media;
-    sponsorUrl?: string | null;
-    startDate?: string | null;
-    endDate?: string | null;
-    disclosureText?: string | null;
-  };
-  entries?:
-    | {
-        rank: number;
-        lastWeek?: number | null;
-        peak?: number | null;
-        weeksOnChart?: number | null;
-        movement?: ('up' | 'down' | 'new' | 're-entry' | 'same') | null;
-        track?: (number | null) | Track;
-        manualTrackInfo?: {
-          title?: string | null;
-          artist?: string | null;
-          coverArt?: (number | null) | Media;
-          externalUrl?: string | null;
-        };
-        id?: string | null;
-      }[]
-    | null;
-  playlist?: (number | null) | Playlist;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -5404,6 +4787,248 @@ export interface ChannelAnnouncement {
   allowedTiers?: (number | CreatorTier)[] | null;
   pinned?: boolean | null;
   expiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews".
+ */
+export interface Review {
+  id: number;
+  title: string;
+  rating: number;
+  /**
+   * Optional critic rating (weighted)
+   */
+  criticRating?: number | null;
+  /**
+   * Mark review as containing spoilers
+   */
+  spoiler?: boolean | null;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Internal-only editorial notes for moderation.
+   */
+  editorNotes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
+  reviewer: number | Profile;
+  mediaType:
+    | 'tracks'
+    | 'albums'
+    | 'films'
+    | 'vod'
+    | 'podcasts'
+    | 'podcast-episodes'
+    | 'shows'
+    | 'episodes'
+    | 'articles';
+  mediaItem:
+    | {
+        relationTo: 'tracks';
+        value: number | Track;
+      }
+    | {
+        relationTo: 'albums';
+        value: number | Album;
+      }
+    | {
+        relationTo: 'films';
+        value: number | Film;
+      }
+    | {
+        relationTo: 'vod';
+        value: number | Vod;
+      }
+    | {
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      }
+    | {
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      }
+    | {
+        relationTo: 'shows';
+        value: number | Show;
+      }
+    | {
+        relationTo: 'episodes';
+        value: number | Episode;
+      }
+    | {
+        relationTo: 'articles';
+        value: number | Article;
+      };
+  reactions?: (number | ReviewReaction)[] | null;
+  comments?: (number | Comment)[] | null;
+  /**
+   * AI toxicity score (0-1).
+   */
+  toxicityScore?: number | null;
+  /**
+   * Automatically flagged if toxicity is high.
+   */
+  isToxic?: boolean | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-reactions".
+ */
+export interface ReviewReaction {
+  id: number;
+  reaction: number | Reaction;
+  review: number | Review;
+  user: number | Profile;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions".
+ */
+export interface Reaction {
+  id: number;
+  label: string;
+  /**
+   * Emoji to display (🔥, 💯, 😂, ❤️, 👎)
+   */
+  emoji: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments".
+ */
+export interface Comment {
+  id: number;
+  author: number | Profile;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
+  /**
+   * Threaded comment support
+   */
+  parent?: (number | null) | Comment;
+  mediaType:
+    | 'tracks'
+    | 'albums'
+    | 'podcasts'
+    | 'podcast-episodes'
+    | 'vod'
+    | 'films'
+    | 'shows'
+    | 'episodes'
+    | 'articles'
+    | 'reviews';
+  mediaItem:
+    | {
+        relationTo: 'tracks';
+        value: number | Track;
+      }
+    | {
+        relationTo: 'albums';
+        value: number | Album;
+      }
+    | {
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      }
+    | {
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      }
+    | {
+        relationTo: 'vod';
+        value: number | Vod;
+      }
+    | {
+        relationTo: 'films';
+        value: number | Film;
+      }
+    | {
+        relationTo: 'shows';
+        value: number | Show;
+      }
+    | {
+        relationTo: 'episodes';
+        value: number | Episode;
+      }
+    | {
+        relationTo: 'articles';
+        value: number | Article;
+      }
+    | {
+        relationTo: 'reviews';
+        value: number | Review;
+      };
+  reactions?: (number | CommentReaction)[] | null;
+  /**
+   * AI-generated toxicity score (0–1). Used for moderation.
+   */
+  toxicityScore?: number | null;
+  /**
+   * Automatically flagged when toxicity exceeds threshold.
+   */
+  isToxic?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comment-reactions".
+ */
+export interface CommentReaction {
+  id: number;
+  reaction: number | Reaction;
+  comment: number | Comment;
+  user: number | Profile;
   updatedAt: string;
   createdAt: string;
 }
@@ -5579,6 +5204,54 @@ export interface CreatorPayout {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "charts".
+ */
+export interface Chart {
+  id: number;
+  title: string;
+  slug?: string | null;
+  chartType: 'weekly' | 'daily' | 'monthly' | 'trending' | 'staff-picks' | 'algorithmic';
+  /**
+   * Week / Month this chart represents
+   */
+  period?: string | null;
+  status?: ('draft' | 'published' | 'archived') | null;
+  description?: string | null;
+  sponsorship?: {
+    enabled?: boolean | null;
+    tier?: ('flagship' | 'moment' | 'accent') | null;
+    sponsorName?: string | null;
+    sponsorLogo?: (number | null) | Media;
+    sponsorUrl?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+    disclosureText?: string | null;
+  };
+  entries?:
+    | {
+        rank: number;
+        lastWeek?: number | null;
+        peak?: number | null;
+        weeksOnChart?: number | null;
+        movement?: ('up' | 'down' | 'new' | 're-entry' | 'same') | null;
+        track?: (number | null) | Track;
+        manualTrackInfo?: {
+          title?: string | null;
+          artist?: string | null;
+          coverArt?: (number | null) | Media;
+          externalUrl?: string | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  playlist?: (number | null) | Playlist;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -5862,6 +5535,230 @@ export interface Inbox {
    */
   toxicityScore?: number | null;
   isToxic?: boolean | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "messages".
+ */
+export interface Message {
+  id: number;
+  sender: number | Profile;
+  chat: number | Chat;
+  /**
+   * Message content (optional if attachments exist)
+   */
+  text?: string | null;
+  /**
+   * Images, audio, video, files.
+   */
+  attachments?: (number | Media)[] | null;
+  /**
+   * Threaded replies (optional)
+   */
+  replyTo?: (number | null) | Message;
+  status?: ('sent' | 'delivered' | 'read' | 'failed') | null;
+  /**
+   * Profiles who have read this message
+   */
+  readBy?: (number | Profile)[] | null;
+  reactions?: (number | MessageReaction)[] | null;
+  /**
+   * AI toxicity score (0–1)
+   */
+  toxicityScore?: number | null;
+  isToxic?: boolean | null;
+  /**
+   * Moderation flag
+   */
+  isFlagged?: boolean | null;
+  createdBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chats".
+ */
+export interface Chat {
+  id: number;
+  /**
+   * Chat title (auto-filled for DMs; editable for group chats).
+   */
+  title?: string | null;
+  chatType: 'dm' | 'group' | 'creator' | 'team' | 'support';
+  isGroup?: boolean | null;
+  members: (number | Profile)[];
+  lastMessage?: (number | null) | Message;
+  lastActivity?: string | null;
+  mutedBy?: (number | Profile)[] | null;
+  /**
+   * Admins can lock chat from further messages.
+   */
+  isLocked?: boolean | null;
+  /**
+   * Restrict chat to specific roles (optional)
+   */
+  allowedRoles?: ('creator' | 'pro' | 'industry' | 'host' | 'editor' | 'dj' | 'admin')[] | null;
+  pinnedMessages?: (number | Message)[] | null;
+  reactions?: (number | Reaction)[] | null;
+  description?: string | null;
+  bannerImage?: (number | null) | Media;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "message-reactions".
+ */
+export interface MessageReaction {
+  id: number;
+  reaction: number | Reaction;
+  message: number | Message;
+  user: number | Profile;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notifications".
+ */
+export interface Notification {
+  id: number;
+  /**
+   * Short notification headline.
+   */
+  title: string;
+  /**
+   * The notification content shown to the user.
+   */
+  message: string;
+  type:
+    | 'general'
+    | 'comment'
+    | 'reply'
+    | 'review'
+    | 'reaction'
+    | 'follow'
+    | 'message'
+    | 'release'
+    | 'playlist'
+    | 'article'
+    | 'show'
+    | 'episode'
+    | 'podcast'
+    | 'chart'
+    | 'system';
+  isRead?: boolean | null;
+  isArchived?: boolean | null;
+  /**
+   * Mark notification as high priority.
+   */
+  urgent?: boolean | null;
+  /**
+   * User who triggered the notification.
+   */
+  actor?: (number | null) | Profile;
+  /**
+   * User who receives the notification.
+   */
+  recipient: number | Profile;
+  /**
+   * Optional — attach media to this notification.
+   */
+  mediaType?:
+    | (
+        | 'tracks'
+        | 'albums'
+        | 'films'
+        | 'podcasts'
+        | 'podcast-episodes'
+        | 'shows'
+        | 'episodes'
+        | 'vod'
+        | 'articles'
+        | 'reviews'
+        | 'playlists'
+        | 'charts'
+      )
+    | null;
+  /**
+   * Attach specific content this notification refers to.
+   */
+  mediaItem?:
+    | ({
+        relationTo: 'tracks';
+        value: number | Track;
+      } | null)
+    | ({
+        relationTo: 'albums';
+        value: number | Album;
+      } | null)
+    | ({
+        relationTo: 'films';
+        value: number | Film;
+      } | null)
+    | ({
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      } | null)
+    | ({
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      } | null)
+    | ({
+        relationTo: 'shows';
+        value: number | Show;
+      } | null)
+    | ({
+        relationTo: 'episodes';
+        value: number | Episode;
+      } | null)
+    | ({
+        relationTo: 'vod';
+        value: number | Vod;
+      } | null)
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'reviews';
+        value: number | Review;
+      } | null)
+    | ({
+        relationTo: 'playlists';
+        value: number | Playlist;
+      } | null)
+    | ({
+        relationTo: 'charts';
+        value: number | Chart;
+      } | null);
+  /**
+   * Button label, e.g., 'View', 'Open Now', 'Reply'.
+   */
+  ctaLabel?: string | null;
+  /**
+   * Where the user is taken when clicking the CTA.
+   */
+  ctaUrl?: string | null;
+  /**
+   * Any custom data passed to the frontend (JSON).
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -6314,7 +6211,12 @@ export interface ArtistSpotlight {
   extraInfo?: string | null;
   featuredArticle?: (number | null) | Article;
   featuredRelease?: (number | null) | Album;
-  slug: string;
+  /**
+   * Auto-generated from title if left blank.
+   */
+  slug?: string | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -8194,6 +8096,8 @@ export interface MediaSelect<T extends boolean = true> {
   caption?: T;
   attribution?: T;
   focalPoint?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -8717,6 +8621,7 @@ export interface PlaylistsSelect<T extends boolean = true> {
         externalUrl?: T;
         id?: T;
       };
+  articles?: T;
   visibility?: T;
   createdBy?: T;
   updatedBy?: T;
@@ -8801,24 +8706,14 @@ export interface ArticlesSelect<T extends boolean = true> {
   type?: T;
   status?: T;
   badges?: T;
-  sponsorDisclosure?: T;
+  heroImage?: T;
+  heroImageAlt?: T;
   publishedDate?: T;
   scheduledPublishDate?: T;
   lastUpdated?: T;
   author?: T;
   slug?: T;
-  heroImage?: T;
-  heroImageAlt?: T;
-  carousel?:
-    | T
-    | {
-        media?: T;
-        caption?: T;
-        attribution?: T;
-        id?: T;
-      };
-  readingTime?: T;
-  editorialNotes?: T;
+  sponsorDisclosure?: T;
   mediaTieIn?:
     | T
     | {
@@ -8827,7 +8722,6 @@ export interface ArticlesSelect<T extends boolean = true> {
         relatedEntity?: T;
         url?: T;
       };
-  relatedArticles?: T;
   cta?:
     | T
     | {
@@ -8837,6 +8731,9 @@ export interface ArticlesSelect<T extends boolean = true> {
         buttonLabel?: T;
         buttonUrl?: T;
       };
+  readingTime?: T;
+  editorialNotes?: T;
+  playlists?: T;
   contentBlocks?:
     | T
     | {
@@ -11180,6 +11077,8 @@ export interface ArtistSpotlightSelect<T extends boolean = true> {
   featuredArticle?: T;
   featuredRelease?: T;
   slug?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -11242,31 +11141,16 @@ export interface GroupsSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
   description?: T;
-  category?: T;
-  tags?: T;
   avatar?: T;
   coverPhoto?: T;
   owner?: T;
   admins?: T;
   moderators?: T;
   privacy?: T;
-  autoApproveMembers?: T;
   members?: T;
-  pendingMembers?: T;
-  blockedProfiles?: T;
   memberCount?: T;
-  posts?: T;
-  chatThreads?: T;
-  events?: T;
-  announcements?: T;
   flaggedForReview?: T;
-  banStatus?: T;
-  bannedAt?: T;
-  banReason?: T;
   internalNotes?: T;
-  views?: T;
-  engagementScore?: T;
-  activityLevel?: T;
   createdBy?: T;
   updatedBy?: T;
   updatedAt?: T;
