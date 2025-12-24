@@ -1,28 +1,42 @@
 // src/collections/ArtistSpotlight.ts
-import { CollectionConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 const ArtistSpotlight: CollectionConfig = {
   slug: 'artist-spotlight',
+
   labels: {
     singular: 'Artist Spotlight',
     plural: 'Artist Spotlights',
   },
+
   admin: {
     group: 'Content',
     useAsTitle: 'title',
     defaultColumns: ['title', 'artist', 'featuredArticle'],
   },
+
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+     🔑 Public read is REQUIRED for search
+     ✍🏽 Write access restricted to staff/admin
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
+    read: AccessControl.isPublic, // 🔓 search-safe
+    create: AccessControl.isStaff,
+    update: AccessControl.isStaff,
+    delete: AccessControl.isAdmin,
   },
+
   fields: [
+    /* ---------------- TITLE ---------------- */
     {
       name: 'title',
       type: 'text',
       required: true,
     },
 
-    /* Banner Image */
+    /* ---------------- BANNER IMAGE ---------------- */
     {
       name: 'bannerImage',
       type: 'upload',
@@ -30,7 +44,7 @@ const ArtistSpotlight: CollectionConfig = {
       required: true,
     },
 
-    /* Artist Relationship */
+    /* ---------------- ARTIST RELATIONSHIP ---------------- */
     {
       name: 'artist',
       type: 'relationship',
@@ -38,12 +52,11 @@ const ArtistSpotlight: CollectionConfig = {
       required: true,
     },
 
-    /* Artist Image Override (optional) */
+    /* ---------------- ARTIST IMAGE OVERRIDE ---------------- */
     {
       name: 'artistImage',
       type: 'upload',
       relationTo: 'media',
-      required: false,
     },
 
     {
@@ -56,23 +69,21 @@ const ArtistSpotlight: CollectionConfig = {
       type: 'textarea',
     },
 
-    /* Featured Article */
+    /* ---------------- FEATURED ARTICLE ---------------- */
     {
       name: 'featuredArticle',
       type: 'relationship',
       relationTo: 'articles',
-      required: false,
     },
 
-    /* Featured Release */
+    /* ---------------- FEATURED RELEASE ---------------- */
     {
       name: 'featuredRelease',
       type: 'relationship',
       relationTo: 'albums',
-      required: false,
     },
 
-    /* Slug */
+    /* ---------------- SLUG ---------------- */
     {
       name: 'slug',
       type: 'text',

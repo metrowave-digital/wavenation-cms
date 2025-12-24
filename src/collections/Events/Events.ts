@@ -1,19 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { seoFields } from '../../fields/seo'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-
-/* ============================================================
-   ACCESS CONTROL — fully typed for Payload v3
-============================================================ */
-
-const isAdmin = ({ req }: { req: import('payload').PayloadRequest }) => {
-  const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
-
-/* ============================================================
-   COLLECTION — Events
-============================================================ */
+import * as AccessControl from '@/access/control'
 
 export const Events: CollectionConfig = {
   slug: 'events',
@@ -24,11 +12,14 @@ export const Events: CollectionConfig = {
     defaultColumns: ['title', 'eventType', 'status', 'startDateTime'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
-    delete: isAdmin,
+    read: AccessControl.isPublic, // 🔓 search-safe
+    create: AccessControl.isStaff, // ops-friendly
+    update: AccessControl.isStaff,
+    delete: AccessControl.isAdmin, // destructive ops only
   },
 
   timestamps: true,
@@ -97,9 +88,6 @@ export const Events: CollectionConfig = {
               name: 'description',
               type: 'richText',
               editor: lexicalEditor(),
-              admin: {
-                description: 'Detailed description using Lexical editor.',
-              },
             },
           ],
         },
@@ -135,44 +123,21 @@ export const Events: CollectionConfig = {
               },
             },
 
-            {
-              name: 'doorsOpenAt',
-              type: 'date',
-            },
+            { name: 'doorsOpenAt', type: 'date' },
 
             {
               name: 'scheduleBlocks',
               type: 'array',
-              labels: {
-                singular: 'Block',
-                plural: 'Blocks',
-              },
               fields: [
-                {
-                  name: 'label',
-                  type: 'text',
-                  required: true,
-                },
+                { name: 'label', type: 'text', required: true },
                 {
                   type: 'row',
                   fields: [
-                    {
-                      name: 'start',
-                      type: 'date',
-                      required: true,
-                      admin: { width: '50%' },
-                    },
-                    {
-                      name: 'end',
-                      type: 'date',
-                      admin: { width: '50%' },
-                    },
+                    { name: 'start', type: 'date', required: true, admin: { width: '50%' } },
+                    { name: 'end', type: 'date', admin: { width: '50%' } },
                   ],
                 },
-                {
-                  name: 'description',
-                  type: 'textarea',
-                },
+                { name: 'description', type: 'textarea' },
               ],
             },
           ],
@@ -190,25 +155,19 @@ export const Events: CollectionConfig = {
               name: 'venue',
               type: 'relationship',
               relationTo: 'venues',
-              admin: { condition: (data) => !data?.isOnline },
+              admin: { condition: (d) => !d?.isOnline },
             },
 
             {
               name: 'customLocation',
               type: 'text',
-              admin: {
-                condition: (data) => !data?.isOnline,
-                description: 'Enter location manually if not using a Venue.',
-              },
+              admin: { condition: (d) => !d?.isOnline },
             },
 
             {
               name: 'streamUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.isOnline,
-                description: 'URL for virtual events.',
-              },
+              admin: { condition: (d) => d?.isOnline },
             },
           ],
         },
@@ -219,11 +178,7 @@ export const Events: CollectionConfig = {
         {
           label: 'Ticketing',
           fields: [
-            {
-              name: 'ticketingEnabled',
-              type: 'checkbox',
-              defaultValue: true,
-            },
+            { name: 'ticketingEnabled', type: 'checkbox', defaultValue: true },
 
             {
               name: 'ticketProvider',
@@ -231,45 +186,30 @@ export const Events: CollectionConfig = {
               defaultValue: 'internal',
               options: [
                 { label: 'WaveNation Internal', value: 'internal' },
-                { label: 'External (Eventbrite, Ticketmaster)', value: 'external' },
+                { label: 'External', value: 'external' },
               ],
             },
 
             {
               name: 'externalTicketUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.ticketProvider === 'external',
-              },
+              admin: { condition: (d) => d?.ticketProvider === 'external' },
             },
 
             {
               type: 'row',
               fields: [
-                {
-                  name: 'capacity',
-                  type: 'number',
-                  admin: {
-                    width: '33%',
-                    description: 'Max attendee capacity.',
-                  },
-                },
+                { name: 'capacity', type: 'number', admin: { width: '33%' } },
                 {
                   name: 'ticketsSold',
                   type: 'number',
                   defaultValue: 0,
-                  admin: {
-                    width: '33%',
-                    readOnly: true,
-                  },
+                  admin: { readOnly: true, width: '33%' },
                 },
                 {
                   name: 'ticketsAvailable',
                   type: 'number',
-                  admin: {
-                    width: '33%',
-                    readOnly: true,
-                  },
+                  admin: { readOnly: true, width: '33%' },
                 },
               ],
             },
@@ -290,12 +230,7 @@ export const Events: CollectionConfig = {
           label: 'Media',
           fields: [
             { name: 'heroImage', type: 'upload', relationTo: 'media' },
-            {
-              name: 'gallery',
-              type: 'relationship',
-              relationTo: 'media',
-              hasMany: true,
-            },
+            { name: 'gallery', type: 'relationship', relationTo: 'media', hasMany: true },
             { name: 'promoVideo', type: 'upload', relationTo: 'media' },
             { name: 'brandColor', type: 'text' },
           ],
@@ -307,42 +242,17 @@ export const Events: CollectionConfig = {
         {
           label: 'People & Relationships',
           fields: [
-            {
-              name: 'organizers',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'hosts',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'performers',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'groups',
-              type: 'relationship',
-              relationTo: 'groups',
-              hasMany: true,
-            },
+            { name: 'organizers', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'hosts', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'performers', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'groups', type: 'relationship', relationTo: 'groups', hasMany: true },
             {
               name: 'relatedArticles',
               type: 'relationship',
               relationTo: 'articles',
               hasMany: true,
             },
-            {
-              name: 'relatedShows',
-              type: 'relationship',
-              relationTo: 'shows',
-              hasMany: true,
-            },
+            { name: 'relatedShows', type: 'relationship', relationTo: 'shows', hasMany: true },
           ],
         },
 
@@ -352,27 +262,15 @@ export const Events: CollectionConfig = {
         {
           label: 'Taxonomy',
           fields: [
-            {
-              name: 'category',
-              type: 'relationship',
-              relationTo: 'categories',
-            },
-            {
-              name: 'tags',
-              type: 'relationship',
-              relationTo: 'tags',
-              hasMany: true,
-            },
+            { name: 'category', type: 'relationship', relationTo: 'categories' },
+            { name: 'tags', type: 'relationship', relationTo: 'tags', hasMany: true },
           ],
         },
 
         /* =============================
            TAB — SEO
         ============================== */
-        {
-          label: 'SEO',
-          fields: [seoFields],
-        },
+        { label: 'SEO', fields: [seoFields] },
 
         /* =============================
            TAB — Analytics
@@ -436,37 +334,24 @@ export const Events: CollectionConfig = {
     },
   ],
 
-  /* ============================================================
-     HOOKS — fully typed
-  ============================================================ */
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
-      ({
-        data,
-        req,
-        operation,
-      }: {
-        data: any
-        req: import('payload').PayloadRequest
-        operation: 'create' | 'update'
-      }) => {
-        // Track creator / editor
+      ({ data, req, operation }) => {
         if (req.user) {
-          if (operation === 'create') {
-            data.createdBy = req.user.id
-          }
+          if (operation === 'create') data.createdBy = req.user.id
           data.updatedBy = req.user.id
         }
 
-        // Auto-slug
-        if (data.title && !data.slug) {
+        if (data?.title && !data.slug) {
           data.slug = data.title
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '')
         }
 
-        // Auto-calc ticketsAvailable
         if (typeof data.capacity === 'number' && typeof data.ticketsSold === 'number') {
           data.ticketsAvailable = Math.max(data.capacity - data.ticketsSold, 0)
         }
@@ -476,3 +361,5 @@ export const Events: CollectionConfig = {
     ],
   },
 }
+
+export default Events

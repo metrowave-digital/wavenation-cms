@@ -3615,22 +3615,14 @@ export interface Article {
 export interface Playlist {
   id: number;
   title: string;
-  /**
-   * Auto-generated if empty.
-   */
   slug?: string | null;
-  /**
-   * Optional description for the playlist.
-   */
   description?: string | null;
-  /**
-   * Playlist cover image.
-   */
   coverImage?: (number | null) | Media;
   type: 'podcasts' | 'podcast-episodes' | 'vod' | 'tv-episodes' | 'tracks' | 'mixed';
   /**
-   * Media items for non-music playlists.
+   * Legacy playlist sort order (stored as text)
    */
+  sortOrder?: string | null;
   items?:
     | (
         | {
@@ -3659,30 +3651,17 @@ export interface Playlist {
           }
       )[]
     | null;
-  /**
-   * For tracks not yet created in the Tracks collection.
-   */
   manualTracks?:
     | {
         title: string;
         artist: string;
         album?: string | null;
-        /**
-         * Example: 3:25
-         */
         duration?: string | null;
-        /**
-         * Optional artwork.
-         */
         coverArt?: (number | null) | Media;
-        /**
-         * Optional link to Spotify, Apple Music, YouTube, etc.
-         */
         externalUrl?: string | null;
         id?: string | null;
       }[]
     | null;
-  sortOrder?: ('manual' | 'newest' | 'oldest' | 'popular') | null;
   visibility?: ('public' | 'private' | 'unlisted') | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
@@ -4453,9 +4432,6 @@ export interface Event {
     | 'virtual'
     | 'other';
   isFeatured?: boolean | null;
-  /**
-   * Detailed description using Lexical editor.
-   */
   description?: {
     root: {
       type: string;
@@ -4489,20 +4465,11 @@ export interface Event {
     | null;
   isOnline?: boolean | null;
   venue?: (number | null) | Venue;
-  /**
-   * Enter location manually if not using a Venue.
-   */
   customLocation?: string | null;
-  /**
-   * URL for virtual events.
-   */
   streamUrl?: string | null;
   ticketingEnabled?: boolean | null;
   ticketProvider?: ('internal' | 'external') | null;
   externalTicketUrl?: string | null;
-  /**
-   * Max attendee capacity.
-   */
   capacity?: number | null;
   ticketsSold?: number | null;
   ticketsAvailable?: number | null;
@@ -5233,25 +5200,16 @@ export interface Chart {
   slug?: string | null;
   chartType: 'weekly' | 'daily' | 'monthly' | 'trending' | 'staff-picks' | 'algorithmic';
   /**
-   * Week/Month this chart represents
+   * Week / Month this chart represents
    */
   period?: string | null;
   status?: ('draft' | 'published' | 'archived') | null;
   description?: string | null;
-  /**
-   * Optional sponsor overlay for this chart.
-   */
   sponsorship?: {
     enabled?: boolean | null;
     tier?: ('flagship' | 'moment' | 'accent') | null;
     sponsorName?: string | null;
-    /**
-     * Optional logo (used for flagship tier)
-     */
     sponsorLogo?: (number | null) | Media;
-    /**
-     * Optional outbound link
-     */
     sponsorUrl?: string | null;
     startDate?: string | null;
     endDate?: string | null;
@@ -5260,35 +5218,20 @@ export interface Chart {
   entries?:
     | {
         rank: number;
-        /**
-         * Previous position
-         */
         lastWeek?: number | null;
         peak?: number | null;
         weeksOnChart?: number | null;
         movement?: ('up' | 'down' | 'new' | 're-entry' | 'same') | null;
-        /**
-         * Use an existing track OR create manual entry below.
-         */
         track?: (number | null) | Track;
-        /**
-         * Use when the track does NOT exist in the Tracks collection.
-         */
         manualTrackInfo?: {
           title?: string | null;
           artist?: string | null;
           coverArt?: (number | null) | Media;
-          /**
-           * Optional link to streaming platform
-           */
           externalUrl?: string | null;
         };
         id?: string | null;
       }[]
     | null;
-  /**
-   * Optionally link this chart to a playlist.
-   */
   playlist?: (number | null) | Playlist;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
@@ -5322,7 +5265,7 @@ export interface CreatorChannel {
    */
   followersCount?: number | null;
   /**
-   * Populated via API (not stored in DB)
+   * Computed at runtime (not stored)
    */
   followedByMe?: boolean | null;
   moderators?: (number | ChannelModerator)[] | null;
@@ -6179,6 +6122,8 @@ export interface ChannelLivestream {
   dvrPlaybackUrl?: string | null;
   chatEnabled?: boolean | null;
   liveChatArchive?: (number | ChatMedia)[] | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -8748,6 +8693,7 @@ export interface PlaylistsSelect<T extends boolean = true> {
   description?: T;
   coverImage?: T;
   type?: T;
+  sortOrder?: T;
   items?: T;
   manualTracks?:
     | T
@@ -8760,7 +8706,6 @@ export interface PlaylistsSelect<T extends boolean = true> {
         externalUrl?: T;
         id?: T;
       };
-  sortOrder?: T;
   visibility?: T;
   createdBy?: T;
   updatedBy?: T;
@@ -12390,6 +12335,8 @@ export interface ChannelLivestreamsSelect<T extends boolean = true> {
   dvrPlaybackUrl?: T;
   chatEnabled?: T;
   liveChatArchive?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

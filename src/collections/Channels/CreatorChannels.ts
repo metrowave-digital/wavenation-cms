@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 import { seoFields } from '../../fields/seo'
 
 export const CreatorChannels: CollectionConfig = {
@@ -10,18 +11,37 @@ export const CreatorChannels: CollectionConfig = {
     defaultColumns: ['name', 'creator', 'visibility', 'status', 'followersCount'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+     NOTE:
+     - Public read for search/discovery
+     - Controlled write access
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+    read: AccessControl.isPublic, // 🔓 search-safe
+    create: AccessControl.isCreator, // creators can create channels
+    update: AccessControl.isStaff, // moderation-safe
+    delete: AccessControl.isAdmin, // admin only
   },
 
   fields: [
-    /* BASIC INFO */
-    { name: 'creator', type: 'relationship', relationTo: 'profiles', required: true },
+    /* ================= BASIC INFO ================= */
+    {
+      name: 'creator',
+      type: 'relationship',
+      relationTo: 'profiles',
+      required: true,
+    },
+
     { name: 'name', type: 'text', required: true },
-    { name: 'slug', type: 'text', unique: true },
+
+    {
+      name: 'slug',
+      type: 'text',
+      unique: true,
+      index: true,
+    },
+
     { name: 'description', type: 'textarea' },
 
     {
@@ -31,6 +51,7 @@ export const CreatorChannels: CollectionConfig = {
       options: ['active', 'paused', 'archived'],
     },
 
+    /* ================= VISIBILITY ================= */
     {
       name: 'visibility',
       type: 'select',
@@ -48,12 +69,12 @@ export const CreatorChannels: CollectionConfig = {
       relationTo: 'creator-tiers',
       hasMany: true,
       admin: {
-        condition: (data) => data?.visibility === 'tiers',
+        condition: (_, data) => data?.visibility === 'tiers',
         description: 'Which tiers can access this channel',
       },
     },
 
-    /* MEDIA */
+    /* ================= MEDIA ================= */
     {
       name: 'coverImage',
       type: 'upload',
@@ -65,7 +86,7 @@ export const CreatorChannels: CollectionConfig = {
       relationTo: 'media',
     },
 
-    /* FOLLOWERS SYSTEM */
+    /* ================= FOLLOWERS ================= */
     {
       name: 'followers',
       type: 'relationship',
@@ -81,30 +102,28 @@ export const CreatorChannels: CollectionConfig = {
     {
       name: 'followersCount',
       type: 'number',
+      defaultValue: 0,
       admin: {
         readOnly: true,
         position: 'sidebar',
         description: 'Auto-generated follower count',
       },
-      defaultValue: 0,
     },
 
-    /* (OPTIONAL) VIRTUAL FIELD */
+    /* ================= VIRTUAL FIELD ================= */
     {
       name: 'followedByMe',
       type: 'checkbox',
       admin: {
         readOnly: true,
-        description: 'Populated via API (not stored in DB)',
+        description: 'Computed at runtime (not stored)',
       },
       hooks: {
-        beforeChange: [
-          () => false, // prevent DB writes
-        ],
+        beforeChange: [() => false],
       },
     },
 
-    /* RELATIONSHIPS */
+    /* ================= RELATIONSHIPS ================= */
     {
       name: 'moderators',
       type: 'relationship',
@@ -119,29 +138,48 @@ export const CreatorChannels: CollectionConfig = {
       hasMany: true,
     },
 
-    /* SEO */
-    { name: 'seo', type: 'group', fields: [seoFields] },
+    /* ================= SEO ================= */
+    {
+      name: 'seo',
+      type: 'group',
+      fields: [seoFields],
+    },
 
-    /* AUDIT */
-    { name: 'createdBy', type: 'relationship', relationTo: 'users', admin: { readOnly: true } },
-    { name: 'updatedBy', type: 'relationship', relationTo: 'users', admin: { readOnly: true } },
+    /* ================= AUDIT ================= */
+    {
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: { readOnly: true },
+    },
+    {
+      name: 'updatedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: { readOnly: true },
+    },
   ],
 
   hooks: {
     beforeChange: [
       ({ req, data, operation }) => {
         if (req.user) {
-          if (operation === 'create') data.createdBy = req.user.id
+          if (operation === 'create') {
+            data.createdBy = req.user.id
+          }
           data.updatedBy = req.user.id
         }
 
         /* Auto-slug */
-        if (data.name && !data.slug) {
-          data.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        if (data?.name && !data.slug) {
+          data.slug = data.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
         }
 
-        /* Update follower count automatically */
-        if (Array.isArray(data.followers)) {
+        /* Denormalize follower count */
+        if (Array.isArray(data?.followers)) {
           data.followersCount = data.followers.length
         }
 
@@ -150,3 +188,5 @@ export const CreatorChannels: CollectionConfig = {
     ],
   },
 }
+
+export default CreatorChannels

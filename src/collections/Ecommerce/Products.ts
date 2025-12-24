@@ -1,21 +1,7 @@
 import type { CollectionConfig } from 'payload'
-import { seoFields } from '../../fields/seo'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-
-/* ============================================================
-   ACCESS — fully typed for Payload v3
-============================================================ */
-
-const isLoggedIn = ({ req }: { req: import('payload').PayloadRequest }) => Boolean(req.user)
-
-const isAdmin = ({ req }: { req: import('payload').PayloadRequest }) => {
-  const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
-
-/* ============================================================
-   COLLECTION — Products
-============================================================ */
+import { seoFields } from '../../fields/seo'
+import * as AccessControl from '@/access/control'
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -26,11 +12,14 @@ export const Products: CollectionConfig = {
     defaultColumns: ['name', 'status', 'price', 'brand'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: isLoggedIn,
-    update: isLoggedIn,
-    delete: isAdmin,
+    read: AccessControl.isPublic, // 🔓 search-safe
+    create: AccessControl.isStaff, // controlled catalog
+    update: AccessControl.isStaff,
+    delete: AccessControl.isAdmin,
   },
 
   timestamps: true,
@@ -71,7 +60,7 @@ export const Products: CollectionConfig = {
             {
               name: 'description',
               type: 'richText',
-              editor: lexicalEditor(), // ★ FIXED: using Lexical instead of admin.elements
+              editor: lexicalEditor(),
               admin: {
                 description: 'Product description using Lexical editor.',
               },
@@ -185,20 +174,12 @@ export const Products: CollectionConfig = {
     },
   ],
 
-  /* ============================================================
-     HOOKS — auto slug + audit user tracking
-  ============================================================ */
+  /* -----------------------------------------------------------
+     HOOKS — slug + audit
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
-      ({
-        data,
-        req,
-        operation,
-      }: {
-        data: any
-        req: import('payload').PayloadRequest
-        operation: 'create' | 'update'
-      }) => {
+      ({ data, req, operation }) => {
         if (req.user) {
           if (operation === 'create') {
             data.createdBy = req.user.id
@@ -206,7 +187,7 @@ export const Products: CollectionConfig = {
           data.updatedBy = req.user.id
         }
 
-        if (data.name && !data.slug) {
+        if (data?.name && !data.slug) {
           data.slug = data.name
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
@@ -218,3 +199,5 @@ export const Products: CollectionConfig = {
     ],
   },
 }
+
+export default Products

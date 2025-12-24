@@ -1,4 +1,21 @@
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
+
+/* ============================================================
+   FIELD ACCESS WRAPPERS
+   Field access MUST return boolean (not Where).
+============================================================ */
+
+const staffOnlyField = ({ req }: { req: unknown }): boolean =>
+  Boolean(AccessControl.isStaff({ req } as any))
+
+/* If you ever need "logged-in only" at field level */
+const loggedInField = ({ req }: { req: unknown }): boolean =>
+  Boolean(AccessControl.isLoggedIn({ req } as any))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Reviews: CollectionConfig = {
   slug: 'reviews',
@@ -9,24 +26,28 @@ export const Reviews: CollectionConfig = {
     defaultColumns: ['title', 'mediaType', 'rating', 'reviewer', 'status'],
   },
 
+  /* --------------------------------------------------------
+     COLLECTION ACCESS (AccessResult allowed here)
+  -------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    read: AccessControl.isPublic, // 🔓 search-safe
+    create: AccessControl.isLoggedIn,
+    update: AccessControl.isStaff, // moderation-only updates (safe)
+    delete: AccessControl.isStaff,
   },
 
   timestamps: true,
 
   fields: [
     /* --------------------------------------------------------
-     * REVIEW META WITH WEIGHTED RATING + CRITIC RATING
-     -------------------------------------------------------- */
+       REVIEW META
+    -------------------------------------------------------- */
     {
       name: 'title',
       type: 'text',
       required: true,
     },
+
     {
       name: 'rating',
       type: 'number',
@@ -34,6 +55,7 @@ export const Reviews: CollectionConfig = {
       max: 5,
       required: true,
     },
+
     {
       name: 'criticRating',
       type: 'number',
@@ -53,9 +75,18 @@ export const Reviews: CollectionConfig = {
       type: 'richText',
     },
 
+    /* --------------------------------------------------------
+       INTERNAL MODERATION (STAFF ONLY)
+       Field access must be boolean => use wrappers
+    -------------------------------------------------------- */
     {
       name: 'editorNotes',
       type: 'richText',
+      access: {
+        read: staffOnlyField,
+        create: staffOnlyField,
+        update: staffOnlyField,
+      },
       admin: {
         description: 'Internal-only editorial notes for moderation.',
       },
@@ -71,11 +102,14 @@ export const Reviews: CollectionConfig = {
         { label: 'Flagged', value: 'flagged' },
         { label: 'Removed', value: 'removed' },
       ],
+      access: {
+        update: staffOnlyField,
+      },
     },
 
     /* --------------------------------------------------------
-     * REVIEWER
-     -------------------------------------------------------- */
+       REVIEWER
+    -------------------------------------------------------- */
     {
       name: 'reviewer',
       type: 'relationship',
@@ -84,8 +118,8 @@ export const Reviews: CollectionConfig = {
     },
 
     /* --------------------------------------------------------
-     * MEDIA BEING REVIEWED
-     -------------------------------------------------------- */
+       MEDIA BEING REVIEWED
+    -------------------------------------------------------- */
     {
       name: 'mediaType',
       type: 'select',
@@ -121,8 +155,8 @@ export const Reviews: CollectionConfig = {
     },
 
     /* --------------------------------------------------------
-     * REACTIONS + COMMENTS (Threaded)
-     -------------------------------------------------------- */
+       REACTIONS + COMMENTS (Threaded)
+    -------------------------------------------------------- */
     {
       name: 'reactions',
       type: 'relationship',
@@ -138,11 +172,14 @@ export const Reviews: CollectionConfig = {
     },
 
     /* --------------------------------------------------------
-     * AI TOXICITY
-     -------------------------------------------------------- */
+       AI TOXICITY (STAFF-ONLY READ)
+    -------------------------------------------------------- */
     {
       name: 'toxicityScore',
       type: 'number',
+      access: {
+        read: staffOnlyField,
+      },
       admin: {
         readOnly: true,
         description: 'AI toxicity score (0-1).',
@@ -153,6 +190,9 @@ export const Reviews: CollectionConfig = {
       name: 'isToxic',
       type: 'checkbox',
       defaultValue: false,
+      access: {
+        read: staffOnlyField,
+      },
       admin: {
         readOnly: true,
         description: 'Automatically flagged if toxicity is high.',
@@ -160,19 +200,28 @@ export const Reviews: CollectionConfig = {
     },
 
     /* --------------------------------------------------------
-     * AUDIT
-     -------------------------------------------------------- */
+       AUDIT (STAFF-ONLY READ)
+    -------------------------------------------------------- */
     {
       name: 'createdBy',
       type: 'relationship',
       relationTo: 'users',
+      access: {
+        read: staffOnlyField,
+      },
       admin: { readOnly: true },
     },
+
     {
       name: 'updatedBy',
       type: 'relationship',
       relationTo: 'users',
+      access: {
+        read: staffOnlyField,
+      },
       admin: { readOnly: true },
     },
   ],
 }
+
+export default Reviews

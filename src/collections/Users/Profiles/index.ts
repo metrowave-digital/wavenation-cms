@@ -1,7 +1,7 @@
-import type { CollectionConfig, AccessArgs, CollectionBeforeChangeHook } from 'payload'
+import type { CollectionConfig, Access, AccessArgs, CollectionBeforeChangeHook } from 'payload'
 
 /* ============================================================
-   IMPORT SUB-FIELD GROUPS (each must export Field[])
+   IMPORT SUB-FIELD GROUPS
 ============================================================ */
 import { profileCoreFields } from './profile.core'
 import { profileRoleFields } from './profile.roles'
@@ -21,26 +21,27 @@ import { profileSystemFields } from './profile.system'
 const getUserRoles = (req: AccessArgs['req']): string[] =>
   Array.isArray((req.user as any)?.roles) ? ((req.user as any).roles as string[]) : []
 
-const isAdmin = ({ req }: AccessArgs): boolean => {
+const isAdminAccess: Access = ({ req }) => {
   const roles = getUserRoles(req)
-  return (
-    roles.includes('admin') ||
-    roles.includes('super-admin') ||
-    roles.includes('system')
-  )
+  return roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')
 }
 
-const isAdminOrSelfProfile = ({ req, id }: AccessArgs): boolean => {
+const isAdminOrSelfProfile: Access = ({ req, id }) => {
   if (!req.user) return false
+
   const roles = getUserRoles(req)
 
-  // Admin-like roles always allowed
+  // Admin roles always allowed
   if (roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')) {
     return true
   }
 
-  // Profile-level ownership check
-  const userProfileId = (req.user as any)?.profile
+  // Self-profile edit
+  const userProfileId =
+    typeof (req.user as any)?.profile === 'string'
+      ? (req.user as any).profile
+      : (req.user as any)?.profile?.id
+
   return Boolean(userProfileId && id && String(userProfileId) === String(id))
 }
 
@@ -51,12 +52,11 @@ const isAdminOrSelfProfile = ({ req, id }: AccessArgs): boolean => {
 const profilesBeforeChange: CollectionBeforeChangeHook = ({ data, req, operation }) => {
   if (!data) return data
 
-  // Creator/updater
   if (req.user) {
     if (operation === 'create') {
-      ;(data as any).createdBy = req.user.id
+      ;(data as any).createdBy = String(req.user.id)
     }
-    ;(data as any).updatedBy = req.user.id
+    ;(data as any).updatedBy = String(req.user.id)
   }
 
   // Slug generation
@@ -95,7 +95,7 @@ export const Profiles: CollectionConfig = {
     read: () => true,
     create: ({ req }) => Boolean(req.user),
     update: isAdminOrSelfProfile,
-    delete: isAdmin,
+    delete: isAdminAccess,
   },
 
   timestamps: true,

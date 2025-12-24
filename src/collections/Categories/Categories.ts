@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -9,14 +10,14 @@ export const Categories: CollectionConfig = {
     group: 'Taxonomy',
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => {
-      const roles = Array.isArray(req.user?.roles) ? req.user?.roles : []
-      return roles.includes('admin') || roles.includes('super-admin')
-    },
+    read: AccessControl.isPublic, // 🔓 search-safe
+    create: AccessControl.isStaff, // taxonomy control
+    update: AccessControl.isStaff,
+    delete: AccessControl.isAdmin,
   },
 
   fields: [
@@ -50,7 +51,7 @@ export const Categories: CollectionConfig = {
   hooks: {
     beforeChange: [
       async ({ data }) => {
-        if (data.name && !data.slug) {
+        if (data?.name && !data.slug) {
           data.slug = data.name
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
@@ -60,3 +61,5 @@ export const Categories: CollectionConfig = {
     ],
   },
 }
+
+export default Categories

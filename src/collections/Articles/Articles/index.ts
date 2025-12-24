@@ -3,10 +3,16 @@ import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import { articleFields } from './fields'
 import { articleHooks } from './hooks'
 import * as ArticleBlocks from './blocks'
+
+/* ============================================================
+   ACCESS CONTROL
+============================================================ */
+
+import * as AccessControl from '@/access/control'
 import { isCreator, isStaff } from '@/access/control'
 
 /* -----------------------------------------
-   ACCESS CONTROL
+   UPDATE RULES
 ------------------------------------------ */
 const canUpdateArticle: Access = ({ req, data }: AccessArgs) => {
   const creatorCanEdit = isCreator({ req } as AccessArgs)
@@ -21,9 +27,10 @@ const canUpdateArticle: Access = ({ req, data }: AccessArgs) => {
   return creatorCanEdit || staffCanEdit
 }
 
-/* -----------------------------------------
+/* ============================================================
    COLLECTION
------------------------------------------- */
+============================================================ */
+
 export const Articles: CollectionConfig = {
   slug: 'articles',
 
@@ -40,13 +47,22 @@ export const Articles: CollectionConfig = {
     group: 'Content',
   },
 
+  /* -----------------------------------------------------------
+     ACCESS
+     🔑 IMPORTANT:
+     - read MUST be public for GraphQL + search
+     - write rules remain role-based
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
+    read: AccessControl.isPublic, // ✅ FIX: public read for search
     create: isCreator as Access,
     update: canUpdateArticle,
     delete: isStaff as Access,
   },
 
+  /* -----------------------------------------------------------
+     FIELDS
+  ----------------------------------------------------------- */
   fields: [
     /* ================= TITLE + TYPE ================= */
     {
@@ -200,7 +216,7 @@ export const Articles: CollectionConfig = {
       admin: { position: 'sidebar', readOnly: true },
       access: {
         create: () => true,
-        update: () => true, // 🔑 allows hooks to write
+        update: () => true, // allows hooks to write
       },
     },
 

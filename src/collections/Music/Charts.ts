@@ -22,9 +22,9 @@ export const Charts: CollectionConfig = {
   timestamps: true,
 
   fields: [
-    /* --------------------------------------------------------
-     * BASIC INFO
-     -------------------------------------------------------- */
+    /* ======================================================
+       BASIC INFO
+    ====================================================== */
     {
       name: 'title',
       type: 'text',
@@ -59,7 +59,10 @@ export const Charts: CollectionConfig = {
         {
           name: 'period',
           type: 'date',
-          admin: { width: '50%', description: 'Week/Month this chart represents' },
+          admin: {
+            width: '50%',
+            description: 'Week / Month this chart represents',
+          },
         },
         {
           name: 'status',
@@ -80,137 +83,88 @@ export const Charts: CollectionConfig = {
       type: 'textarea',
     },
 
-    /* --------------------------------------------------------
- * SPONSORSHIP (OPTIONAL / NON-INTRUSIVE)
--------------------------------------------------------- */
+    /* ======================================================
+       SPONSORSHIP (OPTIONAL)
+    ====================================================== */
     {
       name: 'sponsorship',
       type: 'group',
       label: 'Chart Sponsorship',
-      admin: {
-        description: 'Optional sponsor overlay for this chart.',
-      },
       fields: [
         {
           name: 'enabled',
           type: 'checkbox',
           defaultValue: false,
-          label: 'Enable Sponsorship',
         },
-
         {
           name: 'tier',
           type: 'select',
-          required: true,
           defaultValue: 'accent',
-          admin: {
-            condition: (_, siblingData) => siblingData?.enabled,
-          },
+          admin: { condition: (_, s) => s?.enabled },
           options: [
             { label: 'Flagship (Hero / #1)', value: 'flagship' },
             { label: 'Moment (Gainer / Drop)', value: 'moment' },
             { label: 'Accent (Subtle)', value: 'accent' },
           ],
         },
-
         {
           name: 'sponsorName',
           type: 'text',
-          required: true,
-          admin: {
-            condition: (_, siblingData) => siblingData?.enabled,
-          },
+          admin: { condition: (_, s) => s?.enabled },
         },
-
         {
           name: 'sponsorLogo',
           type: 'upload',
           relationTo: 'media',
-          admin: {
-            condition: (_, siblingData) => siblingData?.enabled,
-            description: 'Optional logo (used for flagship tier)',
-          },
+          admin: { condition: (_, s) => s?.enabled },
         },
-
         {
           name: 'sponsorUrl',
           type: 'text',
-          admin: {
-            condition: (_, siblingData) => siblingData?.enabled,
-            description: 'Optional outbound link',
-          },
+          admin: { condition: (_, s) => s?.enabled },
         },
-
         {
           type: 'row',
           fields: [
             {
               name: 'startDate',
               type: 'date',
-              admin: {
-                width: '50%',
-                condition: (_, siblingData) => siblingData?.enabled,
-              },
+              admin: { width: '50%', condition: (_, s) => s?.enabled },
             },
             {
               name: 'endDate',
               type: 'date',
-              admin: {
-                width: '50%',
-                condition: (_, siblingData) => siblingData?.enabled,
-              },
+              admin: { width: '50%', condition: (_, s) => s?.enabled },
             },
           ],
         },
-
         {
           name: 'disclosureText',
           type: 'text',
           defaultValue: 'Sponsored',
-          admin: {
-            condition: (_, siblingData) => siblingData?.enabled,
-          },
+          admin: { condition: (_, s) => s?.enabled },
         },
       ],
     },
 
-    /* --------------------------------------------------------
-     * CHART POSITIONS
-     -------------------------------------------------------- */
+    /* ======================================================
+       CHART ENTRIES
+    ====================================================== */
     {
+      name: 'entries',
       label: 'Chart Entries',
       type: 'array',
-      name: 'entries',
-      labels: { singular: 'Entry', plural: 'Entries' },
       fields: [
         {
           type: 'row',
           fields: [
-            {
-              name: 'rank',
-              type: 'number',
-              required: true,
-              admin: { width: '20%' },
-            },
-            {
-              name: 'lastWeek',
-              type: 'number',
-              admin: { width: '20%', description: 'Previous position' },
-            },
-            {
-              name: 'peak',
-              type: 'number',
-              admin: { width: '20%' },
-            },
-            {
-              name: 'weeksOnChart',
-              type: 'number',
-              admin: { width: '20%' },
-            },
+            { name: 'rank', type: 'number', required: true },
+            { name: 'lastWeek', type: 'number' },
+            { name: 'peak', type: 'number' },
+            { name: 'weeksOnChart', type: 'number' },
             {
               name: 'movement',
               type: 'select',
-              admin: { width: '20%' },
               options: [
                 { label: 'Up', value: 'up' },
                 { label: 'Down', value: 'down' },
@@ -222,23 +176,15 @@ export const Charts: CollectionConfig = {
           ],
         },
 
-        /* Track relationship */
         {
           name: 'track',
           type: 'relationship',
           relationTo: 'tracks',
-          admin: {
-            description: 'Use an existing track OR create manual entry below.',
-          },
         },
 
-        /* Manual track info */
         {
           name: 'manualTrackInfo',
           type: 'group',
-          admin: {
-            description: 'Use when the track does NOT exist in the Tracks collection.',
-          },
           fields: [
             { name: 'title', type: 'text' },
             { name: 'artist', type: 'text' },
@@ -247,31 +193,24 @@ export const Charts: CollectionConfig = {
               type: 'upload',
               relationTo: 'media',
             },
-            {
-              name: 'externalUrl',
-              type: 'text',
-              admin: { description: 'Optional link to streaming platform' },
-            },
+            { name: 'externalUrl', type: 'text' },
           ],
         },
       ],
     },
 
-    /* --------------------------------------------------------
-     * OPTIONAL PLAYLIST LINKING
-     -------------------------------------------------------- */
+    /* ======================================================
+       OPTIONAL PLAYLIST LINK
+    ====================================================== */
     {
       name: 'playlist',
       type: 'relationship',
       relationTo: 'playlists',
-      admin: {
-        description: 'Optionally link this chart to a playlist.',
-      },
     },
 
-    /* --------------------------------------------------------
-     * AUDIT
-     -------------------------------------------------------- */
+    /* ======================================================
+       AUDIT
+    ====================================================== */
     {
       name: 'createdBy',
       type: 'relationship',
@@ -286,16 +225,24 @@ export const Charts: CollectionConfig = {
     },
   ],
 
+  /* ======================================================
+     HOOKS
+  ====================================================== */
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
         if (req.user) {
-          if (operation === 'create') data.createdBy = req.user.id
-          data.updatedBy = req.user.id
+          if (operation === 'create') {
+            data.createdBy = String(req.user.id)
+          }
+          data.updatedBy = String(req.user.id)
         }
 
         if (data.title && !data.slug) {
-          data.slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          data.slug = data.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
         }
 
         return data
@@ -303,3 +250,5 @@ export const Charts: CollectionConfig = {
     ],
   },
 }
+
+export default Charts
