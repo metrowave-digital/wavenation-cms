@@ -170,7 +170,7 @@ export default buildConfig({
   /* -----------------------------------------------------------
      SERVER URL (CANONICAL CMS ORIGIN)
   ----------------------------------------------------------- */
-  serverURL: 'https://wavenation.media',
+  serverURL: process.env.SERVER_URL || 'https://wavenation-cms-1dfs.onrender.com',
 
   routes: {
     api: '/api',
