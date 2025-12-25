@@ -3,16 +3,34 @@
   color: #e6ebf2;
 }
 
-h1 {
+/* Typography */
+.container h1 {
   font-size: 2rem;
   margin-bottom: 1rem;
 }
 
-h2 {
+.container h2 {
   margin-top: 2rem;
   font-size: 1.3rem;
 }
 
-p {
+.container p {
   line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+/* Sections */
+.container section {
+  margin-top: 1.5rem;
+}
+
+/* Lists */
+.container ul {
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.container li {
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
 }
