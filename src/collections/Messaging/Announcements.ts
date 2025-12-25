@@ -11,7 +11,9 @@ export const Announcements: CollectionConfig = {
   },
 
   access: {
+    // Public read — filtering handled at query / frontend level
     read: () => true,
+
     create: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
     update: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
     delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
@@ -21,7 +23,13 @@ export const Announcements: CollectionConfig = {
 
   fields: [
     { name: 'title', type: 'text', required: true },
-    { name: 'slug', type: 'text', unique: true },
+
+    {
+      name: 'slug',
+      type: 'text',
+      unique: true,
+      admin: { description: 'Auto-generated if empty.' },
+    },
 
     {
       name: 'status',
@@ -63,16 +71,8 @@ export const Announcements: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        {
-          name: 'startsAt',
-          type: 'date',
-          admin: { width: '50%' },
-        },
-        {
-          name: 'endsAt',
-          type: 'date',
-          admin: { width: '50%' },
-        },
+        { name: 'startsAt', type: 'date', admin: { width: '50%' } },
+        { name: 'endsAt', type: 'date', admin: { width: '50%' } },
       ],
     },
 
@@ -82,16 +82,10 @@ export const Announcements: CollectionConfig = {
       required: true,
     },
 
-    {
-      name: 'ctaLabel',
-      type: 'text',
-    },
-    {
-      name: 'ctaUrl',
-      type: 'text',
-    },
+    { name: 'ctaLabel', type: 'text' },
+    { name: 'ctaUrl', type: 'text' },
 
-    /* AUDIENCE FILTERS */
+    /* AUDIENCE TARGETING */
     {
       name: 'roles',
       type: 'select',
@@ -107,10 +101,9 @@ export const Announcements: CollectionConfig = {
       name: 'requireAuth',
       type: 'checkbox',
       defaultValue: false,
-      admin: { description: 'Only show to logged-in users' },
     },
 
-    /* CONTENT TARGETING (optional) */
+    /* CONTENT CONTEXT */
     {
       name: 'relatedEvents',
       type: 'relationship',
@@ -128,7 +121,6 @@ export const Announcements: CollectionConfig = {
       name: 'dismissible',
       type: 'checkbox',
       defaultValue: true,
-      admin: { description: 'Users can dismiss this announcement' },
     },
 
     {
@@ -137,17 +129,35 @@ export const Announcements: CollectionConfig = {
     },
   ],
 
+  /* ============================================================
+     HOOKS — LIFECYCLE AUTOMATION
+  ============================================================ */
   hooks: {
     beforeChange: [
       ({ data }) => {
+        const now = new Date()
+
+        /* ------------------------------------------------------
+           Slug auto-generation
+        ------------------------------------------------------ */
         if (data.title && !data.slug) {
-          data.slug = data.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '')
+          data.slug =
+            data.title
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '') +
+            '-' +
+            Date.now().toString(36) // avoids collisions
         }
 
-        if (data.endsAt && new Date(data.endsAt) < new Date()) {
+        /* ------------------------------------------------------
+           Status automation
+        ------------------------------------------------------ */
+        if (data.startsAt && new Date(data.startsAt) <= now && data.status === 'scheduled') {
+          data.status = 'active'
+        }
+
+        if (data.endsAt && new Date(data.endsAt) < now) {
           data.status = 'expired'
         }
 

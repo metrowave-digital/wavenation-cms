@@ -5,17 +5,19 @@ export const requireEditorialNotes: CollectionBeforeChangeHook = ({
   originalDoc,
   operation,
 }) => {
-  if (!data) return data
+  if (!data || !originalDoc) return data
 
-  // Don't enforce on create
+  // Never enforce on create
   if (operation === 'create') return data
 
-  const wasPublished = originalDoc?.status === 'published'
-  const nowNeedsCorrection = data.status === 'needs-correction'
+  const wasPublished = originalDoc.status === 'published'
+  const isNowNeedsCorrection = data.status === 'needs-correction'
+
+  if (!wasPublished && !isNowNeedsCorrection) return data
 
   const notes = typeof data.editorialNotes === 'string' ? data.editorialNotes.trim() : ''
 
-  if ((wasPublished || nowNeedsCorrection) && !notes) {
+  if (!notes) {
     throw new Error(
       'Editorial Notes are required when editing published content or marking Needs Correction.',
     )

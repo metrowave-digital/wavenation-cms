@@ -1,7 +1,19 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, FieldAccess } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { seoFields } from '../../fields/seo'
 import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   FIELD ACCESS
+============================================================ */
+
+const staffOnlyField: FieldAccess = ({ req }: any): boolean =>
+  Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.STAFF))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Products: CollectionConfig = {
   slug: 'products',
@@ -16,8 +28,18 @@ export const Products: CollectionConfig = {
      ACCESS CONTROL
   ----------------------------------------------------------- */
   access: {
-    read: AccessControl.isPublic, // 🔓 search-safe
-    create: AccessControl.isStaff, // controlled catalog
+    /**
+     * Public storefront + staff override
+     */
+    read: ({ req }) => {
+      if (req?.user) return true
+      return AccessControl.isPublic({ req } as any)
+    },
+
+    /**
+     * Controlled catalog
+     */
+    create: AccessControl.isStaff,
     update: AccessControl.isStaff,
     delete: AccessControl.isAdmin,
   },
@@ -61,9 +83,6 @@ export const Products: CollectionConfig = {
               name: 'description',
               type: 'richText',
               editor: lexicalEditor(),
-              admin: {
-                description: 'Product description using Lexical editor.',
-              },
             },
           ],
         },
@@ -74,10 +93,28 @@ export const Products: CollectionConfig = {
         {
           label: 'Pricing & Inventory',
           fields: [
-            { name: 'price', type: 'number', required: true },
-            { name: 'compareAtPrice', type: 'number' },
-            { name: 'sku', type: 'text', unique: true },
-            { name: 'barcode', type: 'text' },
+            {
+              name: 'price',
+              type: 'number',
+              required: true,
+              access: { update: staffOnlyField },
+            },
+            {
+              name: 'compareAtPrice',
+              type: 'number',
+              access: { update: staffOnlyField },
+            },
+            {
+              name: 'sku',
+              type: 'text',
+              unique: true,
+              access: { update: staffOnlyField },
+            },
+            {
+              name: 'barcode',
+              type: 'text',
+              access: { update: staffOnlyField },
+            },
 
             {
               name: 'tracking',
@@ -87,11 +124,14 @@ export const Products: CollectionConfig = {
                   name: 'inventory',
                   type: 'number',
                   defaultValue: 0,
+                  min: 0,
+                  access: { update: staffOnlyField },
                 },
                 {
                   name: 'allowBackorder',
                   type: 'checkbox',
                   defaultValue: false,
+                  access: { update: staffOnlyField },
                 },
                 {
                   name: 'inventoryPolicy',
@@ -101,6 +141,7 @@ export const Products: CollectionConfig = {
                     { label: 'Deny Checkout', value: 'deny' },
                     { label: 'Allow Backorder', value: 'allow' },
                   ],
+                  access: { update: staffOnlyField },
                 },
               ],
             },
@@ -181,9 +222,7 @@ export const Products: CollectionConfig = {
     beforeChange: [
       ({ data, req, operation }) => {
         if (req.user) {
-          if (operation === 'create') {
-            data.createdBy = req.user.id
-          }
+          if (operation === 'create') data.createdBy = req.user.id
           data.updatedBy = req.user.id
         }
 

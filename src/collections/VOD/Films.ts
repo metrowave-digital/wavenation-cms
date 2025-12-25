@@ -1,34 +1,100 @@
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import * as AccessControl from '@/access/control'
 import { seoFields } from '../../fields/seo'
 
-const isAdmin = ({ req }: { req: PayloadRequest }) => {
-  const roles = Array.isArray((req.user as any)?.roles) ? ((req.user as any).roles as string[]) : []
-  return roles.includes('admin') || roles.includes('super-admin')
+/* ============================================================
+   ACCESS HELPERS
+============================================================ */
+
+/**
+ * READ
+ * - Logged-in users → full access
+ * - Public → API key + fetch code
+ */
+const canReadFilms: Access = ({ req }) => {
+  if (req?.user) return true
+  return AccessControl.apiLockedRead({ req } as any)
 }
+
+/**
+ * CREATE
+ * - Admin + Staff
+ */
+const canCreateFilms: Access = ({ req }) =>
+  AccessControl.isAdmin({ req }) || AccessControl.isStaff({ req })
+
+/**
+ * UPDATE
+ * - Admin override
+ * - Staff override
+ * - Creator (createdBy) can update their own film
+ */
+const canUpdateFilms: Access = async ({ req, id }: AccessArgs) => {
+  if (!req?.user) return false
+
+  if (AccessControl.isAdmin({ req })) return true
+  if (AccessControl.isStaff({ req })) return true
+
+  if (!id) return false
+
+  const film = await req.payload.findByID({
+    collection: 'films',
+    id: String(id),
+    depth: 0,
+  })
+
+  const ownerId =
+    typeof (film as any).createdBy === 'string'
+      ? (film as any).createdBy
+      : (film as any).createdBy?.id
+
+  return ownerId === String(req.user.id)
+}
+
+/**
+ * DELETE
+ * - Admin only
+ */
+const canDeleteFilms: Access = ({ req }) => AccessControl.isAdmin({ req })
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Films: CollectionConfig = {
   slug: 'films',
 
+  labels: {
+    singular: 'Film',
+    plural: 'Films',
+  },
+
   admin: {
     useAsTitle: 'title',
     group: 'Content',
-    defaultColumns: ['title', 'filmType', 'releaseYear', 'status'],
+    defaultColumns: ['title', 'filmType', 'releaseYear', 'status', 'updatedAt'],
   },
 
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
-    delete: isAdmin,
+    read: canReadFilms,
+    create: canCreateFilms,
+    update: canUpdateFilms,
+    delete: canDeleteFilms,
   },
 
   timestamps: true,
 
+  /* ============================================================
+     FIELDS
+  ============================================================ */
   fields: [
     {
       type: 'tabs',
       tabs: [
+        /* ------------------------------------------------------------------
+           TAB 1 — FILM INFO
+        ------------------------------------------------------------------ */
         {
           label: 'Film Info',
           fields: [
@@ -63,7 +129,7 @@ export const Films: CollectionConfig = {
                 {
                   name: 'status',
                   type: 'select',
-                  defaultValue: 'published',
+                  defaultValue: 'draft',
                   options: [
                     { label: 'Published', value: 'published' },
                     { label: 'Coming Soon', value: 'coming-soon' },
@@ -83,6 +149,9 @@ export const Films: CollectionConfig = {
           ],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 2 — VIDEO SOURCE
+        ------------------------------------------------------------------ */
         {
           label: 'Video Source',
           fields: [
@@ -101,67 +170,58 @@ export const Films: CollectionConfig = {
             {
               name: 'cloudflareVideoId',
               type: 'text',
-              admin: {
-                condition: (data) => data?.videoProvider === 'cloudflare',
-                description: 'Cloudflare video UID',
-              },
+              admin: { condition: (d) => d?.videoProvider === 'cloudflare' },
             },
 
             {
               name: 'cloudflarePlaybackUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.videoProvider === 'cloudflare',
-                description: 'HLS/DASH playback URL',
-              },
+              admin: { condition: (d) => d?.videoProvider === 'cloudflare' },
             },
 
             {
               name: 's3VideoFile',
               type: 'upload',
               relationTo: 'media',
-              admin: {
-                condition: (data) => data?.videoProvider === 's3',
-                description: 'Upload MP4 or WEBM',
-              },
+              admin: { condition: (d) => d?.videoProvider === 's3' },
             },
 
             {
               name: 'externalUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.videoProvider === 'external',
-                description: 'YouTube, Vimeo, or custom stream URL',
-              },
+              admin: { condition: (d) => d?.videoProvider === 'external' },
             },
           ],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 3 — BRANDING
+        ------------------------------------------------------------------ */
         {
           label: 'Branding',
           fields: [
             {
               type: 'row',
               fields: [
-                { name: 'poster', type: 'upload', relationTo: 'media', admin: { width: '50%' } },
-                {
-                  name: 'bannerImage',
-                  type: 'upload',
-                  relationTo: 'media',
-                  admin: { width: '50%' },
-                },
+                { name: 'poster', type: 'upload', relationTo: 'media' },
+                { name: 'bannerImage', type: 'upload', relationTo: 'media' },
               ],
             },
+
             {
               name: 'stillImages',
               type: 'relationship',
               relationTo: 'media',
               hasMany: true,
             },
+
             { name: 'brandColor', type: 'text' },
           ],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 4 — CAST & CREW
+        ------------------------------------------------------------------ */
         {
           label: 'Cast & Crew',
           fields: [
@@ -172,7 +232,6 @@ export const Films: CollectionConfig = {
             {
               name: 'cast',
               type: 'array',
-              labels: { singular: 'Cast Member', plural: 'Film Cast' },
               fields: [
                 { name: 'profile', type: 'relationship', relationTo: 'profiles' },
                 { name: 'roleName', type: 'text' },
@@ -181,6 +240,9 @@ export const Films: CollectionConfig = {
           ],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 5 — METADATA
+        ------------------------------------------------------------------ */
         {
           label: 'Metadata',
           fields: [
@@ -206,33 +268,31 @@ export const Films: CollectionConfig = {
           ],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 6 — EXTRAS
+        ------------------------------------------------------------------ */
         {
           label: 'Extras',
           fields: [
             {
               name: 'clips',
               type: 'array',
-              labels: { singular: 'Clip', plural: 'Clips' },
               fields: [
                 { name: 'title', type: 'text' },
                 { name: 'video', type: 'upload', relationTo: 'media' },
               ],
             },
-
             {
               name: 'behindTheScenes',
               type: 'array',
-              labels: { singular: 'BTS', plural: 'BTS' },
               fields: [
                 { name: 'title', type: 'text' },
                 { name: 'video', type: 'upload', relationTo: 'media' },
               ],
             },
-
             {
               name: 'promos',
               type: 'array',
-              labels: { singular: 'Promo', plural: 'Promos' },
               fields: [
                 { name: 'title', type: 'text' },
                 { name: 'video', type: 'upload', relationTo: 'media' },
@@ -241,11 +301,17 @@ export const Films: CollectionConfig = {
           ],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 7 — SEO
+        ------------------------------------------------------------------ */
         {
           label: 'SEO',
           fields: [seoFields],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 8 — ANALYTICS
+        ------------------------------------------------------------------ */
         {
           label: 'Analytics',
           fields: [
@@ -266,6 +332,9 @@ export const Films: CollectionConfig = {
           ],
         },
 
+        /* ------------------------------------------------------------------
+           TAB 9 — SYSTEM
+        ------------------------------------------------------------------ */
         {
           label: 'System',
           fields: [
@@ -287,10 +356,15 @@ export const Films: CollectionConfig = {
     },
   ],
 
+  /* ============================================================
+     HOOKS
+  ============================================================ */
   hooks: {
     beforeChange: [
-      async ({ data = {}, req, operation }) => {
-        if (req.user) {
+      ({ data, req, operation }) => {
+        if (!data) return data
+
+        if (req?.user) {
           if (operation === 'create') data.createdBy = (req.user as any).id
           data.updatedBy = (req.user as any).id
         }
@@ -307,3 +381,5 @@ export const Films: CollectionConfig = {
     ],
   },
 }
+
+export default Films

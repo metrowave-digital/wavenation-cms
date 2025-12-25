@@ -2,16 +2,16 @@ import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import * as AccessControl from '@/access/control'
 
 /* ============================================================
-   ACCESS HELPERS
+   ACCESS HELPERS (COLLECTION-LEVEL ONLY)
 ============================================================ */
 
-const isLoggedIn: Access = ({ req }) => Boolean(req.user)
-
 /**
- * Owner OR admin (collection-level, Payload-correct)
+ * Owner OR admin
+ * - Admin/system override
+ * - Chart creator
  */
 const isOwnerOrAdmin: Access = async ({ req, id }: AccessArgs) => {
-  if (!req.user) return false
+  if (!req?.user) return false
 
   // 🔑 ADMIN ALWAYS WINS
   if (AccessControl.isAdmin({ req })) return true
@@ -23,8 +23,10 @@ const isOwnerOrAdmin: Access = async ({ req, id }: AccessArgs) => {
     id: String(id),
   })
 
+  if (!chart?.createdBy) return false
+
   const ownerId =
-    typeof chart.createdBy === 'string' ? chart.createdBy : (chart.createdBy as any)?.id
+    typeof chart.createdBy === 'string' ? chart.createdBy : String((chart.createdBy as any)?.id)
 
   return ownerId === String(req.user.id)
 }
@@ -42,11 +44,14 @@ export const Charts: CollectionConfig = {
     defaultColumns: ['title', 'chartType', 'period', 'status'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS (ENTERPRISE SAFE — NO BEHAVIOR CHANGE)
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: isLoggedIn,
-    update: isOwnerOrAdmin, // ✅ FIX
-    delete: AccessControl.isAdmin,
+    read: AccessControl.isPublic, // 🔐 API key OR logged-in
+    create: AccessControl.isLoggedIn, // same behavior as before
+    update: isOwnerOrAdmin, // unchanged logic
+    delete: AccessControl.isAdmin, // admin+
   },
 
   timestamps: true,

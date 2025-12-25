@@ -1,4 +1,39 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Access } from 'payload'
+import { isAdminRole, hasRoleAtOrAbove } from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   HELPERS
+============================================================ */
+
+const isAddressOwner = (req: any, doc: any): boolean => {
+  if (!req?.user || !doc?.user) return false
+  return String(doc.user) === String(req.user.id)
+}
+
+/* ============================================================
+   ACCESS RULES
+============================================================ */
+
+const canReadAddress: Access = (args: any): boolean => {
+  const { req, doc } = args
+  if (!req?.user) return false
+  if (isAdminRole(req)) return true
+  if (hasRoleAtOrAbove(req, Roles.STAFF)) return true
+  return isAddressOwner(req, doc)
+}
+
+const canModifyAddress: Access = (args: any): boolean => {
+  const { req, doc } = args
+  if (!req?.user) return false
+  if (isAdminRole(req)) return true
+  if (hasRoleAtOrAbove(req, Roles.STAFF)) return true
+  return isAddressOwner(req, doc)
+}
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const ShippingAddresses: CollectionConfig = {
   slug: 'shipping-addresses',
@@ -9,13 +44,34 @@ export const ShippingAddresses: CollectionConfig = {
   },
 
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: () => true,
-    update: () => true,
+    /**
+     * Logged-in users only
+     */
+    create: ({ req }) => Boolean(req?.user),
+
+    /**
+     * Owner + Staff + Admin
+     */
+    read: canReadAddress,
+    update: canModifyAddress,
+    delete: canModifyAddress,
   },
 
   fields: [
-    { name: 'user', type: 'relationship', relationTo: 'profiles' },
+    /* --------------------------------------------------------
+       OWNER
+    -------------------------------------------------------- */
+    {
+      name: 'user',
+      type: 'relationship',
+      relationTo: 'profiles',
+      required: true,
+      index: true,
+    },
+
+    /* --------------------------------------------------------
+       ADDRESS
+    -------------------------------------------------------- */
     { name: 'fullName', type: 'text', required: true },
     { name: 'line1', type: 'text', required: true },
     { name: 'line2', type: 'text' },
@@ -26,3 +82,5 @@ export const ShippingAddresses: CollectionConfig = {
     { name: 'phone', type: 'text' },
   ],
 }
+
+export default ShippingAddresses

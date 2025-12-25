@@ -2,17 +2,20 @@ import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import * as AccessControl from '@/access/control'
 
 /* ============================================================
-   ACCESS HELPERS
+   ACCESS HELPERS (COLLECTION-LEVEL ONLY)
 ============================================================ */
 
-const isLoggedIn: Access = ({ req }) => Boolean(req.user)
-
 /**
- * Owner OR admin (collection-level)
+ * Owner OR admin
+ * - Admin override (system-safe)
+ * - Playlist creator
  */
 const isOwnerOrAdmin: Access = async ({ req, id }: AccessArgs) => {
-  if (!req.user) return false
+  if (!req?.user) return false
+
+  // Admin / system override
   if (AccessControl.isAdmin({ req })) return true
+
   if (!id) return false
 
   const playlist = await req.payload.findByID({
@@ -20,8 +23,12 @@ const isOwnerOrAdmin: Access = async ({ req, id }: AccessArgs) => {
     id: String(id),
   })
 
+  if (!playlist?.createdBy) return false
+
   const ownerId =
-    typeof playlist.createdBy === 'string' ? playlist.createdBy : (playlist.createdBy as any)?.id
+    typeof playlist.createdBy === 'string'
+      ? playlist.createdBy
+      : String((playlist.createdBy as any)?.id)
 
   return ownerId === String(req.user.id)
 }
@@ -40,11 +47,15 @@ export const Playlists: CollectionConfig = {
     defaultColumns: ['title', 'type', 'visibility', 'sortOrder'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS (ENTERPRISE SAFE)
+     ⚠️ No behavior changes
+  ----------------------------------------------------------- */
   access: {
-    read: AccessControl.isPublic,
-    create: isLoggedIn,
-    update: isOwnerOrAdmin,
-    delete: AccessControl.isAdmin,
+    read: AccessControl.isPublic, // API key OR logged-in
+    create: AccessControl.isLoggedIn, // same as before
+    update: isOwnerOrAdmin, // unchanged behavior
+    delete: AccessControl.isAdmin, // admin+
   },
 
   timestamps: true,
@@ -92,7 +103,7 @@ export const Playlists: CollectionConfig = {
       },
     },
 
-    /* ---------------- MANUAL TRACKS (TOP-LEVEL ARRAY) ---------------- */
+    /* ---------------- MANUAL TRACKS ---------------- */
     {
       name: 'manualTracks',
       type: 'array',
@@ -148,11 +159,13 @@ export const Playlists: CollectionConfig = {
     beforeChange: [
       ({ data, req, operation }) => {
         if (!req.user) return data
+
         const userId = String(req.user.id)
 
         if (operation === 'create') data.createdBy = userId
         data.updatedBy = userId
 
+        // Preserve existing behavior
         if (data.type === 'tracks') {
           data.items = []
         } else {

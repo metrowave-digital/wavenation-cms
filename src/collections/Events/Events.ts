@@ -1,7 +1,11 @@
+// src/collections/Events/Events.ts
+
 import type { CollectionConfig } from 'payload'
-import { seoFields } from '../../fields/seo'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { seoFields } from '../../fields/seo'
+
 import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
 
 export const Events: CollectionConfig = {
   slug: 'events',
@@ -13,13 +17,16 @@ export const Events: CollectionConfig = {
   },
 
   /* -----------------------------------------------------------
-     ACCESS CONTROL
+     ACCESS CONTROL (PAYLOAD-SAFE)
   ----------------------------------------------------------- */
   access: {
-    read: AccessControl.isPublic, // 🔓 search-safe
-    create: AccessControl.isStaff, // ops-friendly
-    update: AccessControl.isStaff,
-    delete: AccessControl.isAdmin, // destructive ops only
+    read: AccessControl.isPublic,
+
+    create: ({ req }) => AccessControl.hasRoleAtOrAbove(req, Roles.STAFF),
+
+    update: ({ req, data }) => AccessControl.canEditEvent(req, data),
+
+    delete: AccessControl.isAdmin,
   },
 
   timestamps: true,
@@ -50,11 +57,25 @@ export const Events: CollectionConfig = {
               name: 'status',
               type: 'select',
               defaultValue: 'draft',
+              access: {
+                update: AccessControl.canPublishEventField,
+              },
               options: [
                 { label: 'Draft', value: 'draft' },
                 { label: 'Published', value: 'published' },
                 { label: 'Cancelled', value: 'cancelled' },
                 { label: 'Completed', value: 'completed' },
+              ],
+            },
+
+            {
+              name: 'visibility',
+              type: 'select',
+              defaultValue: 'public',
+              options: [
+                { label: 'Public', value: 'public' },
+                { label: 'Unlisted', value: 'unlisted' },
+                { label: 'Private', value: 'private' },
               ],
             },
 
@@ -237,7 +258,7 @@ export const Events: CollectionConfig = {
         },
 
         /* =============================
-           TAB — Relationships
+           TAB — People & Relationships
         ============================== */
         {
           label: 'People & Relationships',
@@ -285,24 +306,28 @@ export const Events: CollectionConfig = {
                   name: 'views',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: AccessControl.metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
                 {
                   name: 'clicks',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: AccessControl.metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
                 {
                   name: 'conversions',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: AccessControl.metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
                 {
                   name: 'grossRevenue',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: AccessControl.metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
               ],
@@ -354,6 +379,17 @@ export const Events: CollectionConfig = {
 
         if (typeof data.capacity === 'number' && typeof data.ticketsSold === 'number') {
           data.ticketsAvailable = Math.max(data.capacity - data.ticketsSold, 0)
+        }
+
+        if (data?.startDateTime && data?.endDateTime) {
+          const now = new Date()
+          if (new Date(data.endDateTime) < now && data.status === 'published') {
+            data.status = 'completed'
+          }
+        }
+
+        if (data.status === 'cancelled') {
+          data.ticketingEnabled = false
         }
 
         return data

@@ -1,26 +1,11 @@
 import type { CollectionConfig, Access, FieldAccess, AccessArgs } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 
-/* ============================================================
-   ROLE HELPERS (ADMIN = ABSOLUTE)
-============================================================ */
-
-const getUserRoles = (req: AccessArgs['req']): string[] =>
-  Array.isArray(req.user?.roles) ? req.user.roles : []
-
-const isAdminRole = (req: AccessArgs['req']) => {
-  const roles = getUserRoles(req)
-  return roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')
-}
-
-const isStaffRole = (req: AccessArgs['req']) =>
-  isAdminRole(req) || getUserRoles(req).includes('staff')
-
-const isModeratorRole = (req: AccessArgs['req']) =>
-  isStaffRole(req) || getUserRoles(req).includes('moderator')
+import { isAdminRole, hasRoleAtOrAbove } from '@/access/control'
+import { Roles } from '@/access/roles'
 
 /* ============================================================
-   ID NORMALIZATION (CRITICAL FIX)
+   ID NORMALIZATION (CRITICAL – KEEP)
 ============================================================ */
 
 const toStringID = (value: unknown): string | null => {
@@ -41,15 +26,16 @@ const normalizeIDArray = (values: unknown[]): string[] =>
    COLLECTION-LEVEL ACCESS
 ============================================================ */
 
-const isLoggedIn: Access = ({ req }) => Boolean(req.user)
+const isLoggedIn: Access = ({ req }) => Boolean(req?.user)
 
 /**
- * Owner OR admin (admin always wins)
+ * Owner OR Admin
+ * Admin override always wins
  */
 const isOwnerOrAdmin: Access = async ({ req, id }) => {
-  if (!req.user) return false
+  if (!req?.user) return false
 
-  // 🔑 ADMIN OVERRIDE
+  // 🔑 GLOBAL ADMIN OVERRIDE
   if (isAdminRole(req)) return true
 
   const docID = toStringID(id)
@@ -67,33 +53,34 @@ const isOwnerOrAdmin: Access = async ({ req, id }) => {
 }
 
 /* ============================================================
-   FIELD-LEVEL ACCESS (BOOLEAN ONLY)
+   FIELD-LEVEL ACCESS (BOOLEAN ONLY – PAYLOAD SAFE)
 ============================================================ */
 
-const isAdminFieldAccess: FieldAccess = ({ req }) => Boolean(req.user && isAdminRole(req))
+const isAdminFieldAccess: FieldAccess = ({ req }) => Boolean(req?.user && isAdminRole(req))
 
-const isModeratorFieldAccess: FieldAccess = ({ req }) => Boolean(req.user && isModeratorRole(req))
+const isModeratorFieldAccess: FieldAccess = ({ req }) =>
+  Boolean(req?.user && hasRoleAtOrAbove(req, Roles.MODERATOR))
 
+/**
+ * Admins, staff, owners, group admins, group moderators
+ */
 const canManageGroupMembersField: FieldAccess = ({ req, doc }) => {
-  if (!req.user) return false
+  if (!req?.user) return false
 
   const userId = String(req.user.id)
 
-  // 🔑 ADMIN ALWAYS ALLOWED
+  // 🔑 Absolute overrides
   if (isAdminRole(req)) return true
-  if (isStaffRole(req)) return true
+  if (hasRoleAtOrAbove(req, Roles.STAFF)) return true
 
   const group = doc as any
   if (!group) return false
 
-  const ownerId = toStringID(group.owner)
-  if (ownerId === userId) return true
+  if (toStringID(group.owner) === userId) return true
+  if (normalizeIDArray(group.admins || []).includes(userId)) return true
+  if (normalizeIDArray(group.moderators || []).includes(userId)) return true
 
-  const adminIDs = normalizeIDArray(group.admins || [])
-  if (adminIDs.includes(userId)) return true
-
-  const modIDs = normalizeIDArray(group.moderators || [])
-  return modIDs.includes(userId)
+  return false
 }
 
 /* ============================================================
@@ -122,21 +109,44 @@ export const Groups: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
+        /* ----------------------------------------------------
+           BASIC INFO
+        ---------------------------------------------------- */
         {
           label: 'Basic Info',
           fields: [
-            { name: 'name', type: 'text', required: true },
-            { name: 'slug', type: 'text', unique: true, index: true },
+            {
+              name: 'name',
+              type: 'text',
+              required: true,
+            },
+            {
+              name: 'slug',
+              type: 'text',
+              unique: true,
+              index: true,
+            },
             {
               name: 'description',
               type: 'richText',
               editor: lexicalEditor(),
             },
-            { name: 'avatar', type: 'upload', relationTo: 'media' },
-            { name: 'coverPhoto', type: 'upload', relationTo: 'media' },
+            {
+              name: 'avatar',
+              type: 'upload',
+              relationTo: 'media',
+            },
+            {
+              name: 'coverPhoto',
+              type: 'upload',
+              relationTo: 'media',
+            },
           ],
         },
 
+        /* ----------------------------------------------------
+           OWNER & ADMINS
+        ---------------------------------------------------- */
         {
           label: 'Owner & Admins',
           fields: [
@@ -164,6 +174,9 @@ export const Groups: CollectionConfig = {
           ],
         },
 
+        /* ----------------------------------------------------
+           MEMBERSHIP
+        ---------------------------------------------------- */
         {
           label: 'Membership',
           fields: [
@@ -193,6 +206,9 @@ export const Groups: CollectionConfig = {
           ],
         },
 
+        /* ----------------------------------------------------
+           SAFETY & MODERATION
+        ---------------------------------------------------- */
         {
           label: 'Safety & Moderation',
           fields: [
@@ -213,6 +229,9 @@ export const Groups: CollectionConfig = {
           ],
         },
 
+        /* ----------------------------------------------------
+           SYSTEM
+        ---------------------------------------------------- */
         {
           label: 'System',
           fields: [
@@ -237,7 +256,7 @@ export const Groups: CollectionConfig = {
   hooks: {
     beforeChange: [
       async ({ data, req, operation }) => {
-        if (!req.user) return data
+        if (!req?.user) return data
 
         const userId = String(req.user.id)
 

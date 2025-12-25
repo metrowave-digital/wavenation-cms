@@ -73,6 +73,12 @@ export interface Config {
     users: User;
     profiles: Profile;
     media: Media;
+    'media-variants': MediaVariant;
+    'media-tags': MediaTag;
+    'media-albums': MediaAlbum;
+    photos: Photo;
+    'photo-galleries': PhotoGallery;
+    'video-galleries': VideoGallery;
     shows: Show;
     episodes: Episode;
     schedule: Schedule;
@@ -160,6 +166,7 @@ export interface Config {
     campaigns: Campaign;
     advertisers: Advertiser;
     'ad-analytics': AdAnalytic;
+    'moderation-jobs': ModerationJob;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -173,6 +180,12 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     profiles: ProfilesSelect<false> | ProfilesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'media-variants': MediaVariantsSelect<false> | MediaVariantsSelect<true>;
+    'media-tags': MediaTagsSelect<false> | MediaTagsSelect<true>;
+    'media-albums': MediaAlbumsSelect<false> | MediaAlbumsSelect<true>;
+    photos: PhotosSelect<false> | PhotosSelect<true>;
+    'photo-galleries': PhotoGalleriesSelect<false> | PhotoGalleriesSelect<true>;
+    'video-galleries': VideoGalleriesSelect<false> | VideoGalleriesSelect<true>;
     shows: ShowsSelect<false> | ShowsSelect<true>;
     episodes: EpisodesSelect<false> | EpisodesSelect<true>;
     schedule: ScheduleSelect<false> | ScheduleSelect<true>;
@@ -260,6 +273,7 @@ export interface Config {
     campaigns: CampaignsSelect<false> | CampaignsSelect<true>;
     advertisers: AdvertisersSelect<false> | AdvertisersSelect<true>;
     'ad-analytics': AdAnalyticsSelect<false> | AdAnalyticsSelect<true>;
+    'moderation-jobs': ModerationJobsSelect<false> | ModerationJobsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -326,29 +340,85 @@ export interface GlobalSetting {
   };
   seo?: {
     /**
-     * Search Engine Optimization & social media metadata.
+     * Search engine, social sharing, and discovery metadata.
      */
     seo?: {
       /**
-       * Custom SEO title
+       * Custom SEO title (50–60 characters recommended).
        */
       title?: string | null;
       /**
-       * SEO description (160 chars recommended)
+       * SEO meta description (140–160 characters recommended).
        */
       description?: string | null;
       /**
-       * Comma-separated (R&B, Gospel, Radio, TV)
+       * Comma-separated keywords (used for internal search & legacy SEO).
        */
       keywords?: string | null;
       /**
-       * Facebook/Twitter share image (Open Graph)
+       * Canonical URL to prevent duplicate content issues.
        */
-      ogImage?: (number | null) | Media;
+      canonicalUrl?: string | null;
       /**
-       * Hide this page from search engines
+       * Prevent search engines from indexing this page.
        */
       noIndex?: boolean | null;
+      /**
+       * Prevent search engines from following links on this page.
+       */
+      noFollow?: boolean | null;
+      /**
+       * Metadata used by Facebook, LinkedIn, and most social platforms.
+       */
+      openGraph?: {
+        /**
+         * Override Open Graph title (falls back to SEO title).
+         */
+        ogTitle?: string | null;
+        /**
+         * Override Open Graph description.
+         */
+        ogDescription?: string | null;
+        /**
+         * Social share image (1200×630 recommended).
+         */
+        ogImage?: (number | null) | Media;
+        ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+      };
+      /**
+       * Metadata used for Twitter / X cards.
+       */
+      twitter?: {
+        cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+        twitterTitle?: string | null;
+        twitterDescription?: string | null;
+        twitterImage?: (number | null) | Media;
+      };
+      /**
+       * Optional JSON-LD structured data (Schema.org).
+       */
+      structuredData?:
+        | {
+            [k: string]: unknown;
+          }
+        | unknown[]
+        | string
+        | number
+        | boolean
+        | null;
+      /**
+       * Controls for internal discovery, AI indexing, and feeds.
+       */
+      platformControls?: {
+        /**
+         * Hide from internal platform search and discovery.
+         */
+        excludeFromInternalSearch?: boolean | null;
+        /**
+         * Prevent this item from being used in recommendation engines.
+         */
+        excludeFromRecommendations?: boolean | null;
+      };
     };
   };
   updatedAt: string;
@@ -408,6 +478,8 @@ export interface Popup {
     url?: string | null;
   };
   image?: (number | null) | Media;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -417,6 +489,62 @@ export interface Popup {
  */
 export interface Media {
   id: number;
+  /**
+   * Public: visible via public API (with key+code). Unlisted/private require login.
+   */
+  visibility: 'public' | 'unlisted' | 'private';
+  /**
+   * Soft delete is enterprise-safe. Hard delete is admin-only and can break references.
+   */
+  status: 'active' | 'archived' | 'deleted';
+  /**
+   * Media folder slug (UI-only, non-relational)
+   */
+  folderSlug?: string | null;
+  /**
+   * Media tag slugs (UI-only, non-relational)
+   */
+  tagSlugs?: string[] | null;
+  /**
+   * Media album slug (UI-only, non-relational)
+   */
+  albumSlug?: string | null;
+  /**
+   * Staff-only notes for editorial/ops
+   */
+  internalNotes?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  /**
+   * Normalized base filename (search friendly)
+   */
+  normalizedFilename?: string | null;
+  /**
+   * Internal storage key/path (staff only)
+   */
+  storageKey?: string | null;
+  /**
+   * Integrity checksum (staff only)
+   */
+  sha256?: string | null;
+  title?: string | null;
+  caption?: string | null;
+  /**
+   * Accessibility alt text (images)
+   */
+  alt?: string | null;
+  attribution?: string | null;
+  license?: ('all_rights_reserved' | 'creative_commons' | 'public_domain' | 'licensed') | null;
+  /**
+   * Click the image to set the focal point
+   *
+   * @minItems 2
+   * @maxItems 2
+   */
+  focalPoint?: [number, number] | null;
   /**
    * Generated image variants
    */
@@ -462,22 +590,12 @@ export interface Media {
       height?: number | null;
     };
   };
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  caption?: string | null;
-  attribution?: string | null;
-  /**
-   * Click the image to set the focal point
-   *
-   * @minItems 2
-   * @maxItems 2
-   */
-  focalPoint?: [number, number] | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
+  /**
+   * Staff-only provenance tracking
+   */
+  source?: ('upload' | 'imported' | 'generated') | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -572,12 +690,21 @@ export interface Profile {
   tiktok?: string | null;
   youtube?: string | null;
   facebook?: string | null;
+  /**
+   * High-level display role (does not control permissions).
+   */
   primaryRole?: ('listener' | 'artist' | 'host' | 'creator' | 'industry' | 'editor') | null;
   isHost?: boolean | null;
   isCreator?: boolean | null;
   isContributor?: boolean | null;
   isEditor?: boolean | null;
+  /**
+   * Profile tier for display, perks, and monetization (not auth).
+   */
   tier?: ('free' | 'creator' | 'pro' | 'industry') | null;
+  /**
+   * Optional industry role or title.
+   */
   industryTitle?: string | null;
   /**
    * Shows this profile hosts.
@@ -591,17 +718,44 @@ export interface Profile {
    * Reviews authored by this profile.
    */
   editorialReviews?: (number | Review)[] | null;
+  /**
+   * Channels owned or managed by this creator.
+   */
   creatorChannels?: (number | CreatorChannel)[] | null;
+  /**
+   * Subscription tiers offered by this creator.
+   */
   creatorTiers?: (number | CreatorTier)[] | null;
+  /**
+   * Active subscribers to this creator.
+   */
   creatorSubscriptions?: (number | CreatorSubscription)[] | null;
+  /**
+   * Content subscriptions held by this profile.
+   */
   contentSubscriptions?: (number | ContentSubscription)[] | null;
+  /**
+   * WaveNation Plus subscription state.
+   */
   wavenationPlusStatus?: ('none' | 'active' | 'past_due' | 'canceled') | null;
+  /**
+   * Assigned WaveNation Plus plan.
+   */
   wavenationPlusPlan?: (number | null) | SubscriptionPlan;
   totalFollowers?: number | null;
   totalMonthlyListeners?: number | null;
   totalEarnings?: number | null;
+  /**
+   * Earnings ledger for this creator.
+   */
   creatorEarnings?: (number | CreatorEarning)[] | null;
+  /**
+   * Payout history for this creator.
+   */
   creatorPayouts?: (number | CreatorPayout)[] | null;
+  /**
+   * Primary interest domains explicitly selected by the user.
+   */
   interestClusters?:
     | (
         | 'rnb_soul'
@@ -610,32 +764,106 @@ export interface Profile {
         | 'house_dance'
         | 'southern_soul'
         | 'urban_pop'
+        | 'jazz'
+        | 'afrobeats'
         | 'film_tv'
         | 'docs'
-        | 'digital_series'
         | 'podcasts'
         | 'culture'
         | 'faith'
         | 'justice'
         | 'business'
-        | 'fashion'
         | 'tech'
       )[]
     | null;
+  /**
+   * Preferred content formats.
+   */
   preferredFormats?:
-    | ('radio' | 'music_on_demand' | 'tv_video' | 'film' | 'short_video' | 'podcasts' | 'articles')[]
-    | null;
-  discoveryPreferences?:
     | (
-        | 'emerging_artists'
-        | 'local_scene'
-        | 'indie_underground'
-        | 'mainstream'
-        | 'playlist_discovery'
-        | 'host_curated'
+        | 'radio'
+        | 'music_on_demand'
+        | 'tv_video'
+        | 'short_video'
+        | 'podcasts'
+        | 'articles'
+        | 'playlists'
+        | 'live_events'
       )[]
     | null;
-  preferredListeningTimes?: ('morning' | 'midday' | 'evening' | 'latenight' | 'weekend')[] | null;
+  /**
+   * Mood-level content affinity.
+   */
+  moodPreferences?: ('chill' | 'energetic' | 'reflective' | 'motivational' | 'late_night')[] | null;
+  /**
+   * Contextual listening preferences.
+   */
+  listeningContext?: {
+    preferredTimes?: ('morning' | 'midday' | 'evening' | 'latenight' | 'weekend')[] | null;
+    sessionLengthPreference?: ('short' | 'medium' | 'long') | null;
+  };
+  /**
+   * Explicit signals for content the user wants less of.
+   */
+  contentAvoidance?: {
+    blockedGenres?: ('explicit' | 'political' | 'violence' | 'gossip')[] | null;
+    blockedFormats?: ('short_video' | 'long_podcasts' | 'live')[] | null;
+  };
+  /**
+   * System-derived behavioral signals (non-editable).
+   */
+  implicitSignals?: {
+    /**
+     * Weighted genre scores based on listens, likes, and watch time.
+     */
+    topGenresByEngagement?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Weighted creator affinity based on interactions.
+     */
+    topCreatorsByEngagement?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Relative preference for audio/video/article formats.
+     */
+    formatAffinityScores?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    lastInteractionAt?: string | null;
+  };
+  /**
+   * Controls for how aggressively personalization is applied.
+   */
+  personalizationControls?: {
+    personalizationLevel?: ('minimal' | 'balanced' | 'high') | null;
+    /**
+     * User consent for behavior-based recommendations.
+     */
+    allowBehaviorTracking?: boolean | null;
+  };
+  /**
+   * Content saved by this profile.
+   */
   savedContent?:
     | (
         | {
@@ -672,6 +900,9 @@ export interface Profile {
           }
       )[]
     | null;
+  /**
+   * Content liked by this profile.
+   */
   likedContent?:
     | (
         | {
@@ -712,65 +943,265 @@ export interface Profile {
           }
       )[]
     | null;
+  /**
+   * Charts followed by this profile.
+   */
   followedCharts?: (number | Chart)[] | null;
+  /**
+   * Reviews authored by this profile.
+   */
   reviewsAuthored?: (number | Review)[] | null;
+  /**
+   * Articles authored by this profile.
+   */
   articlesAuthored?: (number | Article)[] | null;
   totalContentLikes?: number | null;
   totalContentSaves?: number | null;
   totalComments?: number | null;
+  /**
+   * Profiles following this profile.
+   */
   followers?: (number | Profile)[] | null;
+  /**
+   * Profiles this profile follows.
+   */
   following?: (number | Profile)[] | null;
+  /**
+   * Creator channels this profile follows.
+   */
   followingChannels?: (number | CreatorChannel)[] | null;
+  /**
+   * Profiles blocked by this user.
+   */
   blockedUsers?: (number | Profile)[] | null;
+  /**
+   * Profiles that have blocked this user.
+   */
   blockedBy?: (number | Profile)[] | null;
+  /**
+   * Events this profile is attending.
+   */
   eventsAttending?: (number | Event)[] | null;
+  /**
+   * Events hosted or organized by this profile.
+   */
   eventsHosting?: (number | Event)[] | null;
+  /**
+   * Tickets owned by this profile.
+   */
   tickets?: (number | Ticket)[] | null;
+  /**
+   * Event passes associated with this profile.
+   */
   eventPasses?: (number | EventPass)[] | null;
+  /**
+   * Inbox records associated with this profile.
+   */
   inbox?: (number | Inbox)[] | null;
+  /**
+   * Messages authored or received by this profile.
+   */
   messages?: (number | Message)[] | null;
+  /**
+   * Chat threads this profile participates in.
+   */
   chats?: (number | Chat)[] | null;
+  /**
+   * Mentions of this profile across the platform.
+   */
   mentions?: (number | Mention)[] | null;
+  /**
+   * System-defined rules controlling when and how notifications are generated.
+   */
   notificationRules?: (number | NotificationRule)[] | null;
+  /**
+   * Notification history delivered to this profile.
+   */
   notifications?: (number | Notification)[] | null;
+  /**
+   * User-controlled notification delivery and consent preferences.
+   */
   notificationPreferences?: {
+    /**
+     * Allow email notifications.
+     */
     emailEnabled?: boolean | null;
+    /**
+     * Allow push notifications.
+     */
     pushEnabled?: boolean | null;
+    /**
+     * Allow SMS notifications.
+     */
     smsEnabled?: boolean | null;
+    /**
+     * Allow in-app notifications.
+     */
     inAppEnabled?: boolean | null;
+    /**
+     * Which types of notifications this user wants to receive.
+     */
     categories?:
-      | ('follows' | 'comments' | 'reactions' | 'channel_posts' | 'livestreams' | 'events' | 'system')[]
+      | (
+          | 'follows'
+          | 'comments'
+          | 'reactions'
+          | 'channel_posts'
+          | 'livestreams'
+          | 'events'
+          | 'recommendations'
+          | 'system'
+        )[]
       | null;
+    /**
+     * Controls notification frequency and quiet periods.
+     */
+    deliveryControls?: {
+      frequency?: ('realtime' | 'daily' | 'weekly') | null;
+      /**
+       * Start of quiet hours (HH:mm).
+       */
+      quietHoursStart?: string | null;
+      /**
+       * End of quiet hours (HH:mm).
+       */
+      quietHoursEnd?: string | null;
+    };
+    /**
+     * Consent and compliance tracking (GDPR / CAN-SPAM).
+     */
+    consentMetadata?: {
+      lastUpdatedAt?: string | null;
+      lastUpdatedBy?: string | null;
+    };
   };
+  /**
+   * Linked user account (immutable).
+   */
   user?: (number | null) | User;
+  /**
+   * Internal groups used for moderation, access, or segmentation.
+   */
   groups?: (number | Group)[] | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Verification and trust signals for this profile.
+   */
+  verification?: {
+    isVerified?: boolean | null;
+    verificationType?: ('identity' | 'creator' | 'industry') | null;
+    verifiedAt?: string | null;
+  };
+  /**
+   * Moderation status and enforcement flags.
+   */
+  moderation?: {
+    status?: ('active' | 'limited' | 'suspended' | 'banned') | null;
+    /**
+     * Internal moderation reason.
+     */
+    reason?: string | null;
+    /**
+     * Optional expiration for temporary actions.
+     */
+    expiresAt?: string | null;
+  };
+  /**
+   * System-generated reputation and trust signals.
+   */
+  trustSignals?: {
+    /**
+     * Composite trust score (0–100).
+     */
+    trustScore?: number | null;
+    flagsCount?: number | null;
+    lastFlagAt?: string | null;
+  };
+  /**
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
+  /**
+   * Internal notes for staff and moderators.
+   */
   internalNotes?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -802,6 +1233,9 @@ export interface Show {
   } | null;
   coverArt?: (number | null) | Media;
   bannerImage?: (number | null) | Media;
+  /**
+   * Hex color for show branding (e.g. #00E5FF)
+   */
   brandColor?: string | null;
   primaryHost: number | Profile;
   coHosts?: (number | Profile)[] | null;
@@ -818,35 +1252,91 @@ export interface Show {
       }[]
     | null;
   /**
-   * Select schedule blocks from Schedule.ts
+   * Schedule blocks (used for EPG + Live Radio)
    */
   schedules?: (number | Schedule)[] | null;
   genre?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   followersCount?: number | null;
   playsCount?: number | null;
@@ -865,7 +1355,7 @@ export interface Episode {
   id: number;
   title: string;
   /**
-   * Auto-generated if left empty.
+   * Auto-generated if left empty
    */
   slug?: string | null;
   episodeNumber: number;
@@ -893,7 +1383,7 @@ export interface Episode {
    */
   cloudflareVideoId?: string | null;
   /**
-   * HLS/DASH playback URL
+   * HLS / DASH playback URL
    */
   cloudflarePlaybackUrl?: string | null;
   /**
@@ -901,49 +1391,25 @@ export interface Episode {
    */
   s3VideoFile?: (number | null) | Media;
   /**
-   * Paste YouTube, Vimeo, or custom HLS URL
+   * YouTube, Vimeo, or custom HLS URL
    */
   externalUrl?: string | null;
-  /**
-   * Episode poster image
-   */
   thumbnail?: (number | null) | Media;
-  /**
-   * Wide banner artwork
-   */
   bannerImage?: (number | null) | Media;
   /**
    * Optional HEX brand color
    */
   brandColor?: string | null;
-  /**
-   * Episode belongs to which TV show?
-   */
   show: number | Show;
-  /**
-   * On-screen hosts or talent
-   */
   hosts?: (number | Profile)[] | null;
-  /**
-   * Guest appearances
-   */
   guests?: (number | Profile)[] | null;
   writers?: (number | Profile)[] | null;
   producers?: (number | Profile)[] | null;
   editors?: (number | Profile)[] | null;
-  /**
-   * Duration in minutes
-   */
   runtimeMinutes?: number | null;
   contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
   genre?: (number | null) | Category;
-  /**
-   * Add episode tags
-   */
   tags?: (number | Tag)[] | null;
-  /**
-   * Optional episode transcript
-   */
   transcript?: {
     root: {
       type: string;
@@ -966,13 +1432,6 @@ export interface Episode {
         id?: string | null;
       }[]
     | null;
-  behindTheScenes?:
-    | {
-        title?: string | null;
-        video?: (number | null) | Media;
-        id?: string | null;
-      }[]
-    | null;
   promos?:
     | {
         title?: string | null;
@@ -981,29 +1440,85 @@ export interface Episode {
       }[]
     | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   views?: number | null;
   likes?: number | null;
@@ -1047,22 +1562,41 @@ export interface Tag {
 export interface Schedule {
   id: number;
   /**
-   * Name of the scheduled block (e.g., 'Morning Flow', 'Prime Time TV').
+   * Name of the scheduled block (e.g. 'Morning Flow', 'Prime Time TV').
    */
   title: string;
   description?: string | null;
   dayOfWeek: ('sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday')[];
+  /**
+   * HH:MM format (24h recommended)
+   */
   startTime: string;
+  /**
+   * HH:MM format (24h recommended)
+   */
   endTime: string;
+  /**
+   * IANA timezone used for EPG + live grids
+   */
   timeZone?: string | null;
   /**
-   * Attach to a radio or TV show.
+   * Attach to a radio or TV show
    */
   relatedShow?: (number | null) | Show;
   /**
-   * Optional — specific episode scheduled.
+   * Optional — specific episode scheduled
    */
   relatedEpisode?: (number | null) | Episode;
+  /**
+   * Lower numbers appear earlier in the schedule
+   */
+  sortOrder?: number | null;
+  /**
+   * Disable to temporarily remove from live rotation
+   */
+  active?: boolean | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -1103,7 +1637,10 @@ export interface Article {
   heroImageAlt?: string | null;
   publishedDate?: string | null;
   scheduledPublishDate?: string | null;
+  scheduledPublishTimezone?: ('UTC' | 'America/New_York' | 'America/Chicago' | 'America/Los_Angeles') | null;
   lastUpdated?: string | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   author?: (number | null) | Profile;
   slug?: string | null;
   sponsorDisclosure?: string | null;
@@ -1134,185 +1671,895 @@ export interface Article {
   contentBlocks?:
     | (
         | {
-            content: {
-              root: {
-                type: string;
-                children: {
-                  type: any;
-                  version: number;
-                  [k: string]: unknown;
-                }[];
-                direction: ('ltr' | 'rtl') | null;
-                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                indent: number;
-                version: number;
-              };
-              [k: string]: unknown;
-            };
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'richText';
-          }
-        | {
-            media: number | Media;
-            caption?: string | null;
-            attribution?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'image';
-          }
-        | {
-            media: number | Media;
-            caption?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'video';
-          }
-        | {
-            items: {
-              media: number | Media;
-              caption?: string | null;
-              attribution?: string | null;
-              id?: string | null;
-            }[];
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'carousel';
-          }
-        | {
-            quote: string;
-            source?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'pullQuote';
-          }
-        | {
-            style?: ('info' | 'warning' | 'highlight') | null;
-            content: {
-              root: {
-                type: string;
-                children: {
-                  type: any;
-                  version: number;
-                  [k: string]: unknown;
-                }[];
-                direction: ('ltr' | 'rtl') | null;
-                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-                indent: number;
-                version: number;
-              };
-              [k: string]: unknown;
-            };
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'callout';
-          }
-        | {
-            embedUrl: string;
-            caption?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'embed';
-          }
-        | {
-            left: number | Media;
-            right: number | Media;
-            caption?: string | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'sideBySide';
-          }
-        | {
-            text: string;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'dropcap';
-          }
-        | {
-            events?:
-              | {
-                  year: string;
-                  title: string;
-                  description: string;
-                  id?: string | null;
-                }[]
-              | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'timeline';
-          }
-        | {
-            quote: string;
-            source?: string | null;
-            media?: (number | null) | Media;
-            position?: ('left' | 'right') | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'quoteWithImage';
-          }
-        | {
-            author: number | Profile;
-            bio?: string | null;
-            photo?: (number | null) | Media;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'authorBio';
-          }
-        | {
+            /**
+             * Select the type of advertising unit.
+             */
             adType: 'banner' | 'native' | 'script';
+            /**
+             * Banner image for display advertising.
+             */
             media?: (number | null) | Media;
+            /**
+             * Accessibility text for the banner image.
+             */
+            bannerAlt?: string | null;
+            /**
+             * Destination URL when the banner is clicked.
+             */
+            clickUrl?: string | null;
+            /**
+             * Native advertising copy (clearly marked as sponsored).
+             */
             nativeText?: string | null;
+            /**
+             * ⚠ External ad script. Use only with trusted providers.
+             */
             script?: string | null;
+            /**
+             * Apply iframe sandboxing (strongly recommended).
+             */
+            sandbox?: boolean | null;
+            /**
+             * Name of sponsoring organization or brand.
+             */
             sponsorName?: string | null;
+            /**
+             * Required disclosure for sponsored or paid content.
+             */
+            disclosure?: string | null;
+            alignment?: ('left' | 'center' | 'right' | 'full') | null;
+            /**
+             * Show “Sponsored” or “Advertisement” label.
+             */
+            showLabel?: boolean | null;
+            /**
+             * Optional analytics or campaign tracking ID.
+             */
+            trackingId?: string | null;
+            /**
+             * Staff member who approved this ad unit.
+             */
+            approvedBy?: (number | null) | User;
+            /**
+             * Internal editorial or legal notes (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'adUnit';
           }
         | {
-            notes?:
+            /**
+             * Select the author profile to display.
+             */
+            author: number | Profile;
+            /**
+             * Optional short bio override. If empty, the profile bio will be used.
+             */
+            bio?: string | null;
+            /**
+             * Optional photo override. Falls back to profile image if empty.
+             */
+            photo?: (number | null) | Media;
+            /**
+             * Accessibility text for the author photo.
+             */
+            photoAlt?: string | null;
+            /**
+             * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+             */
+            title?: string | null;
+            /**
+             * Optional organization or affiliation.
+             */
+            organization?: string | null;
+            /**
+             * Optional social or external links for the author.
+             */
+            socialLinks?:
               | {
-                  label: string;
-                  content: string;
+                  platform?:
+                    | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                    | null;
+                  url: string;
                   id?: string | null;
                 }[]
               | null;
+            /**
+             * Controls visual layout of the author bio.
+             */
+            layout?: ('standard' | 'compact' | 'expanded') | null;
+            /**
+             * Show a divider above the author bio.
+             */
+            showDivider?: boolean | null;
+            /**
+             * Optional screen-reader label for the author bio block.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Internal editorial notes (not shown publicly).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'authorBio';
+          }
+        | {
+            /**
+             * Controls visual style and semantic meaning of the callout.
+             */
+            style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+            /**
+             * Optional title displayed at the top of the callout.
+             */
+            title?: string | null;
+            /**
+             * Optional icon displayed with the callout.
+             */
+            icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+            /**
+             * Main callout content (supports rich text).
+             */
+            content: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            /**
+             * Text alignment for the callout box.
+             */
+            alignment?: ('left' | 'center' | 'right') | null;
+            /**
+             * Controls visual emphasis and prominence.
+             */
+            emphasis?: ('standard' | 'strong' | 'subtle') | null;
+            /**
+             * Allow users to dismiss this callout (frontend-controlled).
+             */
+            dismissible?: boolean | null;
+            /**
+             * Controls who can see this callout.
+             */
+            visibility?: ('public' | 'authenticated' | 'plus') | null;
+            /**
+             * Optional screen-reader label for the callout.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Internal editorial notes (not shown publicly).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'callout';
+          }
+        | {
+            /**
+             * Optional headline displayed above the carousel.
+             */
+            headline?: string | null;
+            /**
+             * Optional context or explanation for the carousel.
+             */
+            intro?: string | null;
+            items: {
+              /**
+               * Image or media item for this slide.
+               */
+              media: number | Media;
+              /**
+               * Alternative text for accessibility.
+               */
+              altText?: string | null;
+              /**
+               * Optional caption for this slide.
+               */
+              caption?: string | null;
+              /**
+               * Photographer or source credit.
+               */
+              attribution?: string | null;
+              /**
+               * Usage rights for this slide.
+               */
+              licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+              /**
+               * Source or license URL.
+               */
+              licenseSource?: string | null;
+              /**
+               * Optional expiration date for licensed media.
+               */
+              licenseExpiresAt?: string | null;
+              /**
+               * Optional link when this slide is clicked.
+               */
+              linkUrl?: string | null;
+              /**
+               * Internal notes for this slide (not public).
+               */
+              internalNotes?: string | null;
+              id?: string | null;
+            }[];
+            /**
+             * Controls overall carousel layout.
+             */
+            layout?: ('standard' | 'full' | 'compact') | null;
+            aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+            /**
+             * Automatically advance slides.
+             */
+            autoPlay?: boolean | null;
+            /**
+             * Delay (ms) between slide changes.
+             */
+            autoPlayInterval?: number | null;
+            /**
+             * Show slide indicators (dots).
+             */
+            showIndicators?: boolean | null;
+            /**
+             * Show previous/next navigation arrows.
+             */
+            showArrows?: boolean | null;
+            /**
+             * Optional ARIA label for the carousel.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Optional analytics identifier for carousel engagement.
+             */
+            trackingId?: string | null;
+            /**
+             * Internal editorial or technical notes (not public).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'carousel';
+          }
+        | {
+            /**
+             * Paragraph text. The first letter may be styled as a drop cap.
+             */
+            text: string;
+            /**
+             * Enable drop cap styling for the first letter.
+             */
+            enableDropcap?: boolean | null;
+            /**
+             * Visual style of the drop cap.
+             */
+            dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+            /**
+             * Relative size of the drop cap.
+             */
+            dropcapSize?: ('small' | 'medium' | 'large') | null;
+            /**
+             * Controls paragraph emphasis and tone.
+             */
+            emphasis?: ('standard' | 'strong' | 'subtle') | null;
+            /**
+             * Optional screen-reader label for this paragraph.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Optional excerpt used for search previews.
+             */
+            searchExcerpt?: string | null;
+            /**
+             * Internal editorial notes (not shown publicly).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'dropcap';
+          }
+        | {
+            /**
+             * URL to embed (social post, video, chart, audio, map, etc.).
+             */
+            embedUrl: string;
+            /**
+             * Override provider detection if needed.
+             */
+            provider?:
+              | (
+                  | 'auto'
+                  | 'youtube'
+                  | 'vimeo'
+                  | 'twitter'
+                  | 'instagram'
+                  | 'tiktok'
+                  | 'spotify'
+                  | 'apple-music'
+                  | 'soundcloud'
+                  | 'maps'
+                  | 'chart'
+                  | 'iframe'
+                )
+              | null;
+            /**
+             * Optional caption displayed below the embedded content.
+             */
+            caption?: string | null;
+            /**
+             * Controls iframe/video aspect ratio.
+             */
+            aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+            alignment?: ('left' | 'center' | 'right' | 'full') | null;
+            /**
+             * Optional accessibility label for screen readers.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Apply iframe sandboxing for security (recommended).
+             */
+            sandbox?: boolean | null;
+            /**
+             * Allow fullscreen playback when supported.
+             */
+            allowFullscreen?: boolean | null;
+            /**
+             * Optional analytics identifier for embed engagement.
+             */
+            trackingId?: string | null;
+            /**
+             * Internal editorial or technical notes (not public).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'embed';
+          }
+        | {
+            /**
+             * Optional heading displayed above the footnotes section.
+             */
+            headline?: string | null;
+            /**
+             * Optional introduction explaining the citations or sources.
+             */
+            intro?: string | null;
+            notes?:
+              | {
+                  /**
+                   * Footnote label or number (e.g., 1, 2, A, †).
+                   */
+                  label: string;
+                  /**
+                   * Optional anchor ID for in-article linking (e.g., fn-1).
+                   */
+                  anchorId?: string | null;
+                  /**
+                   * The footnote text or explanation.
+                   */
+                  content: string;
+                  /**
+                   * Source name (publication, book, interview, archive).
+                   */
+                  source?: string | null;
+                  /**
+                   * Optional source URL.
+                   */
+                  url?: string | null;
+                  /**
+                   * Optional publication or reference date.
+                   */
+                  date?: string | null;
+                  /**
+                   * Helps classify the type of footnote.
+                   */
+                  type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                  /**
+                   * Optional screen-reader label for this footnote.
+                   */
+                  ariaLabel?: string | null;
+                  /**
+                   * Internal editorial notes (not shown publicly).
+                   */
+                  internalNotes?: string | null;
+                  id?: string | null;
+                }[]
+              | null;
+            /**
+             * Controls how footnotes are rendered in the frontend.
+             */
+            displayStyle?: ('list' | 'paragraphs') | null;
+            /**
+             * Show “Back to reference” links in footnotes.
+             */
+            showBackLinks?: boolean | null;
+            /**
+             * Optional internal identifier for analytics or testing.
+             */
+            internalId?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'footnotes';
           }
         | {
+            /**
+             * Select an image from the media library.
+             */
+            media: number | Media;
+            /**
+             * Alternative text for screen readers and accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption displayed below the image.
+             */
+            caption?: string | null;
+            /**
+             * Photographer, source, or organization credit.
+             */
+            attribution?: string | null;
+            /**
+             * Usage rights for this image.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL (e.g., Getty, Unsplash, contract).
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed images.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Controls how the image is positioned in the layout.
+             */
+            alignment?: ('left' | 'center' | 'right' | 'full') | null;
+            aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+            /**
+             * Marks this image as suitable for hero placement.
+             */
+            isHeroCandidate?: boolean | null;
+            /**
+             * Hide caption in frontend rendering.
+             */
+            hideCaption?: boolean | null;
+            /**
+             * Optional ARIA label for assistive technologies.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Internal editorial or legal notes (not public).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'image';
+          }
+        | {
+            /**
+             * Select an existing poll to embed inside this article.
+             */
             poll: number | Poll;
+            /**
+             * Display poll results immediately after voting.
+             */
             showResultsInline?: boolean | null;
+            /**
+             * Allow users to change their vote after submission.
+             */
+            allowVoteChange?: boolean | null;
+            /**
+             * Optional headline displayed above the poll.
+             */
+            headline?: string | null;
+            /**
+             * Optional context explaining why this poll is being asked.
+             */
+            description?: string | null;
+            /**
+             * Control who can see and vote in this poll.
+             */
+            visibility?: ('public' | 'authenticated' | 'plus') | null;
+            /**
+             * Optional analytics identifier for engagement tracking.
+             */
+            trackingId?: string | null;
+            /**
+             * Optional screen-reader label for the poll.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Internal editorial notes (not shown publicly).
+             */
+            internalNotes?: string | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'interactivePoll';
           }
+        | {
+            /**
+             * The highlighted quote text.
+             */
+            quote: string;
+            /**
+             * Who said this quote (person, organization, or source).
+             */
+            source?: string | null;
+            /**
+             * Optional title or role of the quoted source.
+             */
+            sourceTitle?: string | null;
+            /**
+             * Text alignment for the pull quote.
+             */
+            alignment?: ('left' | 'center' | 'right') | null;
+            /**
+             * Controls visual weight and prominence.
+             */
+            emphasis?: ('standard' | 'strong' | 'subtle') | null;
+            /**
+             * Optional editorial context explaining why this quote matters.
+             */
+            context?: string | null;
+            /**
+             * Optional citation (interview, article, speech, date).
+             */
+            citation?: string | null;
+            /**
+             * Optional screen-reader label for this pull quote.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Internal editorial notes (not shown publicly).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'pullQuote';
+          }
+        | {
+            /**
+             * The quoted text to be highlighted.
+             */
+            quote: string;
+            /**
+             * Who said this quote (person, organization, or source).
+             */
+            source?: string | null;
+            /**
+             * Optional title or role of the quoted source.
+             */
+            sourceTitle?: string | null;
+            /**
+             * Optional image associated with the quote (portrait, context image).
+             */
+            media?: (number | null) | Media;
+            /**
+             * Accessibility text for the image.
+             */
+            imageAlt?: string | null;
+            position?: ('left' | 'right') | null;
+            /**
+             * Controls visual emphasis in the layout.
+             */
+            emphasis?: ('standard' | 'highlight' | 'pull') | null;
+            /**
+             * Optional editorial context for when or why this quote appears.
+             */
+            context?: string | null;
+            /**
+             * Optional citation or reference (publication, speech, interview).
+             */
+            citation?: string | null;
+            /**
+             * Optional screen-reader label for the quote block.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Internal editorial notes (not shown publicly).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'quoteWithImage';
+          }
+        | {
+            content: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            /**
+             * Controls typography and spacing in the frontend.
+             */
+            variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+            align?: ('left' | 'center' | 'right') | null;
+            /**
+             * Optional accessibility label for screen readers.
+             */
+            ariaLabel?: string | null;
+            /**
+             * Visually emphasize the first paragraph.
+             */
+            emphasizeFirstParagraph?: boolean | null;
+            /**
+             * Enable a drop cap on the first letter.
+             */
+            allowDropCap?: boolean | null;
+            /**
+             * Auto-generated excerpt used for search previews.
+             */
+            searchExcerpt?: string | null;
+            /**
+             * Internal editorial notes (not rendered publicly).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richText';
+          }
+        | {
+            left: number | Media;
+            right: number | Media;
+            /**
+             * Accessibility text for the left media.
+             */
+            leftAlt?: string | null;
+            /**
+             * Accessibility text for the right media.
+             */
+            rightAlt?: string | null;
+            leftCaption?: string | null;
+            rightCaption?: string | null;
+            /**
+             * Optional caption spanning both media items.
+             */
+            caption?: string | null;
+            /**
+             * Controls visual balance between left and right media.
+             */
+            layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+            /**
+             * Stack media vertically on small screens.
+             */
+            stackOnMobile?: boolean | null;
+            /**
+             * Internal editorial notes (not shown publicly).
+             */
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'sideBySide';
+          }
+        | {
+            /**
+             * Optional headline displayed above the timeline.
+             */
+            headline?: string | null;
+            /**
+             * Optional introduction explaining the context of this timeline.
+             */
+            intro?: string | null;
+            events?:
+              | {
+                  /**
+                   * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                   */
+                  year: string;
+                  /**
+                   * Optional manual ordering override (lower appears first).
+                   */
+                  sortOrder?: number | null;
+                  /**
+                   * Short title for this timeline event.
+                   */
+                  title: string;
+                  /**
+                   * Detailed description of what happened.
+                   */
+                  description: string;
+                  /**
+                   * Optional image or video associated with this event.
+                   */
+                  media?: (number | null) | Media;
+                  /**
+                   * Caption or credit for the associated media.
+                   */
+                  mediaCaption?: string | null;
+                  /**
+                   * Optional category for filtering or styling.
+                   */
+                  category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                  /**
+                   * Optional external or internal URL for further reading.
+                   */
+                  relatedLink?: string | null;
+                  /**
+                   * Optional accessibility label for screen readers.
+                   */
+                  ariaLabel?: string | null;
+                  /**
+                   * Internal editorial notes (not shown publicly).
+                   */
+                  internalNotes?: string | null;
+                  id?: string | null;
+                }[]
+              | null;
+            /**
+             * Visual layout for the timeline component.
+             */
+            layout?: ('vertical' | 'horizontal') | null;
+            /**
+             * Visually emphasize the first timeline event.
+             */
+            highlightFirst?: boolean | null;
+            /**
+             * Optional internal identifier for analytics or testing.
+             */
+            internalId?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'timeline';
+          }
+        | {
+            sourceType: 'upload' | 'external';
+            media?: (number | null) | Media;
+            externalUrl?: string | null;
+            headline?: string | null;
+            caption?: string | null;
+            credit?: string | null;
+            altText?: string | null;
+            transcript?: string | null;
+            hasCaptions?: boolean | null;
+            autoplay?: boolean | null;
+            loop?: boolean | null;
+            muted?: boolean | null;
+            isSponsored?: boolean | null;
+            sponsorDisclosure?: string | null;
+            trackingId?: string | null;
+            internalNotes?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'video';
+          }
       )[]
     | null;
+  workflowLog?:
+    | {
+        from?: string | null;
+        to?: string | null;
+        by?: (number | null) | User;
+        at?: string | null;
+        reason?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  rollback?: {
+    sourceVersionId?: string | null;
+    rollbackReason?: string | null;
+    rolledBackAt?: string | null;
+  };
+  toxicityScore?: number | null;
+  isToxic?: boolean | null;
+  moderationStatus?: ('unscanned' | 'queued' | 'scanned' | 'flagged' | 'error') | null;
+  moderationLog?:
+    | {
+        at?: string | null;
+        by?: (number | null) | User;
+        action?: string | null;
+        score?: number | null;
+        isToxic?: boolean | null;
+        message?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  searchIndex?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   /**
    * Auto-generated analytics fields (read-only)
@@ -1331,12 +2578,33 @@ export interface Article {
       | null;
   };
   standardFields?: {
+    /**
+     * Optional secondary headline.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this article.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
+    /**
+     * Tags used for discovery and search.
+     */
     tags?: (number | Tag)[] | null;
+    /**
+     * Primary hero image for standard articles.
+     */
     standardHeroImage: number | Media;
+    /**
+     * Accessibility description for the hero image.
+     */
     standardHeroImageAlt: string;
+    /**
+     * Main article content.
+     */
     content: (
       | {
           content: {
@@ -1354,45 +2622,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -1408,13 +2883,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -1422,115 +2971,473 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
+    /**
+     * Optional contextual framing (explainer, cultural context, review breakdown).
+     */
     contextModule?: {
+      /**
+       * Controls the presentation style.
+       */
       type?: ('news' | 'culture' | 'review') | null;
+      /**
+       * Short bullet-style context points.
+       */
       items?:
         | {
-            text?: string | null;
+            text: string;
             id?: string | null;
           }[]
         | null;
     };
+    /**
+     * Sources, references, credits, or acknowledgements.
+     */
     creditsSources?: string | null;
+    /**
+     * Optional summary used for search indexing and previews.
+     */
+    searchSummary?: string | null;
+    /**
+     * Prevent this article from appearing in search results.
+     */
+    excludeFromSearch?: boolean | null;
   };
   breakingNewsFields?: {
+    /**
+     * Optional secondary headline or deck.
+     */
     subtitle?: string | null;
     category: number | Category;
     subCategory?: (number | null) | Category;
     tags?: (number | Tag)[] | null;
     /**
-     * Keep extremely concise.
+     * Extremely concise factual summary. Used for alerts, banners, and breaking tickers.
      */
     summary: string;
     /**
-     * Each entry is ONE verified fact.
+     * Each entry must be ONE independently verified fact.
      */
     confirmedDetails?: string[] | null;
     /**
-     * Short bullet-style entries only.
+     * Clearly label information that is still developing.
      */
     notYetConfirmed?: string[] | null;
     /**
-     * Only formal statements from authorities or PR.
+     * Formal statements from authorities, organizers, or verified representatives only.
      */
     statements?: string[] | null;
     /**
-     * Add breaking updates as the story evolves.
+     * Chronological breaking updates as the story evolves.
      */
     updates?: string[] | null;
     /**
-     * Use this for extended reporting, embeds, images, quotes, etc.
+     * Use blocks for extended reporting, embeds, photos, pull quotes, timelines, and context.
      */
     content?:
       | (
@@ -1550,45 +3457,252 @@ export interface Article {
                 };
                 [k: string]: unknown;
               };
+              /**
+               * Controls typography and spacing in the frontend.
+               */
+              variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+              align?: ('left' | 'center' | 'right') | null;
+              /**
+               * Optional accessibility label for screen readers.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Visually emphasize the first paragraph.
+               */
+              emphasizeFirstParagraph?: boolean | null;
+              /**
+               * Enable a drop cap on the first letter.
+               */
+              allowDropCap?: boolean | null;
+              /**
+               * Auto-generated excerpt used for search previews.
+               */
+              searchExcerpt?: string | null;
+              /**
+               * Internal editorial notes (not rendered publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'richText';
             }
           | {
+              /**
+               * Select an image from the media library.
+               */
               media: number | Media;
+              /**
+               * Alternative text for screen readers and accessibility.
+               */
+              altText?: string | null;
+              /**
+               * Optional caption displayed below the image.
+               */
               caption?: string | null;
+              /**
+               * Photographer, source, or organization credit.
+               */
               attribution?: string | null;
+              /**
+               * Usage rights for this image.
+               */
+              licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+              /**
+               * Source or license URL (e.g., Getty, Unsplash, contract).
+               */
+              licenseSource?: string | null;
+              /**
+               * Optional expiration date for licensed images.
+               */
+              licenseExpiresAt?: string | null;
+              /**
+               * Controls how the image is positioned in the layout.
+               */
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+              /**
+               * Marks this image as suitable for hero placement.
+               */
+              isHeroCandidate?: boolean | null;
+              /**
+               * Hide caption in frontend rendering.
+               */
+              hideCaption?: boolean | null;
+              /**
+               * Optional ARIA label for assistive technologies.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial or legal notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'image';
             }
           | {
-              media: number | Media;
+              sourceType: 'upload' | 'external';
+              media?: (number | null) | Media;
+              externalUrl?: string | null;
+              headline?: string | null;
               caption?: string | null;
+              credit?: string | null;
+              altText?: string | null;
+              transcript?: string | null;
+              hasCaptions?: boolean | null;
+              autoplay?: boolean | null;
+              loop?: boolean | null;
+              muted?: boolean | null;
+              isSponsored?: boolean | null;
+              sponsorDisclosure?: string | null;
+              trackingId?: string | null;
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'video';
             }
           | {
+              /**
+               * Optional headline displayed above the carousel.
+               */
+              headline?: string | null;
+              /**
+               * Optional context or explanation for the carousel.
+               */
+              intro?: string | null;
               items: {
+                /**
+                 * Image or media item for this slide.
+                 */
                 media: number | Media;
+                /**
+                 * Alternative text for accessibility.
+                 */
+                altText?: string | null;
+                /**
+                 * Optional caption for this slide.
+                 */
                 caption?: string | null;
+                /**
+                 * Photographer or source credit.
+                 */
                 attribution?: string | null;
+                /**
+                 * Usage rights for this slide.
+                 */
+                licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+                /**
+                 * Source or license URL.
+                 */
+                licenseSource?: string | null;
+                /**
+                 * Optional expiration date for licensed media.
+                 */
+                licenseExpiresAt?: string | null;
+                /**
+                 * Optional link when this slide is clicked.
+                 */
+                linkUrl?: string | null;
+                /**
+                 * Internal notes for this slide (not public).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[];
+              /**
+               * Controls overall carousel layout.
+               */
+              layout?: ('standard' | 'full' | 'compact') | null;
+              aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+              /**
+               * Automatically advance slides.
+               */
+              autoPlay?: boolean | null;
+              /**
+               * Delay (ms) between slide changes.
+               */
+              autoPlayInterval?: number | null;
+              /**
+               * Show slide indicators (dots).
+               */
+              showIndicators?: boolean | null;
+              /**
+               * Show previous/next navigation arrows.
+               */
+              showArrows?: boolean | null;
+              /**
+               * Optional ARIA label for the carousel.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Optional analytics identifier for carousel engagement.
+               */
+              trackingId?: string | null;
+              /**
+               * Internal editorial or technical notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'carousel';
             }
           | {
+              /**
+               * The highlighted quote text.
+               */
               quote: string;
+              /**
+               * Who said this quote (person, organization, or source).
+               */
               source?: string | null;
+              /**
+               * Optional title or role of the quoted source.
+               */
+              sourceTitle?: string | null;
+              /**
+               * Text alignment for the pull quote.
+               */
+              alignment?: ('left' | 'center' | 'right') | null;
+              /**
+               * Controls visual weight and prominence.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Optional editorial context explaining why this quote matters.
+               */
+              context?: string | null;
+              /**
+               * Optional citation (interview, article, speech, date).
+               */
+              citation?: string | null;
+              /**
+               * Optional screen-reader label for this pull quote.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'pullQuote';
             }
           | {
-              style?: ('info' | 'warning' | 'highlight') | null;
+              /**
+               * Controls visual style and semantic meaning of the callout.
+               */
+              style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+              /**
+               * Optional title displayed at the top of the callout.
+               */
+              title?: string | null;
+              /**
+               * Optional icon displayed with the callout.
+               */
+              icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+              /**
+               * Main callout content (supports rich text).
+               */
               content: {
                 root: {
                   type: string;
@@ -1604,13 +3718,87 @@ export interface Article {
                 };
                 [k: string]: unknown;
               };
+              /**
+               * Text alignment for the callout box.
+               */
+              alignment?: ('left' | 'center' | 'right') | null;
+              /**
+               * Controls visual emphasis and prominence.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Allow users to dismiss this callout (frontend-controlled).
+               */
+              dismissible?: boolean | null;
+              /**
+               * Controls who can see this callout.
+               */
+              visibility?: ('public' | 'authenticated' | 'plus') | null;
+              /**
+               * Optional screen-reader label for the callout.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'callout';
             }
           | {
+              /**
+               * URL to embed (social post, video, chart, audio, map, etc.).
+               */
               embedUrl: string;
+              /**
+               * Override provider detection if needed.
+               */
+              provider?:
+                | (
+                    | 'auto'
+                    | 'youtube'
+                    | 'vimeo'
+                    | 'twitter'
+                    | 'instagram'
+                    | 'tiktok'
+                    | 'spotify'
+                    | 'apple-music'
+                    | 'soundcloud'
+                    | 'maps'
+                    | 'chart'
+                    | 'iframe'
+                  )
+                | null;
+              /**
+               * Optional caption displayed below the embedded content.
+               */
               caption?: string | null;
+              /**
+               * Controls iframe/video aspect ratio.
+               */
+              aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              /**
+               * Optional accessibility label for screen readers.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Apply iframe sandboxing for security (recommended).
+               */
+              sandbox?: boolean | null;
+              /**
+               * Allow fullscreen playback when supported.
+               */
+              allowFullscreen?: boolean | null;
+              /**
+               * Optional analytics identifier for embed engagement.
+               */
+              trackingId?: string | null;
+              /**
+               * Internal editorial or technical notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'embed';
@@ -1618,88 +3806,449 @@ export interface Article {
           | {
               left: number | Media;
               right: number | Media;
+              /**
+               * Accessibility text for the left media.
+               */
+              leftAlt?: string | null;
+              /**
+               * Accessibility text for the right media.
+               */
+              rightAlt?: string | null;
+              leftCaption?: string | null;
+              rightCaption?: string | null;
+              /**
+               * Optional caption spanning both media items.
+               */
               caption?: string | null;
+              /**
+               * Controls visual balance between left and right media.
+               */
+              layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+              /**
+               * Stack media vertically on small screens.
+               */
+              stackOnMobile?: boolean | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'sideBySide';
             }
           | {
+              /**
+               * Paragraph text. The first letter may be styled as a drop cap.
+               */
               text: string;
+              /**
+               * Enable drop cap styling for the first letter.
+               */
+              enableDropcap?: boolean | null;
+              /**
+               * Visual style of the drop cap.
+               */
+              dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+              /**
+               * Relative size of the drop cap.
+               */
+              dropcapSize?: ('small' | 'medium' | 'large') | null;
+              /**
+               * Controls paragraph emphasis and tone.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Optional screen-reader label for this paragraph.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Optional excerpt used for search previews.
+               */
+              searchExcerpt?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'dropcap';
             }
           | {
+              /**
+               * Optional headline displayed above the timeline.
+               */
+              headline?: string | null;
+              /**
+               * Optional introduction explaining the context of this timeline.
+               */
+              intro?: string | null;
               events?:
                 | {
+                    /**
+                     * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                     */
                     year: string;
+                    /**
+                     * Optional manual ordering override (lower appears first).
+                     */
+                    sortOrder?: number | null;
+                    /**
+                     * Short title for this timeline event.
+                     */
                     title: string;
+                    /**
+                     * Detailed description of what happened.
+                     */
                     description: string;
+                    /**
+                     * Optional image or video associated with this event.
+                     */
+                    media?: (number | null) | Media;
+                    /**
+                     * Caption or credit for the associated media.
+                     */
+                    mediaCaption?: string | null;
+                    /**
+                     * Optional category for filtering or styling.
+                     */
+                    category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                    /**
+                     * Optional external or internal URL for further reading.
+                     */
+                    relatedLink?: string | null;
+                    /**
+                     * Optional accessibility label for screen readers.
+                     */
+                    ariaLabel?: string | null;
+                    /**
+                     * Internal editorial notes (not shown publicly).
+                     */
+                    internalNotes?: string | null;
                     id?: string | null;
                   }[]
                 | null;
+              /**
+               * Visual layout for the timeline component.
+               */
+              layout?: ('vertical' | 'horizontal') | null;
+              /**
+               * Visually emphasize the first timeline event.
+               */
+              highlightFirst?: boolean | null;
+              /**
+               * Optional internal identifier for analytics or testing.
+               */
+              internalId?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'timeline';
             }
           | {
+              /**
+               * The quoted text to be highlighted.
+               */
               quote: string;
+              /**
+               * Who said this quote (person, organization, or source).
+               */
               source?: string | null;
+              /**
+               * Optional title or role of the quoted source.
+               */
+              sourceTitle?: string | null;
+              /**
+               * Optional image associated with the quote (portrait, context image).
+               */
               media?: (number | null) | Media;
+              /**
+               * Accessibility text for the image.
+               */
+              imageAlt?: string | null;
               position?: ('left' | 'right') | null;
+              /**
+               * Controls visual emphasis in the layout.
+               */
+              emphasis?: ('standard' | 'highlight' | 'pull') | null;
+              /**
+               * Optional editorial context for when or why this quote appears.
+               */
+              context?: string | null;
+              /**
+               * Optional citation or reference (publication, speech, interview).
+               */
+              citation?: string | null;
+              /**
+               * Optional screen-reader label for the quote block.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'quoteWithImage';
             }
           | {
+              /**
+               * Select the author profile to display.
+               */
               author: number | Profile;
+              /**
+               * Optional short bio override. If empty, the profile bio will be used.
+               */
               bio?: string | null;
+              /**
+               * Optional photo override. Falls back to profile image if empty.
+               */
               photo?: (number | null) | Media;
+              /**
+               * Accessibility text for the author photo.
+               */
+              photoAlt?: string | null;
+              /**
+               * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+               */
+              title?: string | null;
+              /**
+               * Optional organization or affiliation.
+               */
+              organization?: string | null;
+              /**
+               * Optional social or external links for the author.
+               */
+              socialLinks?:
+                | {
+                    platform?:
+                      | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                      | null;
+                    url: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              /**
+               * Controls visual layout of the author bio.
+               */
+              layout?: ('standard' | 'compact' | 'expanded') | null;
+              /**
+               * Show a divider above the author bio.
+               */
+              showDivider?: boolean | null;
+              /**
+               * Optional screen-reader label for the author bio block.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'authorBio';
             }
           | {
+              /**
+               * Select the type of advertising unit.
+               */
               adType: 'banner' | 'native' | 'script';
+              /**
+               * Banner image for display advertising.
+               */
               media?: (number | null) | Media;
+              /**
+               * Accessibility text for the banner image.
+               */
+              bannerAlt?: string | null;
+              /**
+               * Destination URL when the banner is clicked.
+               */
+              clickUrl?: string | null;
+              /**
+               * Native advertising copy (clearly marked as sponsored).
+               */
               nativeText?: string | null;
+              /**
+               * ⚠ External ad script. Use only with trusted providers.
+               */
               script?: string | null;
+              /**
+               * Apply iframe sandboxing (strongly recommended).
+               */
+              sandbox?: boolean | null;
+              /**
+               * Name of sponsoring organization or brand.
+               */
               sponsorName?: string | null;
+              /**
+               * Required disclosure for sponsored or paid content.
+               */
+              disclosure?: string | null;
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              /**
+               * Show “Sponsored” or “Advertisement” label.
+               */
+              showLabel?: boolean | null;
+              /**
+               * Optional analytics or campaign tracking ID.
+               */
+              trackingId?: string | null;
+              /**
+               * Staff member who approved this ad unit.
+               */
+              approvedBy?: (number | null) | User;
+              /**
+               * Internal editorial or legal notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'adUnit';
             }
           | {
+              /**
+               * Optional heading displayed above the footnotes section.
+               */
+              headline?: string | null;
+              /**
+               * Optional introduction explaining the citations or sources.
+               */
+              intro?: string | null;
               notes?:
                 | {
+                    /**
+                     * Footnote label or number (e.g., 1, 2, A, †).
+                     */
                     label: string;
+                    /**
+                     * Optional anchor ID for in-article linking (e.g., fn-1).
+                     */
+                    anchorId?: string | null;
+                    /**
+                     * The footnote text or explanation.
+                     */
                     content: string;
+                    /**
+                     * Source name (publication, book, interview, archive).
+                     */
+                    source?: string | null;
+                    /**
+                     * Optional source URL.
+                     */
+                    url?: string | null;
+                    /**
+                     * Optional publication or reference date.
+                     */
+                    date?: string | null;
+                    /**
+                     * Helps classify the type of footnote.
+                     */
+                    type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                    /**
+                     * Optional screen-reader label for this footnote.
+                     */
+                    ariaLabel?: string | null;
+                    /**
+                     * Internal editorial notes (not shown publicly).
+                     */
+                    internalNotes?: string | null;
                     id?: string | null;
                   }[]
                 | null;
+              /**
+               * Controls how footnotes are rendered in the frontend.
+               */
+              displayStyle?: ('list' | 'paragraphs') | null;
+              /**
+               * Show “Back to reference” links in footnotes.
+               */
+              showBackLinks?: boolean | null;
+              /**
+               * Optional internal identifier for analytics or testing.
+               */
+              internalId?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'footnotes';
             }
           | {
+              /**
+               * Select an existing poll to embed inside this article.
+               */
               poll: number | Poll;
+              /**
+               * Display poll results immediately after voting.
+               */
               showResultsInline?: boolean | null;
+              /**
+               * Allow users to change their vote after submission.
+               */
+              allowVoteChange?: boolean | null;
+              /**
+               * Optional headline displayed above the poll.
+               */
+              headline?: string | null;
+              /**
+               * Optional context explaining why this poll is being asked.
+               */
+              description?: string | null;
+              /**
+               * Control who can see and vote in this poll.
+               */
+              visibility?: ('public' | 'authenticated' | 'plus') | null;
+              /**
+               * Optional analytics identifier for engagement tracking.
+               */
+              trackingId?: string | null;
+              /**
+               * Optional screen-reader label for the poll.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'interactivePoll';
             }
         )[]
       | null;
+    /**
+     * Short breaking headline (character-limited).
+     */
     socialCopyTwitter?: string | null;
+    /**
+     * Caption-style breaking summary.
+     */
     socialCopyInstagram?: string | null;
+    /**
+     * Marks this story as actively developing.
+     */
+    isDeveloping?: boolean | null;
+    /**
+     * Internal notes for editors — never published.
+     */
+    editorialContext?: string | null;
   };
   musicReviewFields?: {
+    /**
+     * Optional secondary headline.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this music review.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
+    /**
+     * Reviewer or critic.
+     */
     author: number | Profile;
     /**
-     * Use blocks for intro, production analysis, vocal notes, lyrical themes, cultural positioning, verdict, embeds, images, and more.
+     * Use blocks for intro, production analysis, vocals, lyrics, cultural positioning, verdict, embeds, images, and more.
      */
     content: (
       | {
@@ -1718,45 +4267,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -1772,13 +4528,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -1786,88 +4616,466 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
+    /**
+     * WaveNation rating scale (1–10).
+     */
     rating: number;
+    /**
+     * Editorial tone of the review.
+     */
+    ratingTone?: ('classic' | 'neutral' | 'harsh' | 'celebratory') | null;
+    /**
+     * Optional structured analysis used for summaries, snippets, and search.
+     */
+    analysis?: {
+      soundProduction?: string | null;
+      vocals?: string | null;
+      lyricsThemes?: string | null;
+      culturalContext?: string | null;
+      verdict?: string | null;
+    };
+    /**
+     * Tracklist in order of appearance.
+     */
     tracklist?: string[] | null;
+    /**
+     * Tracks referenced or highlighted in the review.
+     */
     relatedTracks?: (number | Track)[] | null;
+    /**
+     * Related albums for discovery and cross-linking.
+     */
     relatedAlbums?: (number | Album)[] | null;
+    /**
+     * Optional excerpt used in feeds and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this review from appearing in search.
+     */
+    excludeFromSearch?: boolean | null;
   };
   filmTVReviewFields?: {
+    /**
+     * Optional secondary headline.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this film or TV review.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
     /**
-     * Use blocks for intro, plot summary, creative analysis, cultural themes, verdict, embeds, screenshots, etc.
+     * Use blocks for intro, plot summary, creative analysis, cultural themes, verdict, embeds, screenshots, and more.
      */
     content: (
       | {
@@ -1886,45 +5094,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -1940,13 +5355,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -1954,91 +5443,480 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
+    /**
+     * WaveNation rating scale (1–10).
+     */
     rating: number;
+    /**
+     * Editorial tone of the review.
+     */
+    ratingTone?: ('classic' | 'neutral' | 'harsh' | 'celebratory') | null;
+    /**
+     * Optional structured analysis used for previews, snippets, and search.
+     */
+    analysis?: {
+      direction?: string | null;
+      acting?: string | null;
+      cinematography?: string | null;
+      writing?: string | null;
+      themes?: string | null;
+      culturalImpact?: string | null;
+      verdict?: string | null;
+    };
+    /**
+     * Related TV shows for discovery and cross-linking.
+     */
     relatedShow?: (number | Show)[] | null;
+    /**
+     * Related films for discovery and cross-linking.
+     */
     relatedFilm?: (number | Film)[] | null;
+    /**
+     * Optional excerpt used in feeds and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this review from appearing in search.
+     */
+    excludeFromSearch?: boolean | null;
   };
   interviewFields?: {
+    /**
+     * Optional secondary headline.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this interview.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
+    /**
+     * Interviewer or author.
+     */
     author: number | Profile;
+    /**
+     * Optional related podcast episode.
+     */
     podcast?: (number | null) | PodcastEpisode;
+    /**
+     * Optional related music video.
+     */
     musicVideo?: (number | null) | Media;
+    /**
+     * Optional full interview video.
+     */
     interviewVideo?: (number | null) | Media;
     /**
-     * Use blocks for intro, background, photos, pull quotes, and context before the Q&A.
+     * Intro, background, photos, pull quotes, and context before the Q&A.
      */
     content?:
       | (
@@ -2058,45 +5936,252 @@ export interface Article {
                 };
                 [k: string]: unknown;
               };
+              /**
+               * Controls typography and spacing in the frontend.
+               */
+              variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+              align?: ('left' | 'center' | 'right') | null;
+              /**
+               * Optional accessibility label for screen readers.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Visually emphasize the first paragraph.
+               */
+              emphasizeFirstParagraph?: boolean | null;
+              /**
+               * Enable a drop cap on the first letter.
+               */
+              allowDropCap?: boolean | null;
+              /**
+               * Auto-generated excerpt used for search previews.
+               */
+              searchExcerpt?: string | null;
+              /**
+               * Internal editorial notes (not rendered publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'richText';
             }
           | {
+              /**
+               * Select an image from the media library.
+               */
               media: number | Media;
+              /**
+               * Alternative text for screen readers and accessibility.
+               */
+              altText?: string | null;
+              /**
+               * Optional caption displayed below the image.
+               */
               caption?: string | null;
+              /**
+               * Photographer, source, or organization credit.
+               */
               attribution?: string | null;
+              /**
+               * Usage rights for this image.
+               */
+              licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+              /**
+               * Source or license URL (e.g., Getty, Unsplash, contract).
+               */
+              licenseSource?: string | null;
+              /**
+               * Optional expiration date for licensed images.
+               */
+              licenseExpiresAt?: string | null;
+              /**
+               * Controls how the image is positioned in the layout.
+               */
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+              /**
+               * Marks this image as suitable for hero placement.
+               */
+              isHeroCandidate?: boolean | null;
+              /**
+               * Hide caption in frontend rendering.
+               */
+              hideCaption?: boolean | null;
+              /**
+               * Optional ARIA label for assistive technologies.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial or legal notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'image';
             }
           | {
-              media: number | Media;
+              sourceType: 'upload' | 'external';
+              media?: (number | null) | Media;
+              externalUrl?: string | null;
+              headline?: string | null;
               caption?: string | null;
+              credit?: string | null;
+              altText?: string | null;
+              transcript?: string | null;
+              hasCaptions?: boolean | null;
+              autoplay?: boolean | null;
+              loop?: boolean | null;
+              muted?: boolean | null;
+              isSponsored?: boolean | null;
+              sponsorDisclosure?: string | null;
+              trackingId?: string | null;
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'video';
             }
           | {
+              /**
+               * Optional headline displayed above the carousel.
+               */
+              headline?: string | null;
+              /**
+               * Optional context or explanation for the carousel.
+               */
+              intro?: string | null;
               items: {
+                /**
+                 * Image or media item for this slide.
+                 */
                 media: number | Media;
+                /**
+                 * Alternative text for accessibility.
+                 */
+                altText?: string | null;
+                /**
+                 * Optional caption for this slide.
+                 */
                 caption?: string | null;
+                /**
+                 * Photographer or source credit.
+                 */
                 attribution?: string | null;
+                /**
+                 * Usage rights for this slide.
+                 */
+                licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+                /**
+                 * Source or license URL.
+                 */
+                licenseSource?: string | null;
+                /**
+                 * Optional expiration date for licensed media.
+                 */
+                licenseExpiresAt?: string | null;
+                /**
+                 * Optional link when this slide is clicked.
+                 */
+                linkUrl?: string | null;
+                /**
+                 * Internal notes for this slide (not public).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[];
+              /**
+               * Controls overall carousel layout.
+               */
+              layout?: ('standard' | 'full' | 'compact') | null;
+              aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+              /**
+               * Automatically advance slides.
+               */
+              autoPlay?: boolean | null;
+              /**
+               * Delay (ms) between slide changes.
+               */
+              autoPlayInterval?: number | null;
+              /**
+               * Show slide indicators (dots).
+               */
+              showIndicators?: boolean | null;
+              /**
+               * Show previous/next navigation arrows.
+               */
+              showArrows?: boolean | null;
+              /**
+               * Optional ARIA label for the carousel.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Optional analytics identifier for carousel engagement.
+               */
+              trackingId?: string | null;
+              /**
+               * Internal editorial or technical notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'carousel';
             }
           | {
+              /**
+               * The highlighted quote text.
+               */
               quote: string;
+              /**
+               * Who said this quote (person, organization, or source).
+               */
               source?: string | null;
+              /**
+               * Optional title or role of the quoted source.
+               */
+              sourceTitle?: string | null;
+              /**
+               * Text alignment for the pull quote.
+               */
+              alignment?: ('left' | 'center' | 'right') | null;
+              /**
+               * Controls visual weight and prominence.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Optional editorial context explaining why this quote matters.
+               */
+              context?: string | null;
+              /**
+               * Optional citation (interview, article, speech, date).
+               */
+              citation?: string | null;
+              /**
+               * Optional screen-reader label for this pull quote.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'pullQuote';
             }
           | {
-              style?: ('info' | 'warning' | 'highlight') | null;
+              /**
+               * Controls visual style and semantic meaning of the callout.
+               */
+              style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+              /**
+               * Optional title displayed at the top of the callout.
+               */
+              title?: string | null;
+              /**
+               * Optional icon displayed with the callout.
+               */
+              icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+              /**
+               * Main callout content (supports rich text).
+               */
               content: {
                 root: {
                   type: string;
@@ -2112,13 +6197,87 @@ export interface Article {
                 };
                 [k: string]: unknown;
               };
+              /**
+               * Text alignment for the callout box.
+               */
+              alignment?: ('left' | 'center' | 'right') | null;
+              /**
+               * Controls visual emphasis and prominence.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Allow users to dismiss this callout (frontend-controlled).
+               */
+              dismissible?: boolean | null;
+              /**
+               * Controls who can see this callout.
+               */
+              visibility?: ('public' | 'authenticated' | 'plus') | null;
+              /**
+               * Optional screen-reader label for the callout.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'callout';
             }
           | {
+              /**
+               * URL to embed (social post, video, chart, audio, map, etc.).
+               */
               embedUrl: string;
+              /**
+               * Override provider detection if needed.
+               */
+              provider?:
+                | (
+                    | 'auto'
+                    | 'youtube'
+                    | 'vimeo'
+                    | 'twitter'
+                    | 'instagram'
+                    | 'tiktok'
+                    | 'spotify'
+                    | 'apple-music'
+                    | 'soundcloud'
+                    | 'maps'
+                    | 'chart'
+                    | 'iframe'
+                  )
+                | null;
+              /**
+               * Optional caption displayed below the embedded content.
+               */
               caption?: string | null;
+              /**
+               * Controls iframe/video aspect ratio.
+               */
+              aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              /**
+               * Optional accessibility label for screen readers.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Apply iframe sandboxing for security (recommended).
+               */
+              sandbox?: boolean | null;
+              /**
+               * Allow fullscreen playback when supported.
+               */
+              allowFullscreen?: boolean | null;
+              /**
+               * Optional analytics identifier for embed engagement.
+               */
+              trackingId?: string | null;
+              /**
+               * Internal editorial or technical notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'embed';
@@ -2126,83 +6285,428 @@ export interface Article {
           | {
               left: number | Media;
               right: number | Media;
+              /**
+               * Accessibility text for the left media.
+               */
+              leftAlt?: string | null;
+              /**
+               * Accessibility text for the right media.
+               */
+              rightAlt?: string | null;
+              leftCaption?: string | null;
+              rightCaption?: string | null;
+              /**
+               * Optional caption spanning both media items.
+               */
               caption?: string | null;
+              /**
+               * Controls visual balance between left and right media.
+               */
+              layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+              /**
+               * Stack media vertically on small screens.
+               */
+              stackOnMobile?: boolean | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'sideBySide';
             }
           | {
+              /**
+               * Paragraph text. The first letter may be styled as a drop cap.
+               */
               text: string;
+              /**
+               * Enable drop cap styling for the first letter.
+               */
+              enableDropcap?: boolean | null;
+              /**
+               * Visual style of the drop cap.
+               */
+              dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+              /**
+               * Relative size of the drop cap.
+               */
+              dropcapSize?: ('small' | 'medium' | 'large') | null;
+              /**
+               * Controls paragraph emphasis and tone.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Optional screen-reader label for this paragraph.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Optional excerpt used for search previews.
+               */
+              searchExcerpt?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'dropcap';
             }
           | {
+              /**
+               * Optional headline displayed above the timeline.
+               */
+              headline?: string | null;
+              /**
+               * Optional introduction explaining the context of this timeline.
+               */
+              intro?: string | null;
               events?:
                 | {
+                    /**
+                     * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                     */
                     year: string;
+                    /**
+                     * Optional manual ordering override (lower appears first).
+                     */
+                    sortOrder?: number | null;
+                    /**
+                     * Short title for this timeline event.
+                     */
                     title: string;
+                    /**
+                     * Detailed description of what happened.
+                     */
                     description: string;
+                    /**
+                     * Optional image or video associated with this event.
+                     */
+                    media?: (number | null) | Media;
+                    /**
+                     * Caption or credit for the associated media.
+                     */
+                    mediaCaption?: string | null;
+                    /**
+                     * Optional category for filtering or styling.
+                     */
+                    category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                    /**
+                     * Optional external or internal URL for further reading.
+                     */
+                    relatedLink?: string | null;
+                    /**
+                     * Optional accessibility label for screen readers.
+                     */
+                    ariaLabel?: string | null;
+                    /**
+                     * Internal editorial notes (not shown publicly).
+                     */
+                    internalNotes?: string | null;
                     id?: string | null;
                   }[]
                 | null;
+              /**
+               * Visual layout for the timeline component.
+               */
+              layout?: ('vertical' | 'horizontal') | null;
+              /**
+               * Visually emphasize the first timeline event.
+               */
+              highlightFirst?: boolean | null;
+              /**
+               * Optional internal identifier for analytics or testing.
+               */
+              internalId?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'timeline';
             }
           | {
+              /**
+               * The quoted text to be highlighted.
+               */
               quote: string;
+              /**
+               * Who said this quote (person, organization, or source).
+               */
               source?: string | null;
+              /**
+               * Optional title or role of the quoted source.
+               */
+              sourceTitle?: string | null;
+              /**
+               * Optional image associated with the quote (portrait, context image).
+               */
               media?: (number | null) | Media;
+              /**
+               * Accessibility text for the image.
+               */
+              imageAlt?: string | null;
               position?: ('left' | 'right') | null;
+              /**
+               * Controls visual emphasis in the layout.
+               */
+              emphasis?: ('standard' | 'highlight' | 'pull') | null;
+              /**
+               * Optional editorial context for when or why this quote appears.
+               */
+              context?: string | null;
+              /**
+               * Optional citation or reference (publication, speech, interview).
+               */
+              citation?: string | null;
+              /**
+               * Optional screen-reader label for the quote block.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'quoteWithImage';
             }
           | {
+              /**
+               * Select the author profile to display.
+               */
               author: number | Profile;
+              /**
+               * Optional short bio override. If empty, the profile bio will be used.
+               */
               bio?: string | null;
+              /**
+               * Optional photo override. Falls back to profile image if empty.
+               */
               photo?: (number | null) | Media;
+              /**
+               * Accessibility text for the author photo.
+               */
+              photoAlt?: string | null;
+              /**
+               * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+               */
+              title?: string | null;
+              /**
+               * Optional organization or affiliation.
+               */
+              organization?: string | null;
+              /**
+               * Optional social or external links for the author.
+               */
+              socialLinks?:
+                | {
+                    platform?:
+                      | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                      | null;
+                    url: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              /**
+               * Controls visual layout of the author bio.
+               */
+              layout?: ('standard' | 'compact' | 'expanded') | null;
+              /**
+               * Show a divider above the author bio.
+               */
+              showDivider?: boolean | null;
+              /**
+               * Optional screen-reader label for the author bio block.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'authorBio';
             }
           | {
+              /**
+               * Select the type of advertising unit.
+               */
               adType: 'banner' | 'native' | 'script';
+              /**
+               * Banner image for display advertising.
+               */
               media?: (number | null) | Media;
+              /**
+               * Accessibility text for the banner image.
+               */
+              bannerAlt?: string | null;
+              /**
+               * Destination URL when the banner is clicked.
+               */
+              clickUrl?: string | null;
+              /**
+               * Native advertising copy (clearly marked as sponsored).
+               */
               nativeText?: string | null;
+              /**
+               * ⚠ External ad script. Use only with trusted providers.
+               */
               script?: string | null;
+              /**
+               * Apply iframe sandboxing (strongly recommended).
+               */
+              sandbox?: boolean | null;
+              /**
+               * Name of sponsoring organization or brand.
+               */
               sponsorName?: string | null;
+              /**
+               * Required disclosure for sponsored or paid content.
+               */
+              disclosure?: string | null;
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              /**
+               * Show “Sponsored” or “Advertisement” label.
+               */
+              showLabel?: boolean | null;
+              /**
+               * Optional analytics or campaign tracking ID.
+               */
+              trackingId?: string | null;
+              /**
+               * Staff member who approved this ad unit.
+               */
+              approvedBy?: (number | null) | User;
+              /**
+               * Internal editorial or legal notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'adUnit';
             }
           | {
+              /**
+               * Optional heading displayed above the footnotes section.
+               */
+              headline?: string | null;
+              /**
+               * Optional introduction explaining the citations or sources.
+               */
+              intro?: string | null;
               notes?:
                 | {
+                    /**
+                     * Footnote label or number (e.g., 1, 2, A, †).
+                     */
                     label: string;
+                    /**
+                     * Optional anchor ID for in-article linking (e.g., fn-1).
+                     */
+                    anchorId?: string | null;
+                    /**
+                     * The footnote text or explanation.
+                     */
                     content: string;
+                    /**
+                     * Source name (publication, book, interview, archive).
+                     */
+                    source?: string | null;
+                    /**
+                     * Optional source URL.
+                     */
+                    url?: string | null;
+                    /**
+                     * Optional publication or reference date.
+                     */
+                    date?: string | null;
+                    /**
+                     * Helps classify the type of footnote.
+                     */
+                    type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                    /**
+                     * Optional screen-reader label for this footnote.
+                     */
+                    ariaLabel?: string | null;
+                    /**
+                     * Internal editorial notes (not shown publicly).
+                     */
+                    internalNotes?: string | null;
                     id?: string | null;
                   }[]
                 | null;
+              /**
+               * Controls how footnotes are rendered in the frontend.
+               */
+              displayStyle?: ('list' | 'paragraphs') | null;
+              /**
+               * Show “Back to reference” links in footnotes.
+               */
+              showBackLinks?: boolean | null;
+              /**
+               * Optional internal identifier for analytics or testing.
+               */
+              internalId?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'footnotes';
             }
           | {
+              /**
+               * Select an existing poll to embed inside this article.
+               */
               poll: number | Poll;
+              /**
+               * Display poll results immediately after voting.
+               */
               showResultsInline?: boolean | null;
+              /**
+               * Allow users to change their vote after submission.
+               */
+              allowVoteChange?: boolean | null;
+              /**
+               * Optional headline displayed above the poll.
+               */
+              headline?: string | null;
+              /**
+               * Optional context explaining why this poll is being asked.
+               */
+              description?: string | null;
+              /**
+               * Control who can see and vote in this poll.
+               */
+              visibility?: ('public' | 'authenticated' | 'plus') | null;
+              /**
+               * Optional analytics identifier for engagement tracking.
+               */
+              trackingId?: string | null;
+              /**
+               * Optional screen-reader label for the poll.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'interactivePoll';
             }
         )[]
       | null;
+    /**
+     * Structured interview questions and answers.
+     */
     interview: {
       question: string;
       answer: string;
+      /**
+       * Mark this answer as a highlight for pull quotes or social use.
+       */
+      highlight?: boolean | null;
       id?: string | null;
     }[];
+    /**
+     * Closing reflections, takeaways, embeds, or follow-ups.
+     */
     closing?:
       | (
           | {
@@ -2221,45 +6725,252 @@ export interface Article {
                 };
                 [k: string]: unknown;
               };
+              /**
+               * Controls typography and spacing in the frontend.
+               */
+              variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+              align?: ('left' | 'center' | 'right') | null;
+              /**
+               * Optional accessibility label for screen readers.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Visually emphasize the first paragraph.
+               */
+              emphasizeFirstParagraph?: boolean | null;
+              /**
+               * Enable a drop cap on the first letter.
+               */
+              allowDropCap?: boolean | null;
+              /**
+               * Auto-generated excerpt used for search previews.
+               */
+              searchExcerpt?: string | null;
+              /**
+               * Internal editorial notes (not rendered publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'richText';
             }
           | {
+              /**
+               * Select an image from the media library.
+               */
               media: number | Media;
+              /**
+               * Alternative text for screen readers and accessibility.
+               */
+              altText?: string | null;
+              /**
+               * Optional caption displayed below the image.
+               */
               caption?: string | null;
+              /**
+               * Photographer, source, or organization credit.
+               */
               attribution?: string | null;
+              /**
+               * Usage rights for this image.
+               */
+              licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+              /**
+               * Source or license URL (e.g., Getty, Unsplash, contract).
+               */
+              licenseSource?: string | null;
+              /**
+               * Optional expiration date for licensed images.
+               */
+              licenseExpiresAt?: string | null;
+              /**
+               * Controls how the image is positioned in the layout.
+               */
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+              /**
+               * Marks this image as suitable for hero placement.
+               */
+              isHeroCandidate?: boolean | null;
+              /**
+               * Hide caption in frontend rendering.
+               */
+              hideCaption?: boolean | null;
+              /**
+               * Optional ARIA label for assistive technologies.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial or legal notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'image';
             }
           | {
-              media: number | Media;
+              sourceType: 'upload' | 'external';
+              media?: (number | null) | Media;
+              externalUrl?: string | null;
+              headline?: string | null;
               caption?: string | null;
+              credit?: string | null;
+              altText?: string | null;
+              transcript?: string | null;
+              hasCaptions?: boolean | null;
+              autoplay?: boolean | null;
+              loop?: boolean | null;
+              muted?: boolean | null;
+              isSponsored?: boolean | null;
+              sponsorDisclosure?: string | null;
+              trackingId?: string | null;
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'video';
             }
           | {
+              /**
+               * Optional headline displayed above the carousel.
+               */
+              headline?: string | null;
+              /**
+               * Optional context or explanation for the carousel.
+               */
+              intro?: string | null;
               items: {
+                /**
+                 * Image or media item for this slide.
+                 */
                 media: number | Media;
+                /**
+                 * Alternative text for accessibility.
+                 */
+                altText?: string | null;
+                /**
+                 * Optional caption for this slide.
+                 */
                 caption?: string | null;
+                /**
+                 * Photographer or source credit.
+                 */
                 attribution?: string | null;
+                /**
+                 * Usage rights for this slide.
+                 */
+                licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+                /**
+                 * Source or license URL.
+                 */
+                licenseSource?: string | null;
+                /**
+                 * Optional expiration date for licensed media.
+                 */
+                licenseExpiresAt?: string | null;
+                /**
+                 * Optional link when this slide is clicked.
+                 */
+                linkUrl?: string | null;
+                /**
+                 * Internal notes for this slide (not public).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[];
+              /**
+               * Controls overall carousel layout.
+               */
+              layout?: ('standard' | 'full' | 'compact') | null;
+              aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+              /**
+               * Automatically advance slides.
+               */
+              autoPlay?: boolean | null;
+              /**
+               * Delay (ms) between slide changes.
+               */
+              autoPlayInterval?: number | null;
+              /**
+               * Show slide indicators (dots).
+               */
+              showIndicators?: boolean | null;
+              /**
+               * Show previous/next navigation arrows.
+               */
+              showArrows?: boolean | null;
+              /**
+               * Optional ARIA label for the carousel.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Optional analytics identifier for carousel engagement.
+               */
+              trackingId?: string | null;
+              /**
+               * Internal editorial or technical notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'carousel';
             }
           | {
+              /**
+               * The highlighted quote text.
+               */
               quote: string;
+              /**
+               * Who said this quote (person, organization, or source).
+               */
               source?: string | null;
+              /**
+               * Optional title or role of the quoted source.
+               */
+              sourceTitle?: string | null;
+              /**
+               * Text alignment for the pull quote.
+               */
+              alignment?: ('left' | 'center' | 'right') | null;
+              /**
+               * Controls visual weight and prominence.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Optional editorial context explaining why this quote matters.
+               */
+              context?: string | null;
+              /**
+               * Optional citation (interview, article, speech, date).
+               */
+              citation?: string | null;
+              /**
+               * Optional screen-reader label for this pull quote.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'pullQuote';
             }
           | {
-              style?: ('info' | 'warning' | 'highlight') | null;
+              /**
+               * Controls visual style and semantic meaning of the callout.
+               */
+              style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+              /**
+               * Optional title displayed at the top of the callout.
+               */
+              title?: string | null;
+              /**
+               * Optional icon displayed with the callout.
+               */
+              icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+              /**
+               * Main callout content (supports rich text).
+               */
               content: {
                 root: {
                   type: string;
@@ -2275,13 +6986,87 @@ export interface Article {
                 };
                 [k: string]: unknown;
               };
+              /**
+               * Text alignment for the callout box.
+               */
+              alignment?: ('left' | 'center' | 'right') | null;
+              /**
+               * Controls visual emphasis and prominence.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Allow users to dismiss this callout (frontend-controlled).
+               */
+              dismissible?: boolean | null;
+              /**
+               * Controls who can see this callout.
+               */
+              visibility?: ('public' | 'authenticated' | 'plus') | null;
+              /**
+               * Optional screen-reader label for the callout.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'callout';
             }
           | {
+              /**
+               * URL to embed (social post, video, chart, audio, map, etc.).
+               */
               embedUrl: string;
+              /**
+               * Override provider detection if needed.
+               */
+              provider?:
+                | (
+                    | 'auto'
+                    | 'youtube'
+                    | 'vimeo'
+                    | 'twitter'
+                    | 'instagram'
+                    | 'tiktok'
+                    | 'spotify'
+                    | 'apple-music'
+                    | 'soundcloud'
+                    | 'maps'
+                    | 'chart'
+                    | 'iframe'
+                  )
+                | null;
+              /**
+               * Optional caption displayed below the embedded content.
+               */
               caption?: string | null;
+              /**
+               * Controls iframe/video aspect ratio.
+               */
+              aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              /**
+               * Optional accessibility label for screen readers.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Apply iframe sandboxing for security (recommended).
+               */
+              sandbox?: boolean | null;
+              /**
+               * Allow fullscreen playback when supported.
+               */
+              allowFullscreen?: boolean | null;
+              /**
+               * Optional analytics identifier for embed engagement.
+               */
+              trackingId?: string | null;
+              /**
+               * Internal editorial or technical notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'embed';
@@ -2289,82 +7074,420 @@ export interface Article {
           | {
               left: number | Media;
               right: number | Media;
+              /**
+               * Accessibility text for the left media.
+               */
+              leftAlt?: string | null;
+              /**
+               * Accessibility text for the right media.
+               */
+              rightAlt?: string | null;
+              leftCaption?: string | null;
+              rightCaption?: string | null;
+              /**
+               * Optional caption spanning both media items.
+               */
               caption?: string | null;
+              /**
+               * Controls visual balance between left and right media.
+               */
+              layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+              /**
+               * Stack media vertically on small screens.
+               */
+              stackOnMobile?: boolean | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'sideBySide';
             }
           | {
+              /**
+               * Paragraph text. The first letter may be styled as a drop cap.
+               */
               text: string;
+              /**
+               * Enable drop cap styling for the first letter.
+               */
+              enableDropcap?: boolean | null;
+              /**
+               * Visual style of the drop cap.
+               */
+              dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+              /**
+               * Relative size of the drop cap.
+               */
+              dropcapSize?: ('small' | 'medium' | 'large') | null;
+              /**
+               * Controls paragraph emphasis and tone.
+               */
+              emphasis?: ('standard' | 'strong' | 'subtle') | null;
+              /**
+               * Optional screen-reader label for this paragraph.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Optional excerpt used for search previews.
+               */
+              searchExcerpt?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'dropcap';
             }
           | {
+              /**
+               * Optional headline displayed above the timeline.
+               */
+              headline?: string | null;
+              /**
+               * Optional introduction explaining the context of this timeline.
+               */
+              intro?: string | null;
               events?:
                 | {
+                    /**
+                     * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                     */
                     year: string;
+                    /**
+                     * Optional manual ordering override (lower appears first).
+                     */
+                    sortOrder?: number | null;
+                    /**
+                     * Short title for this timeline event.
+                     */
                     title: string;
+                    /**
+                     * Detailed description of what happened.
+                     */
                     description: string;
+                    /**
+                     * Optional image or video associated with this event.
+                     */
+                    media?: (number | null) | Media;
+                    /**
+                     * Caption or credit for the associated media.
+                     */
+                    mediaCaption?: string | null;
+                    /**
+                     * Optional category for filtering or styling.
+                     */
+                    category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                    /**
+                     * Optional external or internal URL for further reading.
+                     */
+                    relatedLink?: string | null;
+                    /**
+                     * Optional accessibility label for screen readers.
+                     */
+                    ariaLabel?: string | null;
+                    /**
+                     * Internal editorial notes (not shown publicly).
+                     */
+                    internalNotes?: string | null;
                     id?: string | null;
                   }[]
                 | null;
+              /**
+               * Visual layout for the timeline component.
+               */
+              layout?: ('vertical' | 'horizontal') | null;
+              /**
+               * Visually emphasize the first timeline event.
+               */
+              highlightFirst?: boolean | null;
+              /**
+               * Optional internal identifier for analytics or testing.
+               */
+              internalId?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'timeline';
             }
           | {
+              /**
+               * The quoted text to be highlighted.
+               */
               quote: string;
+              /**
+               * Who said this quote (person, organization, or source).
+               */
               source?: string | null;
+              /**
+               * Optional title or role of the quoted source.
+               */
+              sourceTitle?: string | null;
+              /**
+               * Optional image associated with the quote (portrait, context image).
+               */
               media?: (number | null) | Media;
+              /**
+               * Accessibility text for the image.
+               */
+              imageAlt?: string | null;
               position?: ('left' | 'right') | null;
+              /**
+               * Controls visual emphasis in the layout.
+               */
+              emphasis?: ('standard' | 'highlight' | 'pull') | null;
+              /**
+               * Optional editorial context for when or why this quote appears.
+               */
+              context?: string | null;
+              /**
+               * Optional citation or reference (publication, speech, interview).
+               */
+              citation?: string | null;
+              /**
+               * Optional screen-reader label for the quote block.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'quoteWithImage';
             }
           | {
+              /**
+               * Select the author profile to display.
+               */
               author: number | Profile;
+              /**
+               * Optional short bio override. If empty, the profile bio will be used.
+               */
               bio?: string | null;
+              /**
+               * Optional photo override. Falls back to profile image if empty.
+               */
               photo?: (number | null) | Media;
+              /**
+               * Accessibility text for the author photo.
+               */
+              photoAlt?: string | null;
+              /**
+               * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+               */
+              title?: string | null;
+              /**
+               * Optional organization or affiliation.
+               */
+              organization?: string | null;
+              /**
+               * Optional social or external links for the author.
+               */
+              socialLinks?:
+                | {
+                    platform?:
+                      | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                      | null;
+                    url: string;
+                    id?: string | null;
+                  }[]
+                | null;
+              /**
+               * Controls visual layout of the author bio.
+               */
+              layout?: ('standard' | 'compact' | 'expanded') | null;
+              /**
+               * Show a divider above the author bio.
+               */
+              showDivider?: boolean | null;
+              /**
+               * Optional screen-reader label for the author bio block.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'authorBio';
             }
           | {
+              /**
+               * Select the type of advertising unit.
+               */
               adType: 'banner' | 'native' | 'script';
+              /**
+               * Banner image for display advertising.
+               */
               media?: (number | null) | Media;
+              /**
+               * Accessibility text for the banner image.
+               */
+              bannerAlt?: string | null;
+              /**
+               * Destination URL when the banner is clicked.
+               */
+              clickUrl?: string | null;
+              /**
+               * Native advertising copy (clearly marked as sponsored).
+               */
               nativeText?: string | null;
+              /**
+               * ⚠ External ad script. Use only with trusted providers.
+               */
               script?: string | null;
+              /**
+               * Apply iframe sandboxing (strongly recommended).
+               */
+              sandbox?: boolean | null;
+              /**
+               * Name of sponsoring organization or brand.
+               */
               sponsorName?: string | null;
+              /**
+               * Required disclosure for sponsored or paid content.
+               */
+              disclosure?: string | null;
+              alignment?: ('left' | 'center' | 'right' | 'full') | null;
+              /**
+               * Show “Sponsored” or “Advertisement” label.
+               */
+              showLabel?: boolean | null;
+              /**
+               * Optional analytics or campaign tracking ID.
+               */
+              trackingId?: string | null;
+              /**
+               * Staff member who approved this ad unit.
+               */
+              approvedBy?: (number | null) | User;
+              /**
+               * Internal editorial or legal notes (not public).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'adUnit';
             }
           | {
+              /**
+               * Optional heading displayed above the footnotes section.
+               */
+              headline?: string | null;
+              /**
+               * Optional introduction explaining the citations or sources.
+               */
+              intro?: string | null;
               notes?:
                 | {
+                    /**
+                     * Footnote label or number (e.g., 1, 2, A, †).
+                     */
                     label: string;
+                    /**
+                     * Optional anchor ID for in-article linking (e.g., fn-1).
+                     */
+                    anchorId?: string | null;
+                    /**
+                     * The footnote text or explanation.
+                     */
                     content: string;
+                    /**
+                     * Source name (publication, book, interview, archive).
+                     */
+                    source?: string | null;
+                    /**
+                     * Optional source URL.
+                     */
+                    url?: string | null;
+                    /**
+                     * Optional publication or reference date.
+                     */
+                    date?: string | null;
+                    /**
+                     * Helps classify the type of footnote.
+                     */
+                    type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                    /**
+                     * Optional screen-reader label for this footnote.
+                     */
+                    ariaLabel?: string | null;
+                    /**
+                     * Internal editorial notes (not shown publicly).
+                     */
+                    internalNotes?: string | null;
                     id?: string | null;
                   }[]
                 | null;
+              /**
+               * Controls how footnotes are rendered in the frontend.
+               */
+              displayStyle?: ('list' | 'paragraphs') | null;
+              /**
+               * Show “Back to reference” links in footnotes.
+               */
+              showBackLinks?: boolean | null;
+              /**
+               * Optional internal identifier for analytics or testing.
+               */
+              internalId?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'footnotes';
             }
           | {
+              /**
+               * Select an existing poll to embed inside this article.
+               */
               poll: number | Poll;
+              /**
+               * Display poll results immediately after voting.
+               */
               showResultsInline?: boolean | null;
+              /**
+               * Allow users to change their vote after submission.
+               */
+              allowVoteChange?: boolean | null;
+              /**
+               * Optional headline displayed above the poll.
+               */
+              headline?: string | null;
+              /**
+               * Optional context explaining why this poll is being asked.
+               */
+              description?: string | null;
+              /**
+               * Control who can see and vote in this poll.
+               */
+              visibility?: ('public' | 'authenticated' | 'plus') | null;
+              /**
+               * Optional analytics identifier for engagement tracking.
+               */
+              trackingId?: string | null;
+              /**
+               * Optional screen-reader label for the poll.
+               */
+              ariaLabel?: string | null;
+              /**
+               * Internal editorial notes (not shown publicly).
+               */
+              internalNotes?: string | null;
               id?: string | null;
               blockName?: string | null;
               blockType: 'interactivePoll';
             }
         )[]
       | null;
+    /**
+     * Supplemental information about the interviewee.
+     */
     sidebar?: {
       socialLinks?:
         | {
-            platform: string;
+            platform: 'website' | 'instagram' | 'twitter' | 'facebook' | 'youtube' | 'tiktok';
             url: string;
             id?: string | null;
           }[]
@@ -2382,15 +7505,38 @@ export interface Article {
           }[]
         | null;
     };
+    /**
+     * Artists or figures related to this interview.
+     */
     relatedArtists?: (number | Profile)[] | null;
+    /**
+     * Optional excerpt used in feeds and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this interview from appearing in search.
+     */
+    excludeFromSearch?: boolean | null;
   };
   featureFields?: {
+    /**
+     * Optional secondary headline or deck.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this feature story.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
+    /**
+     * Primary author or reporter.
+     */
     author: number | Profile;
     /**
-     * Build the narrative using blocks: lede, story, insights, voices, impact, future.
+     * Build the narrative using blocks: lede, story arc, voices, analysis, impact, future outlook.
      */
     content: (
       | {
@@ -2409,45 +7555,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -2463,13 +7816,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -2477,89 +7904,455 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
+    /**
+     * Optional longform structure used for previews, summaries, and editorial planning.
+     */
+    featureFramework?: {
+      lede?: string | null;
+      coreStory?: string | null;
+      voices?: string | null;
+      analysis?: string | null;
+      impact?: string | null;
+      future?: string | null;
+    };
+    /**
+     * Sources, references, acknowledgements, and reporting credits.
+     */
     creditsSources?: string | null;
+    /**
+     * Optional excerpt used in feeds and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this feature from appearing in search.
+     */
+    excludeFromSearch?: boolean | null;
   };
   eventRecapFields?: {
+    /**
+     * Optional secondary headline.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this event recap.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
     /**
-     * Key standout moments or performances.
+     * Key standout moments, performances, or takeaways.
      */
     highlights?: string[] | null;
     /**
-     * Use blocks to build the recap: intro, energy, visuals, cultural moments, atmosphere, etc.
+     * Use blocks to build the recap: intro, atmosphere, performances, visuals, cultural moments, and closing notes.
      */
     content: (
       | {
@@ -2578,45 +8371,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -2632,13 +8632,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -2646,95 +8720,457 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
     /**
-     * Upload photos with proper alt text.
+     * Optional structured context for previews, summaries, and feeds.
+     */
+    eventContext?: {
+      location?: string | null;
+      eventDate?: string | null;
+      atmosphere?: string | null;
+      culturalTakeaways?: string | null;
+    };
+    /**
+     * Event photography with accessibility text.
      */
     photos?:
       | {
           image: number | Media;
+          /**
+           * Accessibility description for the photo.
+           */
           alt: string;
+          /**
+           * Optional photographer or source credit.
+           */
+          credit?: string | null;
           id?: string | null;
         }[]
       | null;
+    /**
+     * Related or previous events for cross-linking.
+     */
     relatedEvents?: (number | Event)[] | null;
+    /**
+     * Optional excerpt used in feeds and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this recap from appearing in search.
+     */
+    excludeFromSearch?: boolean | null;
   };
   aaFields?: {
     subtitle?: string | null;
     category: number | Category;
     subCategory?: (number | null) | Category;
     /**
-     * Build your Hook → Background → Main Story → Voices → Connection using Blocks.
+     * Build your Hook → Background → Main Story → Voices → Cultural Connection using Blocks.
      */
     content: (
       | {
@@ -2753,45 +9189,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -2807,13 +9450,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -2821,72 +9538,407 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
@@ -2903,7 +9955,7 @@ export interface Article {
         }[]
       | null;
     /**
-     * Optional resources, links, or cultural references.
+     * Optional resources, references, or cultural materials related to the story.
      */
     resources?:
       | {
@@ -2914,8 +9966,17 @@ export interface Article {
       | null;
   };
   lifestyleFields?: {
+    /**
+     * Optional secondary headline.
+     */
     subtitle?: string | null;
+    /**
+     * Primary lifestyle category.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
     /**
      * Use blocks for intro, insights, examples, tips, cultural context, and lifestyle imagery.
@@ -2937,45 +9998,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -2991,13 +10259,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -3005,94 +10347,462 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
     /**
-     * Upload lifestyle images with alt text.
+     * Optional structured sections used for summaries, highlights, and previews.
+     */
+    lifestyleFramework?: {
+      insight?: string | null;
+      examples?: string | null;
+      practicalTips?: string | null;
+      culturalRelevance?: string | null;
+    };
+    /**
+     * Lifestyle imagery with accessibility text.
      */
     imagery?:
       | {
           image: number | Media;
+          /**
+           * Accessibility description for the image.
+           */
           alt: string;
+          /**
+           * Optional image credit.
+           */
+          credit?: string | null;
           id?: string | null;
         }[]
       | null;
+    /**
+     * Optional excerpt used in feeds and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this article from appearing in search.
+     */
+    excludeFromSearch?: boolean | null;
   };
   faithFields?: {
+    /**
+     * Optional secondary headline or devotional theme.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this faith or inspirational piece.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
     /**
-     * Use blocks for Scripture, reflection, devotional message, application, prayer, images, quotes, and more.
+     * Use blocks for Scripture, reflection, devotional message, application, prayer, quotes, imagery, and callouts.
      */
     content: (
       | {
@@ -3111,45 +10821,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -3165,13 +11082,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -3179,86 +11170,473 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
+    /**
+     * Optional structure for devotionals, reflections, and inspirational teachings.
+     */
+    devotionalFramework?: {
+      /**
+       * Primary scripture or sacred text reference.
+       */
+      scripture?: string | null;
+      /**
+       * Opening reflection or meditation.
+       */
+      reflection?: string | null;
+      /**
+       * Central devotional or inspirational message.
+       */
+      message?: string | null;
+      /**
+       * How this message applies to daily life.
+       */
+      application?: string | null;
+      /**
+       * Closing prayer, affirmation, or benediction.
+       */
+      prayerOrAffirmation?: string | null;
+    };
+    /**
+     * Optional cultural, historical, or spiritual context (e.g., African spirituality, liberation theology, Sankofa).
+     */
+    culturalContext?: string | null;
+    /**
+     * Optional excerpt used in devotion lists, feeds, and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this devotional from appearing in search results.
+     */
+    excludeFromSearch?: boolean | null;
   };
   sponsoredFields?: {
+    /**
+     * Legal name of the sponsoring brand or organization.
+     */
     sponsor: string;
+    /**
+     * Optional secondary headline for sponsored content.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for sponsored content.
+     */
     category: number | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
+    /**
+     * Required disclosure statement for sponsored content.
+     */
     disclosure: string;
     /**
-     * Use blocks for intro, story integration, imagery, testimonials, product highlights, embeds, and more.
+     * Use blocks for story integration, imagery, testimonials, product highlights, embeds, and more.
      */
     content: (
       | {
@@ -3277,45 +11655,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -3331,13 +11916,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -3345,98 +12004,472 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
+    /**
+     * Optional conversion or campaign call-to-action.
+     */
     cta?: {
       text?: string | null;
       url?: string | null;
+      /**
+       * Optional event or campaign date.
+       */
       eventDate?: string | null;
+      /**
+       * Optional product or service details.
+       */
       productInfo?: string | null;
     };
+    /**
+     * Brand-approved images or creative assets.
+     */
     assets?:
       | {
           image: number | Media;
+          /**
+           * Accessibility text for the asset image.
+           */
           alt: string;
           id?: string | null;
         }[]
       | null;
+    /**
+     * Confirms sponsor has approved final content.
+     */
+    sponsorApproved?: boolean | null;
+    /**
+     * Indicates legal/compliance review is complete.
+     */
+    legalReviewed?: boolean | null;
+    /**
+     * Internal editorial, legal, or sales notes (not public).
+     */
+    internalNotes?: string | null;
   };
   csFields?: {
+    /**
+     * Optional secondary headline or deck.
+     */
     subtitle?: string | null;
+    /**
+     * Primary category for this Creator Spotlight.
+     */
     category?: (number | null) | Category;
+    /**
+     * Optional sub-category.
+     */
     subCategory?: (number | null) | Category;
+    /**
+     * Tags for discovery and cross-linking.
+     */
     tags?: (number | Tag)[] | null;
     /**
-     * Use blocks to construct each section of the Spotlight.
+     * Use blocks to construct the spotlight narrative: intro, origin story, body of work, impact, and vision.
      */
     content: (
       | {
@@ -3455,45 +12488,252 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Controls typography and spacing in the frontend.
+           */
+          variant?: ('body' | 'lede' | 'sidebar' | 'footnote') | null;
+          align?: ('left' | 'center' | 'right') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Visually emphasize the first paragraph.
+           */
+          emphasizeFirstParagraph?: boolean | null;
+          /**
+           * Enable a drop cap on the first letter.
+           */
+          allowDropCap?: boolean | null;
+          /**
+           * Auto-generated excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not rendered publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'richText';
         }
       | {
+          /**
+           * Select an image from the media library.
+           */
           media: number | Media;
+          /**
+           * Alternative text for screen readers and accessibility.
+           */
+          altText?: string | null;
+          /**
+           * Optional caption displayed below the image.
+           */
           caption?: string | null;
+          /**
+           * Photographer, source, or organization credit.
+           */
           attribution?: string | null;
+          /**
+           * Usage rights for this image.
+           */
+          licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+          /**
+           * Source or license URL (e.g., Getty, Unsplash, contract).
+           */
+          licenseSource?: string | null;
+          /**
+           * Optional expiration date for licensed images.
+           */
+          licenseExpiresAt?: string | null;
+          /**
+           * Controls how the image is positioned in the layout.
+           */
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Marks this image as suitable for hero placement.
+           */
+          isHeroCandidate?: boolean | null;
+          /**
+           * Hide caption in frontend rendering.
+           */
+          hideCaption?: boolean | null;
+          /**
+           * Optional ARIA label for assistive technologies.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'image';
         }
       | {
-          media: number | Media;
+          sourceType: 'upload' | 'external';
+          media?: (number | null) | Media;
+          externalUrl?: string | null;
+          headline?: string | null;
           caption?: string | null;
+          credit?: string | null;
+          altText?: string | null;
+          transcript?: string | null;
+          hasCaptions?: boolean | null;
+          autoplay?: boolean | null;
+          loop?: boolean | null;
+          muted?: boolean | null;
+          isSponsored?: boolean | null;
+          sponsorDisclosure?: string | null;
+          trackingId?: string | null;
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'video';
         }
       | {
+          /**
+           * Optional headline displayed above the carousel.
+           */
+          headline?: string | null;
+          /**
+           * Optional context or explanation for the carousel.
+           */
+          intro?: string | null;
           items: {
+            /**
+             * Image or media item for this slide.
+             */
             media: number | Media;
+            /**
+             * Alternative text for accessibility.
+             */
+            altText?: string | null;
+            /**
+             * Optional caption for this slide.
+             */
             caption?: string | null;
+            /**
+             * Photographer or source credit.
+             */
             attribution?: string | null;
+            /**
+             * Usage rights for this slide.
+             */
+            licenseType?: ('owned' | 'licensed' | 'cc' | 'public-domain' | 'fair-use') | null;
+            /**
+             * Source or license URL.
+             */
+            licenseSource?: string | null;
+            /**
+             * Optional expiration date for licensed media.
+             */
+            licenseExpiresAt?: string | null;
+            /**
+             * Optional link when this slide is clicked.
+             */
+            linkUrl?: string | null;
+            /**
+             * Internal notes for this slide (not public).
+             */
+            internalNotes?: string | null;
             id?: string | null;
           }[];
+          /**
+           * Controls overall carousel layout.
+           */
+          layout?: ('standard' | 'full' | 'compact') | null;
+          aspectRatio?: ('auto' | '1:1' | '4:3' | '16:9') | null;
+          /**
+           * Automatically advance slides.
+           */
+          autoPlay?: boolean | null;
+          /**
+           * Delay (ms) between slide changes.
+           */
+          autoPlayInterval?: number | null;
+          /**
+           * Show slide indicators (dots).
+           */
+          showIndicators?: boolean | null;
+          /**
+           * Show previous/next navigation arrows.
+           */
+          showArrows?: boolean | null;
+          /**
+           * Optional ARIA label for the carousel.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional analytics identifier for carousel engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'carousel';
         }
       | {
+          /**
+           * The highlighted quote text.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Text alignment for the pull quote.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual weight and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional editorial context explaining why this quote matters.
+           */
+          context?: string | null;
+          /**
+           * Optional citation (interview, article, speech, date).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for this pull quote.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'pullQuote';
         }
       | {
-          style?: ('info' | 'warning' | 'highlight') | null;
+          /**
+           * Controls visual style and semantic meaning of the callout.
+           */
+          style?: ('info' | 'warning' | 'highlight' | 'faith' | 'culture' | 'editorial') | null;
+          /**
+           * Optional title displayed at the top of the callout.
+           */
+          title?: string | null;
+          /**
+           * Optional icon displayed with the callout.
+           */
+          icon?: ('none' | 'info' | 'warning' | 'star' | 'quote' | 'faith' | 'culture') | null;
+          /**
+           * Main callout content (supports rich text).
+           */
           content: {
             root: {
               type: string;
@@ -3509,13 +12749,87 @@ export interface Article {
             };
             [k: string]: unknown;
           };
+          /**
+           * Text alignment for the callout box.
+           */
+          alignment?: ('left' | 'center' | 'right') | null;
+          /**
+           * Controls visual emphasis and prominence.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Allow users to dismiss this callout (frontend-controlled).
+           */
+          dismissible?: boolean | null;
+          /**
+           * Controls who can see this callout.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional screen-reader label for the callout.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'callout';
         }
       | {
+          /**
+           * URL to embed (social post, video, chart, audio, map, etc.).
+           */
           embedUrl: string;
+          /**
+           * Override provider detection if needed.
+           */
+          provider?:
+            | (
+                | 'auto'
+                | 'youtube'
+                | 'vimeo'
+                | 'twitter'
+                | 'instagram'
+                | 'tiktok'
+                | 'spotify'
+                | 'apple-music'
+                | 'soundcloud'
+                | 'maps'
+                | 'chart'
+                | 'iframe'
+              )
+            | null;
+          /**
+           * Optional caption displayed below the embedded content.
+           */
           caption?: string | null;
+          /**
+           * Controls iframe/video aspect ratio.
+           */
+          aspectRatio?: ('auto' | '16:9' | '4:3' | '1:1') | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Optional accessibility label for screen readers.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Apply iframe sandboxing for security (recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Allow fullscreen playback when supported.
+           */
+          allowFullscreen?: boolean | null;
+          /**
+           * Optional analytics identifier for embed engagement.
+           */
+          trackingId?: string | null;
+          /**
+           * Internal editorial or technical notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'embed';
@@ -3523,86 +12837,445 @@ export interface Article {
       | {
           left: number | Media;
           right: number | Media;
+          /**
+           * Accessibility text for the left media.
+           */
+          leftAlt?: string | null;
+          /**
+           * Accessibility text for the right media.
+           */
+          rightAlt?: string | null;
+          leftCaption?: string | null;
+          rightCaption?: string | null;
+          /**
+           * Optional caption spanning both media items.
+           */
           caption?: string | null;
+          /**
+           * Controls visual balance between left and right media.
+           */
+          layout?: ('equal' | 'left-heavy' | 'right-heavy') | null;
+          /**
+           * Stack media vertically on small screens.
+           */
+          stackOnMobile?: boolean | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'sideBySide';
         }
       | {
+          /**
+           * Paragraph text. The first letter may be styled as a drop cap.
+           */
           text: string;
+          /**
+           * Enable drop cap styling for the first letter.
+           */
+          enableDropcap?: boolean | null;
+          /**
+           * Visual style of the drop cap.
+           */
+          dropcapStyle?: ('classic' | 'modern' | 'outlined') | null;
+          /**
+           * Relative size of the drop cap.
+           */
+          dropcapSize?: ('small' | 'medium' | 'large') | null;
+          /**
+           * Controls paragraph emphasis and tone.
+           */
+          emphasis?: ('standard' | 'strong' | 'subtle') | null;
+          /**
+           * Optional screen-reader label for this paragraph.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Optional excerpt used for search previews.
+           */
+          searchExcerpt?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'dropcap';
         }
       | {
+          /**
+           * Optional headline displayed above the timeline.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the context of this timeline.
+           */
+          intro?: string | null;
           events?:
             | {
+                /**
+                 * Year or date label (e.g., “1968”, “March 2020”, “Summer 1995”).
+                 */
                 year: string;
+                /**
+                 * Optional manual ordering override (lower appears first).
+                 */
+                sortOrder?: number | null;
+                /**
+                 * Short title for this timeline event.
+                 */
                 title: string;
+                /**
+                 * Detailed description of what happened.
+                 */
                 description: string;
+                /**
+                 * Optional image or video associated with this event.
+                 */
+                media?: (number | null) | Media;
+                /**
+                 * Caption or credit for the associated media.
+                 */
+                mediaCaption?: string | null;
+                /**
+                 * Optional category for filtering or styling.
+                 */
+                category?: ('historical' | 'cultural' | 'political' | 'arts' | 'faith' | 'personal') | null;
+                /**
+                 * Optional external or internal URL for further reading.
+                 */
+                relatedLink?: string | null;
+                /**
+                 * Optional accessibility label for screen readers.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Visual layout for the timeline component.
+           */
+          layout?: ('vertical' | 'horizontal') | null;
+          /**
+           * Visually emphasize the first timeline event.
+           */
+          highlightFirst?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'timeline';
         }
       | {
+          /**
+           * The quoted text to be highlighted.
+           */
           quote: string;
+          /**
+           * Who said this quote (person, organization, or source).
+           */
           source?: string | null;
+          /**
+           * Optional title or role of the quoted source.
+           */
+          sourceTitle?: string | null;
+          /**
+           * Optional image associated with the quote (portrait, context image).
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the image.
+           */
+          imageAlt?: string | null;
           position?: ('left' | 'right') | null;
+          /**
+           * Controls visual emphasis in the layout.
+           */
+          emphasis?: ('standard' | 'highlight' | 'pull') | null;
+          /**
+           * Optional editorial context for when or why this quote appears.
+           */
+          context?: string | null;
+          /**
+           * Optional citation or reference (publication, speech, interview).
+           */
+          citation?: string | null;
+          /**
+           * Optional screen-reader label for the quote block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'quoteWithImage';
         }
       | {
+          /**
+           * Select the author profile to display.
+           */
           author: number | Profile;
+          /**
+           * Optional short bio override. If empty, the profile bio will be used.
+           */
           bio?: string | null;
+          /**
+           * Optional photo override. Falls back to profile image if empty.
+           */
           photo?: (number | null) | Media;
+          /**
+           * Accessibility text for the author photo.
+           */
+          photoAlt?: string | null;
+          /**
+           * Optional title or role (e.g., Senior Editor, Cultural Correspondent).
+           */
+          title?: string | null;
+          /**
+           * Optional organization or affiliation.
+           */
+          organization?: string | null;
+          /**
+           * Optional social or external links for the author.
+           */
+          socialLinks?:
+            | {
+                platform?:
+                  | ('website' | 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok')
+                  | null;
+                url: string;
+                id?: string | null;
+              }[]
+            | null;
+          /**
+           * Controls visual layout of the author bio.
+           */
+          layout?: ('standard' | 'compact' | 'expanded') | null;
+          /**
+           * Show a divider above the author bio.
+           */
+          showDivider?: boolean | null;
+          /**
+           * Optional screen-reader label for the author bio block.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'authorBio';
         }
       | {
+          /**
+           * Select the type of advertising unit.
+           */
           adType: 'banner' | 'native' | 'script';
+          /**
+           * Banner image for display advertising.
+           */
           media?: (number | null) | Media;
+          /**
+           * Accessibility text for the banner image.
+           */
+          bannerAlt?: string | null;
+          /**
+           * Destination URL when the banner is clicked.
+           */
+          clickUrl?: string | null;
+          /**
+           * Native advertising copy (clearly marked as sponsored).
+           */
           nativeText?: string | null;
+          /**
+           * ⚠ External ad script. Use only with trusted providers.
+           */
           script?: string | null;
+          /**
+           * Apply iframe sandboxing (strongly recommended).
+           */
+          sandbox?: boolean | null;
+          /**
+           * Name of sponsoring organization or brand.
+           */
           sponsorName?: string | null;
+          /**
+           * Required disclosure for sponsored or paid content.
+           */
+          disclosure?: string | null;
+          alignment?: ('left' | 'center' | 'right' | 'full') | null;
+          /**
+           * Show “Sponsored” or “Advertisement” label.
+           */
+          showLabel?: boolean | null;
+          /**
+           * Optional analytics or campaign tracking ID.
+           */
+          trackingId?: string | null;
+          /**
+           * Staff member who approved this ad unit.
+           */
+          approvedBy?: (number | null) | User;
+          /**
+           * Internal editorial or legal notes (not public).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'adUnit';
         }
       | {
+          /**
+           * Optional heading displayed above the footnotes section.
+           */
+          headline?: string | null;
+          /**
+           * Optional introduction explaining the citations or sources.
+           */
+          intro?: string | null;
           notes?:
             | {
+                /**
+                 * Footnote label or number (e.g., 1, 2, A, †).
+                 */
                 label: string;
+                /**
+                 * Optional anchor ID for in-article linking (e.g., fn-1).
+                 */
+                anchorId?: string | null;
+                /**
+                 * The footnote text or explanation.
+                 */
                 content: string;
+                /**
+                 * Source name (publication, book, interview, archive).
+                 */
+                source?: string | null;
+                /**
+                 * Optional source URL.
+                 */
+                url?: string | null;
+                /**
+                 * Optional publication or reference date.
+                 */
+                date?: string | null;
+                /**
+                 * Helps classify the type of footnote.
+                 */
+                type?: ('citation' | 'source' | 'clarification' | 'editorial' | 'legal') | null;
+                /**
+                 * Optional screen-reader label for this footnote.
+                 */
+                ariaLabel?: string | null;
+                /**
+                 * Internal editorial notes (not shown publicly).
+                 */
+                internalNotes?: string | null;
                 id?: string | null;
               }[]
             | null;
+          /**
+           * Controls how footnotes are rendered in the frontend.
+           */
+          displayStyle?: ('list' | 'paragraphs') | null;
+          /**
+           * Show “Back to reference” links in footnotes.
+           */
+          showBackLinks?: boolean | null;
+          /**
+           * Optional internal identifier for analytics or testing.
+           */
+          internalId?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'footnotes';
         }
       | {
+          /**
+           * Select an existing poll to embed inside this article.
+           */
           poll: number | Poll;
+          /**
+           * Display poll results immediately after voting.
+           */
           showResultsInline?: boolean | null;
+          /**
+           * Allow users to change their vote after submission.
+           */
+          allowVoteChange?: boolean | null;
+          /**
+           * Optional headline displayed above the poll.
+           */
+          headline?: string | null;
+          /**
+           * Optional context explaining why this poll is being asked.
+           */
+          description?: string | null;
+          /**
+           * Control who can see and vote in this poll.
+           */
+          visibility?: ('public' | 'authenticated' | 'plus') | null;
+          /**
+           * Optional analytics identifier for engagement tracking.
+           */
+          trackingId?: string | null;
+          /**
+           * Optional screen-reader label for the poll.
+           */
+          ariaLabel?: string | null;
+          /**
+           * Internal editorial notes (not shown publicly).
+           */
+          internalNotes?: string | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'interactivePoll';
         }
     )[];
+    /**
+     * Optional structured fields used for summaries, previews, and feeds.
+     */
+    spotlightFramework?: {
+      origin?: string | null;
+      work?: string | null;
+      vision?: string | null;
+      alignment?: string | null;
+    };
+    /**
+     * Images or videos associated with this Creator Spotlight.
+     */
     mediaAssets?:
       | {
           type: 'image' | 'video';
-          file?: (number | null) | Media;
+          file: number | Media;
           caption?: string | null;
           credit?: string | null;
           id?: string | null;
         }[]
       | null;
+    /**
+     * Link to the primary creator profile if available.
+     */
+    relatedCreator?: (number | null) | Profile;
+    /**
+     * Optional excerpt used in feeds and search results.
+     */
+    excerpt?: string | null;
+    /**
+     * Prevent this spotlight from appearing in search.
+     */
+    excludeFromSearch?: boolean | null;
   };
   updatedAt: string;
   createdAt: string;
@@ -3705,33 +13378,93 @@ export interface Podcast {
   editors?: (number | Profile)[] | null;
   guests?: (number | Profile)[] | null;
   episodes?: (number | PodcastEpisode)[] | null;
+  /**
+   * Optional video or vodcast version of this podcast (studio recording, simulcast, or companion video)
+   */
+  vod?: (number | null) | Vod;
   playlists?: (number | Playlist)[] | null;
   category?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   followersCount?: number | null;
   playsCount?: number | null;
@@ -3784,6 +13517,10 @@ export interface PodcastEpisode {
   hosts?: (number | Profile)[] | null;
   guests?: (number | Profile)[] | null;
   producers?: (number | Profile)[] | null;
+  /**
+   * Optional video or vodcast version of this episode (studio recording, simulcast, or companion video)
+   */
+  vod?: (number | null) | Vod;
   runtimeMinutes?: number | null;
   genre?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
@@ -3818,29 +13555,85 @@ export interface PodcastEpisode {
     | null;
   playlists?: (number | Playlist)[] | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   plays?: number | null;
   likes?: number | null;
@@ -3890,42 +13683,18 @@ export interface Vod {
   } | null;
   publishedDate?: string | null;
   videoProvider: 'cloudflare' | 's3' | 'external';
-  /**
-   * Cloudflare Stream UID
-   */
   cloudflareVideoId?: string | null;
-  /**
-   * Cloudflare playback URL (HLS/DASH)
-   */
   cloudflarePlaybackUrl?: string | null;
-  /**
-   * Upload MP4 / WEBM file
-   */
   s3VideoFile?: (number | null) | Media;
-  /**
-   * YouTube, Vimeo, or direct URL
-   */
   externalUrl?: string | null;
   thumbnail?: (number | null) | Media;
   bannerImage?: (number | null) | Media;
   stillImages?: (number | Media)[] | null;
-  /**
-   * Optional HEX theme color
-   */
   brandColor?: string | null;
   hosts?: (number | Profile)[] | null;
   guests?: (number | Profile)[] | null;
-  /**
-   * Directors, producers, editors, creators
-   */
   creators?: (number | Profile)[] | null;
-  /**
-   * Optional grouping to TV or Radio shows
-   */
   relatedShows?: (number | Show)[] | null;
-  /**
-   * Optional — if this VOD belongs with specific episodes
-   */
   relatedEpisodes?: (number | Episode)[] | null;
   runtimeMinutes?: number | null;
   contentRating?: ('G' | 'PG' | 'PG-13' | 'TV-MA') | null;
@@ -3967,43 +13736,93 @@ export interface Vod {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Group VOD items into curated playlists
-   */
   collections?:
     | {
         title: string;
-        /**
-         * Add other VOD videos to this collection
-         */
         items?: (number | Vod)[] | null;
         id?: string | null;
       }[]
     | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   views?: number | null;
   likes?: number | null;
@@ -4021,9 +13840,6 @@ export interface Vod {
 export interface Track {
   id: number;
   title: string;
-  /**
-   * Auto-generated if empty
-   */
   slug?: string | null;
   status?: ('released' | 'unreleased' | 'preview' | 'blocked') | null;
   description?: string | null;
@@ -4040,15 +13856,9 @@ export interface Track {
   runtime?: string | null;
   bpm?: number | null;
   key?: string | null;
-  /**
-   * International Standard Recording Code
-   */
   isrc?: string | null;
   genre?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
-  /**
-   * Optional lyrics or timed captions
-   */
   lyrics?: {
     root: {
       type: string;
@@ -4065,35 +13875,88 @@ export interface Track {
     [k: string]: unknown;
   } | null;
   coverArt?: (number | null) | Media;
-  /**
-   * Optional visualizer loop
-   */
   videoVisual?: (number | null) | Media;
   playlists?: (number | Playlist)[] | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   streams?: number | null;
   likes?: number | null;
@@ -4148,29 +14011,85 @@ export interface Album {
   tags?: (number | Tag)[] | null;
   playlists?: (number | Playlist)[] | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   streams?: number | null;
   likes?: number | null;
@@ -4211,21 +14130,9 @@ export interface Film {
     [k: string]: unknown;
   } | null;
   videoProvider: 'cloudflare' | 's3' | 'external';
-  /**
-   * Cloudflare video UID
-   */
   cloudflareVideoId?: string | null;
-  /**
-   * HLS/DASH playback URL
-   */
   cloudflarePlaybackUrl?: string | null;
-  /**
-   * Upload MP4 or WEBM
-   */
   s3VideoFile?: (number | null) | Media;
-  /**
-   * YouTube, Vimeo, or custom stream URL
-   */
   externalUrl?: string | null;
   poster?: (number | null) | Media;
   bannerImage?: (number | null) | Media;
@@ -4283,29 +14190,85 @@ export interface Film {
       }[]
     | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   views?: number | null;
   likes?: number | null;
@@ -4419,6 +14382,7 @@ export interface Event {
    */
   slug?: string | null;
   status?: ('draft' | 'published' | 'cancelled' | 'completed') | null;
+  visibility?: ('public' | 'unlisted' | 'private') | null;
   eventType:
     | 'live-show'
     | 'festival'
@@ -4487,29 +14451,85 @@ export interface Event {
   category?: (number | null) | Category;
   tags?: (number | Tag)[] | null;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   views?: number | null;
   clicks?: number | null;
@@ -4666,29 +14686,85 @@ export interface CreatorChannel {
   announcements?: (number | ChannelAnnouncement)[] | null;
   seo?: {
     /**
-     * Search Engine Optimization & social media metadata.
+     * Search engine, social sharing, and discovery metadata.
      */
     seo?: {
       /**
-       * Custom SEO title
+       * Custom SEO title (50–60 characters recommended).
        */
       title?: string | null;
       /**
-       * SEO description (160 chars recommended)
+       * SEO meta description (140–160 characters recommended).
        */
       description?: string | null;
       /**
-       * Comma-separated (R&B, Gospel, Radio, TV)
+       * Comma-separated keywords (used for internal search & legacy SEO).
        */
       keywords?: string | null;
       /**
-       * Facebook/Twitter share image (Open Graph)
+       * Canonical URL to prevent duplicate content issues.
        */
-      ogImage?: (number | null) | Media;
+      canonicalUrl?: string | null;
       /**
-       * Hide this page from search engines
+       * Prevent search engines from indexing this page.
        */
       noIndex?: boolean | null;
+      /**
+       * Prevent search engines from following links on this page.
+       */
+      noFollow?: boolean | null;
+      /**
+       * Metadata used by Facebook, LinkedIn, and most social platforms.
+       */
+      openGraph?: {
+        /**
+         * Override Open Graph title (falls back to SEO title).
+         */
+        ogTitle?: string | null;
+        /**
+         * Override Open Graph description.
+         */
+        ogDescription?: string | null;
+        /**
+         * Social share image (1200×630 recommended).
+         */
+        ogImage?: (number | null) | Media;
+        ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+      };
+      /**
+       * Metadata used for Twitter / X cards.
+       */
+      twitter?: {
+        cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+        twitterTitle?: string | null;
+        twitterDescription?: string | null;
+        twitterImage?: (number | null) | Media;
+      };
+      /**
+       * Optional JSON-LD structured data (Schema.org).
+       */
+      structuredData?:
+        | {
+            [k: string]: unknown;
+          }
+        | unknown[]
+        | string
+        | number
+        | boolean
+        | null;
+      /**
+       * Controls for internal discovery, AI indexing, and feeds.
+       */
+      platformControls?: {
+        /**
+         * Hide from internal platform search and discovery.
+         */
+        excludeFromInternalSearch?: boolean | null;
+        /**
+         * Prevent this item from being used in recommendation engines.
+         */
+        excludeFromRecommendations?: boolean | null;
+      };
     };
   };
   createdBy?: (number | null) | User;
@@ -4704,6 +14780,9 @@ export interface CreatorTier {
   id: number;
   creator: number | Profile;
   name: string;
+  /**
+   * Public URL identifier
+   */
   slug?: string | null;
   status?: ('active' | 'hidden' | 'archived') | null;
   price: number;
@@ -4712,6 +14791,11 @@ export interface CreatorTier {
   description?: string | null;
   benefits?: (number | CreatorTierBenefit)[] | null;
   mediaPreview?: (number | null) | Media;
+  stripeProductId?: string | null;
+  stripePriceId?: string | null;
+  /**
+   * Internal flags, analytics tags, experiments
+   */
   metadata?:
     | {
         [k: string]: unknown;
@@ -4733,9 +14817,13 @@ export interface CreatorTierBenefit {
   title: string;
   description?: string | null;
   /**
-   * Optional—badge shown in chats/comments.
+   * Optional — badge shown in chats, comments, or profiles.
    */
   badgeIcon?: (number | null) | Media;
+  /**
+   * Internal-only benefit (not shown publicly)
+   */
+  internal?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4745,9 +14833,21 @@ export interface CreatorTierBenefit {
  */
 export interface ChannelModerator {
   id: number;
+  /**
+   * Channel this moderator is assigned to
+   */
   channel: number | CreatorChannel;
+  /**
+   * User being granted moderation permissions
+   */
   user: number | Profile;
+  /**
+   * High-level role. Fine-grained permissions are defined below.
+   */
   role: 'manager' | 'editor' | 'moderator';
+  /**
+   * Fine-grained overrides (optional). Managed by staff or system only.
+   */
   permissions?:
     | {
         [k: string]: unknown;
@@ -4757,6 +14857,8 @@ export interface ChannelModerator {
     | number
     | boolean
     | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -4766,8 +14868,14 @@ export interface ChannelModerator {
  */
 export interface ChannelAnnouncement {
   id: number;
+  /**
+   * Channel this announcement belongs to
+   */
   channel: number | CreatorChannel;
   title: string;
+  /**
+   * Announcement content (immutable once published)
+   */
   body: {
     root: {
       type: string;
@@ -4783,10 +14891,24 @@ export interface ChannelAnnouncement {
     };
     [k: string]: unknown;
   };
+  /**
+   * Audience gate for this announcement. Tiered access is staff-controlled.
+   */
   visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  /**
+   * Which tiers may see this announcement
+   */
   allowedTiers?: (number | CreatorTier)[] | null;
+  /**
+   * Pinned announcements appear prominently in channel views.
+   */
   pinned?: boolean | null;
+  /**
+   * Optional expiration. Announcement will be hidden after this date.
+   */
   expiresAt?: string | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -4797,15 +14919,21 @@ export interface ChannelAnnouncement {
 export interface Review {
   id: number;
   title: string;
+  /**
+   * User rating (1–5).
+   */
   rating: number;
   /**
-   * Optional critic rating (weighted)
+   * Optional editorial/critic rating.
    */
   criticRating?: number | null;
   /**
-   * Mark review as containing spoilers
+   * Mark review as containing spoilers.
    */
   spoiler?: boolean | null;
+  /**
+   * Full review text.
+   */
   body?: {
     root: {
       type: string;
@@ -4822,7 +14950,7 @@ export interface Review {
     [k: string]: unknown;
   } | null;
   /**
-   * Internal-only editorial notes for moderation.
+   * Internal moderation or editorial notes.
    */
   editorNotes?: {
     root: {
@@ -4839,6 +14967,9 @@ export interface Review {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * Moderation status.
+   */
   status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
   reviewer: number | Profile;
   mediaType:
@@ -4888,147 +15019,14 @@ export interface Review {
         relationTo: 'articles';
         value: number | Article;
       };
-  reactions?: (number | ReviewReaction)[] | null;
-  comments?: (number | Comment)[] | null;
-  /**
-   * AI toxicity score (0-1).
-   */
   toxicityScore?: number | null;
-  /**
-   * Automatically flagged if toxicity is high.
-   */
   isToxic?: boolean | null;
+  /**
+   * Optional excerpt for feeds/search.
+   */
+  excerpt?: string | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "review-reactions".
- */
-export interface ReviewReaction {
-  id: number;
-  reaction: number | Reaction;
-  review: number | Review;
-  user: number | Profile;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "reactions".
- */
-export interface Reaction {
-  id: number;
-  label: string;
-  /**
-   * Emoji to display (🔥, 💯, 😂, ❤️, 👎)
-   */
-  emoji: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "comments".
- */
-export interface Comment {
-  id: number;
-  author: number | Profile;
-  body: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
-  /**
-   * Threaded comment support
-   */
-  parent?: (number | null) | Comment;
-  mediaType:
-    | 'tracks'
-    | 'albums'
-    | 'podcasts'
-    | 'podcast-episodes'
-    | 'vod'
-    | 'films'
-    | 'shows'
-    | 'episodes'
-    | 'articles'
-    | 'reviews';
-  mediaItem:
-    | {
-        relationTo: 'tracks';
-        value: number | Track;
-      }
-    | {
-        relationTo: 'albums';
-        value: number | Album;
-      }
-    | {
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      }
-    | {
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      }
-    | {
-        relationTo: 'vod';
-        value: number | Vod;
-      }
-    | {
-        relationTo: 'films';
-        value: number | Film;
-      }
-    | {
-        relationTo: 'shows';
-        value: number | Show;
-      }
-    | {
-        relationTo: 'episodes';
-        value: number | Episode;
-      }
-    | {
-        relationTo: 'articles';
-        value: number | Article;
-      }
-    | {
-        relationTo: 'reviews';
-        value: number | Review;
-      };
-  reactions?: (number | CommentReaction)[] | null;
-  /**
-   * AI-generated toxicity score (0–1). Used for moderation.
-   */
-  toxicityScore?: number | null;
-  /**
-   * Automatically flagged when toxicity exceeds threshold.
-   */
-  isToxic?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "comment-reactions".
- */
-export interface CommentReaction {
-  id: number;
-  reaction: number | Reaction;
-  comment: number | Comment;
-  user: number | Profile;
   updatedAt: string;
   createdAt: string;
 }
@@ -5041,11 +15039,14 @@ export interface CreatorSubscription {
   creator: number | Profile;
   subscriber: number | Profile;
   tier: number | CreatorTier;
-  status?: ('active' | 'canceled' | 'paused' | 'past_due') | null;
+  status?: ('active' | 'paused' | 'past_due' | 'canceled') | null;
   startDate: string;
   endDate?: string | null;
   stripeSubscriptionId?: string | null;
   renewalAttempts?: number | null;
+  /**
+   * Internal flags, entitlement cache, analytics
+   */
   metadata?:
     | {
         [k: string]: unknown;
@@ -5137,16 +15138,34 @@ export interface ContentSubscription {
 export interface SubscriptionPlan {
   id: number;
   name: string;
+  /**
+   * Used for routing and entitlement lookup
+   */
   slug?: string | null;
   interval: 'monthly' | 'yearly';
+  /**
+   * Display price (not authoritative billing source)
+   */
   price: number;
+  status?: ('active' | 'hidden' | 'archived') | null;
+  /**
+   * Shown on pricing & upgrade screens
+   */
   benefits?:
     | {
-        text?: string | null;
+        text: string;
         id?: string | null;
       }[]
     | null;
-  status?: ('active' | 'hidden' | 'archived') | null;
+  /**
+   * Feature flags unlocked by this plan (e.g. plus_video, uploads, host_tools)
+   */
+  entitlements?:
+    | {
+        key: string;
+        id?: string | null;
+      }[]
+    | null;
   stripeProductId?: string | null;
   stripePriceId?: string | null;
   updatedAt: string;
@@ -5160,16 +15179,37 @@ export interface CreatorEarning {
   id: number;
   creator: number | Profile;
   /**
-   * Format: 2025-03
+   * Ledger month (YYYY-MM)
    */
-  month?: string | null;
+  month: string;
   currency?: string | null;
+  /**
+   * Total gross revenue before fees
+   */
   gross?: number | null;
+  /**
+   * WaveNation platform fee
+   */
   platformFee?: number | null;
+  /**
+   * Payment processor fees
+   */
   processingFee?: number | null;
+  /**
+   * Net earnings after fees
+   */
   net?: number | null;
+  /**
+   * Whether this earnings period has been paid out
+   */
   payoutStatus?: ('pending' | 'paid' | 'held') | null;
+  /**
+   * Linked payout record (if paid)
+   */
   payout?: (number | null) | CreatorPayout;
+  /**
+   * Aggregation details, source events, reconciliation data
+   */
   metadata?:
     | {
         [k: string]: unknown;
@@ -5189,12 +15229,27 @@ export interface CreatorEarning {
 export interface CreatorPayout {
   id: number;
   creator: number | Profile;
+  /**
+   * External payout reference (Stripe, Wise, PayPal, etc.)
+   */
   payoutReference?: string | null;
-  amount?: number | null;
+  amount: number;
   currency?: string | null;
+  /**
+   * Lifecycle state of this payout
+   */
   status?: ('processing' | 'paid' | 'failed' | 'reversed') | null;
+  /**
+   * Date funds were sent
+   */
   payoutDate?: string | null;
+  /**
+   * Internal accounting notes (never user-visible)
+   */
   notes?: string | null;
+  /**
+   * Provider payloads, batch IDs, reconciliation data
+   */
   metadata?:
     | {
         [k: string]: unknown;
@@ -5389,7 +15444,7 @@ export interface EventCheckin {
   checkedInAt: string;
   method: 'qr' | 'barcode' | 'manual' | 'kiosk' | 'rfid';
   /**
-   * Device used for scan (scanner ID or kiosk ID).
+   * Scanner ID, kiosk ID, or device fingerprint.
    */
   device?: string | null;
   /**
@@ -5399,7 +15454,7 @@ export interface EventCheckin {
   latitude?: number | null;
   longitude?: number | null;
   /**
-   * Marked false if duplicate scan or invalid ticket.
+   * False if duplicate scan, expired pass, wrong event, or fraud.
    */
   valid?: boolean | null;
   notes?: string | null;
@@ -5427,9 +15482,6 @@ export interface Inbox {
   isRead?: boolean | null;
   isArchived?: boolean | null;
   priority?: ('high' | 'normal' | 'low') | null;
-  /**
-   * User who triggered this inbox item
-   */
   actor?: (number | null) | Profile;
   message?: (number | null) | Message;
   threadReply?: (number | null) | Message;
@@ -5463,76 +15515,7 @@ export interface Inbox {
         relationTo: 'comment-reactions';
         value: number | CommentReaction;
       } | null);
-  /**
-   * Optional — attach media for quick navigation
-   */
-  mediaType?:
-    | (
-        | 'tracks'
-        | 'albums'
-        | 'podcasts'
-        | 'podcast-episodes'
-        | 'shows'
-        | 'episodes'
-        | 'films'
-        | 'vod'
-        | 'articles'
-        | 'playlists'
-        | 'charts'
-      )
-    | null;
-  mediaItem?:
-    | ({
-        relationTo: 'tracks';
-        value: number | Track;
-      } | null)
-    | ({
-        relationTo: 'albums';
-        value: number | Album;
-      } | null)
-    | ({
-        relationTo: 'podcasts';
-        value: number | Podcast;
-      } | null)
-    | ({
-        relationTo: 'podcast-episodes';
-        value: number | PodcastEpisode;
-      } | null)
-    | ({
-        relationTo: 'shows';
-        value: number | Show;
-      } | null)
-    | ({
-        relationTo: 'episodes';
-        value: number | Episode;
-      } | null)
-    | ({
-        relationTo: 'films';
-        value: number | Film;
-      } | null)
-    | ({
-        relationTo: 'vod';
-        value: number | Vod;
-      } | null)
-    | ({
-        relationTo: 'articles';
-        value: number | Article;
-      } | null)
-    | ({
-        relationTo: 'playlists';
-        value: number | Playlist;
-      } | null)
-    | ({
-        relationTo: 'charts';
-        value: number | Chart;
-      } | null);
-  /**
-   * Short text preview displayed in Inbox UI.
-   */
   previewText?: string | null;
-  /**
-   * AI toxicity score for moderation UI
-   */
   toxicityScore?: number | null;
   isToxic?: boolean | null;
   createdBy?: (number | null) | User;
@@ -5548,32 +15531,13 @@ export interface Message {
   id: number;
   sender: number | Profile;
   chat: number | Chat;
-  /**
-   * Message content (optional if attachments exist)
-   */
-  text?: string | null;
-  /**
-   * Images, audio, video, files.
-   */
-  attachments?: (number | Media)[] | null;
-  /**
-   * Threaded replies (optional)
-   */
   replyTo?: (number | null) | Message;
+  text?: string | null;
+  attachments?: (number | Media)[] | null;
   status?: ('sent' | 'delivered' | 'read' | 'failed') | null;
-  /**
-   * Profiles who have read this message
-   */
   readBy?: (number | Profile)[] | null;
-  reactions?: (number | MessageReaction)[] | null;
-  /**
-   * AI toxicity score (0–1)
-   */
   toxicityScore?: number | null;
   isToxic?: boolean | null;
-  /**
-   * Moderation flag
-   */
   isFlagged?: boolean | null;
   createdBy?: (number | null) | User;
   updatedAt: string;
@@ -5596,31 +15560,18 @@ export interface Chat {
   lastActivity?: string | null;
   mutedBy?: (number | Profile)[] | null;
   /**
-   * Admins can lock chat from further messages.
+   * Prevent further messages.
    */
   isLocked?: boolean | null;
   /**
-   * Restrict chat to specific roles (optional)
+   * Restrict chat to specific roles (optional).
    */
   allowedRoles?: ('creator' | 'pro' | 'industry' | 'host' | 'editor' | 'dj' | 'admin')[] | null;
   pinnedMessages?: (number | Message)[] | null;
-  reactions?: (number | Reaction)[] | null;
   description?: string | null;
   bannerImage?: (number | null) | Media;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "message-reactions".
- */
-export interface MessageReaction {
-  id: number;
-  reaction: number | Reaction;
-  message: number | Message;
-  user: number | Profile;
   updatedAt: string;
   createdAt: string;
 }
@@ -5740,15 +15691,15 @@ export interface Notification {
         value: number | Chart;
       } | null);
   /**
-   * Button label, e.g., 'View', 'Open Now', 'Reply'.
+   * Button label, e.g. 'View', 'Reply'.
    */
   ctaLabel?: string | null;
   /**
-   * Where the user is taken when clicking the CTA.
+   * Destination URL when CTA is clicked.
    */
   ctaUrl?: string | null;
   /**
-   * Any custom data passed to the frontend (JSON).
+   * Custom data passed to the frontend.
    */
   metadata?:
     | {
@@ -5766,6 +15717,152 @@ export interface Notification {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments".
+ */
+export interface Comment {
+  id: number;
+  author: number | Profile;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  status?: ('approved' | 'pending' | 'flagged' | 'removed') | null;
+  /**
+   * Threaded comment support
+   */
+  parent?: (number | null) | Comment;
+  mediaType:
+    | 'tracks'
+    | 'albums'
+    | 'podcasts'
+    | 'podcast-episodes'
+    | 'vod'
+    | 'films'
+    | 'shows'
+    | 'episodes'
+    | 'articles'
+    | 'reviews';
+  mediaItem:
+    | {
+        relationTo: 'tracks';
+        value: number | Track;
+      }
+    | {
+        relationTo: 'albums';
+        value: number | Album;
+      }
+    | {
+        relationTo: 'podcasts';
+        value: number | Podcast;
+      }
+    | {
+        relationTo: 'podcast-episodes';
+        value: number | PodcastEpisode;
+      }
+    | {
+        relationTo: 'vod';
+        value: number | Vod;
+      }
+    | {
+        relationTo: 'films';
+        value: number | Film;
+      }
+    | {
+        relationTo: 'shows';
+        value: number | Show;
+      }
+    | {
+        relationTo: 'episodes';
+        value: number | Episode;
+      }
+    | {
+        relationTo: 'articles';
+        value: number | Article;
+      }
+    | {
+        relationTo: 'reviews';
+        value: number | Review;
+      };
+  reactions?: (number | CommentReaction)[] | null;
+  /**
+   * AI-generated toxicity score (0–1).
+   */
+  toxicityScore?: number | null;
+  /**
+   * Automatically flagged when toxicity exceeds threshold.
+   */
+  isToxic?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comment-reactions".
+ */
+export interface CommentReaction {
+  id: number;
+  reaction: number | Reaction;
+  comment: number | Comment;
+  user: number | Profile;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions".
+ */
+export interface Reaction {
+  id: number;
+  /**
+   * Internal name (e.g. Like, Love, Laugh).
+   */
+  label: string;
+  /**
+   * Emoji to display (🔥, 💯, 😂, ❤️, 👎).
+   */
+  emoji: string;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-reactions".
+ */
+export interface ReviewReaction {
+  id: number;
+  reaction: number | Reaction;
+  review: number | Review;
+  user: number | Profile;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "message-reactions".
+ */
+export interface MessageReaction {
+  id: number;
+  reaction: number | Reaction;
+  message: number | Message;
+  user: number | Profile;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "mentions".
  */
 export interface Mention {
@@ -5773,9 +15870,6 @@ export interface Mention {
   mentionedUser: number | Profile;
   actor: number | Profile;
   sourceType: 'message' | 'comment' | 'review' | 'article' | 'system';
-  /**
-   * The exact item where the mention happened.
-   */
   sourceItem:
     | {
         relationTo: 'messages';
@@ -5793,9 +15887,6 @@ export interface Mention {
         relationTo: 'articles';
         value: number | Article;
       };
-  /**
-   * Optional — mention refers to a specific media item.
-   */
   mediaType?:
     | (
         | 'tracks'
@@ -5811,9 +15902,6 @@ export interface Mention {
         | 'charts'
       )
     | null;
-  /**
-   * Optional media item referenced by the mention.
-   */
   mediaItem?:
     | ({
         relationTo: 'tracks';
@@ -5859,26 +15947,11 @@ export interface Mention {
         relationTo: 'charts';
         value: number | Chart;
       } | null);
-  /**
-   * Excerpt of the message/comment/review where the mention appears.
-   */
   previewText?: string | null;
-  /**
-   * Notification tied to this mention.
-   */
   notification?: (number | null) | Notification;
-  /**
-   * Inbox entry representing this mention.
-   */
   inboxEntry?: (number | null) | Inbox;
-  /**
-   * AI-estimated toxicity score (0–1).
-   */
   toxicityScore?: number | null;
   isToxic?: boolean | null;
-  /**
-   * Flag this mention for moderation.
-   */
   isFlagged?: boolean | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
@@ -5905,15 +15978,15 @@ export interface NotificationRule {
     | 'system.alert';
   sendTo?: ('all' | 'followers' | 'owner' | 'participants' | 'admins')[] | null;
   /**
-   * Optional manual recipients
+   * Optional manual recipients.
    */
   additionalRecipients?: (number | Profile)[] | null;
   /**
-   * Use {{variables}} from event.
+   * Supports {{variables}} from event payload.
    */
   titleTemplate?: string | null;
   /**
-   * Dynamic message body.
+   * Dynamic notification message body.
    */
   messageTemplate?: string | null;
   ctaLabelTemplate?: string | null;
@@ -5938,6 +16011,197 @@ export interface NotificationRule {
       )
     | null;
   status?: ('active' | 'paused') | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Internal media variants generated by the system. Do not edit unless regenerating assets.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-variants".
+ */
+export interface MediaVariant {
+  id: number;
+  /**
+   * Original media item this variant belongs to.
+   */
+  parent: number | Media;
+  /**
+   * Variant label (e.g. thumbnail, square, landscape).
+   */
+  label: string;
+  /**
+   * Media type of this variant.
+   */
+  type: 'image' | 'video' | 'audio';
+  /**
+   * Generated or uploaded media variant.
+   */
+  variant: number | Media;
+  /**
+   * Indicates whether this variant was auto-generated.
+   */
+  generatedBy?: ('system' | 'manual') | null;
+  /**
+   * Internal notes (regeneration, fixes, etc.).
+   */
+  notes?: string | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-tags".
+ */
+export interface MediaTag {
+  id: number;
+  /**
+   * Human-readable tag name (e.g. "Concert Photography")
+   */
+  label: string;
+  /**
+   * System value (auto-generated, URL-safe)
+   */
+  value: string;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-albums".
+ */
+export interface MediaAlbum {
+  id: number;
+  title: string;
+  description?: string | null;
+  items?:
+    | {
+        media: number | Media;
+        caption?: string | null;
+        attribution?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Controls public API visibility. Private albums require authentication.
+   */
+  visibility: 'public' | 'unlisted' | 'private';
+  /**
+   * Archive instead of deleting to preserve references.
+   */
+  status: 'active' | 'archived';
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photos".
+ */
+export interface Photo {
+  id: number;
+  title: string;
+  image: number | Media;
+  caption?: string | null;
+  /**
+   * Accessibility alt text (recommended).
+   */
+  alt?: string | null;
+  attribution?: string | null;
+  visibility: 'public' | 'unlisted' | 'private';
+  status: 'active' | 'archived';
+  /**
+   * Media folder slug (UI-only, non-relational)
+   */
+  folderSlug?: string | null;
+  /**
+   * Media tag slugs (UI-only, non-relational)
+   */
+  tagSlugs?: string[] | null;
+  /**
+   * Media album slug (UI-only, non-relational)
+   */
+  albumSlug?: string | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-galleries".
+ */
+export interface PhotoGallery {
+  id: number;
+  title: string;
+  description?: string | null;
+  /**
+   * Controls frontend visibility. Private galleries require authentication.
+   */
+  visibility: 'public' | 'unlisted' | 'private';
+  /**
+   * Archive instead of deleting to preserve references.
+   */
+  status: 'active' | 'archived';
+  photos?:
+    | {
+        photo: number | Photo;
+        /**
+         * Optional caption override for this gallery.
+         */
+        caption?: string | null;
+        /**
+         * Optional attribution override.
+         */
+        attribution?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "video-galleries".
+ */
+export interface VideoGallery {
+  id: number;
+  title: string;
+  description?: string | null;
+  /**
+   * Controls frontend visibility. Private galleries require authentication.
+   */
+  visibility: 'public' | 'unlisted' | 'private';
+  /**
+   * Archive instead of deleting to preserve references.
+   */
+  status: 'active' | 'archived';
+  videos?:
+    | {
+        /**
+         * Video media asset. Must respect visibility rules of the gallery.
+         */
+        video: number | Media;
+        /**
+         * Optional caption override for this gallery.
+         */
+        caption?: string | null;
+        /**
+         * Optional attribution override.
+         */
+        attribution?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -5983,7 +16247,7 @@ export interface Epg {
   manualDescription?: string | null;
   manualThumbnail?: (number | null) | Media;
   /**
-   * Internal or display title
+   * Display title (auto-filled for linked content if empty)
    */
   title: string;
   subtitle?: string | null;
@@ -6000,6 +16264,14 @@ export interface Epg {
     frequency?: ('none' | 'daily' | 'weekly' | 'monthly') | null;
     daysOfWeek?: ('sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat')[] | null;
   };
+  /**
+   * Lower numbers appear earlier in the grid
+   */
+  sortOrder?: number | null;
+  /**
+   * Disable to temporarily hide from live EPG
+   */
+  active?: boolean | null;
   metadata?:
     | {
         [k: string]: unknown;
@@ -6009,6 +16281,8 @@ export interface Epg {
     | number
     | boolean
     | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -6018,17 +16292,47 @@ export interface Epg {
  */
 export interface ChannelLivestream {
   id: number;
+  /**
+   * Channel this livestream belongs to
+   */
   channel: number | CreatorChannel;
   title: string;
   description?: string | null;
+  /**
+   * Livestream visibility gate. Tiered access is staff-controlled.
+   */
   visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  /**
+   * Which tiers may access this livestream
+   */
   allowedTiers?: (number | CreatorTier)[] | null;
+  /**
+   * Planned start time
+   */
   scheduledStart?: string | null;
+  /**
+   * Planned end time
+   */
   scheduledEnd?: string | null;
+  /**
+   * Lifecycle state. Controlled by staff, system, or streaming workers.
+   */
   streamState?: ('scheduled' | 'live' | 'ended' | 'canceled') | null;
+  /**
+   * Ingest or playback URL (RTMP/HLS/DASH). Set by system or staff.
+   */
   streamUrl?: string | null;
+  /**
+   * Post-live DVR or VOD URL. Set automatically after stream ends.
+   */
   dvrPlaybackUrl?: string | null;
+  /**
+   * Enable or disable live chat
+   */
   chatEnabled?: boolean | null;
+  /**
+   * Archived chat messages or transcripts
+   */
   liveChatArchive?: (number | ChatMedia)[] | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
@@ -6081,10 +16385,19 @@ export interface ChatMedia {
  */
 export interface ChannelPost {
   id: number;
+  /**
+   * Channel this post belongs to
+   */
   channel: number | CreatorChannel;
-  title?: string | null;
+  title: string;
   postType: 'text' | 'image' | 'video' | 'audio' | 'gallery' | 'embed' | 'poll' | 'announcement';
+  /**
+   * Controls who can see this post. Tiered access is staff-controlled.
+   */
   visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  /**
+   * Tiers allowed to view this post
+   */
   allowedTiers?: (number | CreatorTier)[] | null;
   content?: {
     root: {
@@ -6110,7 +16423,7 @@ export interface ChannelPost {
   embed?: string | null;
   pollOptions?:
     | {
-        option?: string | null;
+        option: string;
         votes?: number | null;
         id?: string | null;
       }[]
@@ -6131,11 +16444,26 @@ export interface ChannelPost {
  */
 export interface ChannelMedia {
   id: number;
+  /**
+   * Channel this media belongs to
+   */
   channel: number | CreatorChannel;
+  /**
+   * User who uploaded this media
+   */
   uploader: number | Profile;
   description?: string | null;
+  /**
+   * Media visibility gate. Tiered access is staff-controlled.
+   */
   visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  /**
+   * Which tiers may access this media
+   */
   allowedTiers?: (number | CreatorTier)[] | null;
+  /**
+   * Read-only technical metadata (duration, codec, dimensions, etc.)
+   */
   metadata?:
     | {
         [k: string]: unknown;
@@ -6145,6 +16473,8 @@ export interface ChannelMedia {
     | number
     | boolean
     | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -6173,14 +16503,37 @@ export interface ChannelMedia {
  */
 export interface ChannelComment {
   id: number;
+  /**
+   * Post this comment belongs to
+   */
   post: number | ChannelPost;
+  /**
+   * User who wrote the comment
+   */
   user: number | Profile;
+  /**
+   * Comment text (immutable)
+   */
   body: string;
+  /**
+   * Parent comment (for threaded replies)
+   */
   parent?: (number | null) | ChannelComment;
+  /**
+   * Replies (computed / linked)
+   */
   replies?: (number | ChannelComment)[] | null;
   reactions?: (number | ChannelReaction)[] | null;
+  /**
+   * Flagged by moderation system
+   */
   isToxic?: boolean | null;
+  /**
+   * 0–1 score from moderation model
+   */
   toxicityScore?: number | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -6190,8 +16543,17 @@ export interface ChannelComment {
  */
 export interface ChannelReaction {
   id: number;
+  /**
+   * Reaction target (post)
+   */
   post?: (number | null) | ChannelPost;
+  /**
+   * Reaction target (comment)
+   */
   comment?: (number | null) | ChannelComment;
+  /**
+   * User who reacted
+   */
   user: number | Profile;
   reaction: '👍' | '🔥' | '💯' | '😂' | '😍' | '😢';
   updatedAt: string;
@@ -6211,6 +16573,30 @@ export interface ArtistSpotlight {
   extraInfo?: string | null;
   featuredArticle?: (number | null) | Article;
   featuredRelease?: (number | null) | Album;
+  /**
+   * Controls where this Artist Spotlight appears.
+   */
+  featureFlags?: {
+    isFeatured?: boolean | null;
+    featureOnHomepage?: boolean | null;
+    featureInMenu?: boolean | null;
+    featureOnArtistPage?: boolean | null;
+    featureInCarousel?: boolean | null;
+  };
+  featureBanner?: {
+    bannerImageOverride?: (number | null) | Media;
+    bannerHeadline?: string | null;
+    bannerSubheadline?: string | null;
+  };
+  featureSchedule?: {
+    featureStart?: string | null;
+    featureEnd?: string | null;
+  };
+  /**
+   * Lower numbers appear first (1 = highest).
+   */
+  featurePriority?: number | null;
+  featureNotes?: string | null;
   /**
    * Auto-generated from title if left blank.
    */
@@ -6261,13 +16647,13 @@ export interface GroupEvent {
     [k: string]: unknown;
   } | null;
   group: number | Group;
+  createdBy?: (number | null) | User;
   start: string;
   end?: string | null;
   /**
    * Online URL or physical address
    */
   location?: string | null;
-  createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -6344,6 +16730,9 @@ export interface TicketTransfer {
   fromUser: number | Profile;
   toUser: number | Profile;
   status?: ('pending' | 'completed' | 'failed') | null;
+  /**
+   * Optional note explaining the transfer.
+   */
   reason?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -6354,29 +16743,41 @@ export interface TicketTransfer {
  */
 export interface EventPromotion {
   id: number;
-  code: string;
-  status?: ('active' | 'expired' | 'disabled') | null;
-  discountType: 'percent' | 'amount' | 'free';
   /**
-   * Apply % or $ discount based on type.
+   * Internal campaign name (e.g. “Spring Festival Push – Week 1”).
    */
-  value?: number | null;
-  appliesToEvents?: (number | Event)[] | null;
-  appliesToTicketTypes?: (number | TicketType)[] | null;
-  appliesToGroups?: (number | Group)[] | null;
+  name: string;
   /**
-   * Optional influencer/creator code.
+   * Auto-generated if empty.
    */
-  affiliateCreator?: (number | null) | Profile;
-  maxUses?: number | null;
-  uses?: number | null;
-  limitPerUser?: number | null;
-  startDate?: string | null;
-  endDate?: string | null;
+  slug?: string | null;
   /**
-   * If false, code is hidden unless entered manually.
+   * Event this promotion is attached to.
    */
-  isPublic?: boolean | null;
+  event: number | Event;
+  status?: ('draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'cancelled') | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  channels?: ('homepage' | 'events-list' | 'push' | 'email' | 'social' | 'on-air' | 'paid-ads')[] | null;
+  placements?: ('hero' | 'featured' | 'sidebar' | 'inline' | 'footer')[] | null;
+  headline?: string | null;
+  subheadline?: string | null;
+  ctaLabel?: string | null;
+  creativeImage?: (number | null) | Media;
+  creativeVideo?: (number | null) | Media;
+  budget?: number | null;
+  spendToDate?: number | null;
+  currency?: ('USD' | 'EUR' | 'GBP') | null;
+  metrics?: {
+    impressions?: number | null;
+    clicks?: number | null;
+    conversions?: number | null;
+    /**
+     * 0–1 fraction
+     */
+    conversionRate?: number | null;
+  };
+  notes?: string | null;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
   updatedAt: string;
@@ -6404,7 +16805,7 @@ export interface EventBundle {
    */
   ticketTypes?: (number | TicketType)[] | null;
   /**
-   * Pass types associated with this bundle.
+   * Passes associated with this bundle.
    */
   passes?: (number | EventPass)[] | null;
   price: number;
@@ -6419,7 +16820,7 @@ export interface EventBundle {
   salesStart?: string | null;
   salesEnd?: string | null;
   /**
-   * Promo codes that apply to this bundle.
+   * Promotions that apply to this bundle.
    */
   promotions?: (number | EventPromotion)[] | null;
   isFeatured?: boolean | null;
@@ -6481,9 +16882,6 @@ export interface EventReport {
     | boolean
     | null;
   notes?: string | null;
-  /**
-   * Profile who triggered this report generation.
-   */
   generatedBy?: (number | null) | Profile;
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
@@ -6549,9 +16947,6 @@ export interface Product {
   slug?: string | null;
   status?: ('draft' | 'active' | 'archived') | null;
   brand?: string | null;
-  /**
-   * Product description using Lexical editor.
-   */
   description?: {
     root: {
       type: string;
@@ -6580,29 +16975,85 @@ export interface Product {
   images?: (number | Media)[] | null;
   videoPreview?: (number | null) | Media;
   /**
-   * Search Engine Optimization & social media metadata.
+   * Search engine, social sharing, and discovery metadata.
    */
   seo?: {
     /**
-     * Custom SEO title
+     * Custom SEO title (50–60 characters recommended).
      */
     title?: string | null;
     /**
-     * SEO description (160 chars recommended)
+     * SEO meta description (140–160 characters recommended).
      */
     description?: string | null;
     /**
-     * Comma-separated (R&B, Gospel, Radio, TV)
+     * Comma-separated keywords (used for internal search & legacy SEO).
      */
     keywords?: string | null;
     /**
-     * Facebook/Twitter share image (Open Graph)
+     * Canonical URL to prevent duplicate content issues.
      */
-    ogImage?: (number | null) | Media;
+    canonicalUrl?: string | null;
     /**
-     * Hide this page from search engines
+     * Prevent search engines from indexing this page.
      */
     noIndex?: boolean | null;
+    /**
+     * Prevent search engines from following links on this page.
+     */
+    noFollow?: boolean | null;
+    /**
+     * Metadata used by Facebook, LinkedIn, and most social platforms.
+     */
+    openGraph?: {
+      /**
+       * Override Open Graph title (falls back to SEO title).
+       */
+      ogTitle?: string | null;
+      /**
+       * Override Open Graph description.
+       */
+      ogDescription?: string | null;
+      /**
+       * Social share image (1200×630 recommended).
+       */
+      ogImage?: (number | null) | Media;
+      ogType?: ('website' | 'article' | 'video.other' | 'profile') | null;
+    };
+    /**
+     * Metadata used for Twitter / X cards.
+     */
+    twitter?: {
+      cardType?: ('summary' | 'summary_large_image' | 'player') | null;
+      twitterTitle?: string | null;
+      twitterDescription?: string | null;
+      twitterImage?: (number | null) | Media;
+    };
+    /**
+     * Optional JSON-LD structured data (Schema.org).
+     */
+    structuredData?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Controls for internal discovery, AI indexing, and feeds.
+     */
+    platformControls?: {
+      /**
+       * Hide from internal platform search and discovery.
+       */
+      excludeFromInternalSearch?: boolean | null;
+      /**
+       * Prevent this item from being used in recommendation engines.
+       */
+      excludeFromRecommendations?: boolean | null;
+    };
   };
   createdBy?: (number | null) | User;
   updatedBy?: (number | null) | User;
@@ -6622,8 +17073,8 @@ export interface ProductVariant {
   image?: (number | null) | Media;
   options?:
     | {
-        key?: string | null;
-        value?: string | null;
+        key: string;
+        value: string;
         id?: string | null;
       }[]
     | null;
@@ -6641,14 +17092,12 @@ export interface ProductVariant {
 export interface Cart {
   id: number;
   user?: (number | null) | Profile;
-  items?:
-    | {
-        product: number | Product;
-        variant?: (number | null) | ProductVariant;
-        quantity: number;
-        id?: string | null;
-      }[]
-    | null;
+  items: {
+    product: number | Product;
+    variant?: (number | null) | ProductVariant;
+    quantity: number;
+    id?: string | null;
+  }[];
   subtotal?: number | null;
   discounts?: number | null;
   total?: number | null;
@@ -6661,19 +17110,17 @@ export interface Cart {
  */
 export interface EcommerceOrder {
   id: number;
-  orderNumber?: string | null;
-  customer?: (number | null) | Profile;
+  orderNumber: string;
+  customer: number | Profile;
   status?: ('pending' | 'paid' | 'fulfilled' | 'cancelled' | 'refunded') | null;
-  items?:
-    | {
-        product?: (number | null) | Product;
-        variant?: (number | null) | ProductVariant;
-        quantity?: number | null;
-        price?: number | null;
-        total?: number | null;
-        id?: string | null;
-      }[]
-    | null;
+  items: {
+    product: number | Product;
+    variant?: (number | null) | ProductVariant;
+    quantity: number;
+    price: number;
+    total: number;
+    id?: string | null;
+  }[];
   subtotal?: number | null;
   shipping?: number | null;
   tax?: number | null;
@@ -6690,7 +17137,7 @@ export interface EcommerceOrder {
  */
 export interface ShippingAddress {
   id: number;
-  user?: (number | null) | Profile;
+  user: number | Profile;
   fullName: string;
   line1: string;
   line2?: string | null;
@@ -6708,11 +17155,14 @@ export interface ShippingAddress {
  */
 export interface PaymentRecord {
   id: number;
-  provider?: ('stripe' | 'paypal' | 'cashapp' | 'manual') | null;
+  provider: 'stripe' | 'paypal' | 'cashapp' | 'manual';
   providerId?: string | null;
-  status?: string | null;
-  amount?: number | null;
+  status: string;
+  amount: number;
   currency?: string | null;
+  /**
+   * Raw payment gateway payload (admin only).
+   */
   raw?:
     | {
         [k: string]: unknown;
@@ -6733,11 +17183,14 @@ export interface Subscription {
   id: number;
   user: number | Profile;
   plan: number | SubscriptionPlan;
-  status?: ('active' | 'trialing' | 'past_due' | 'canceled') | null;
+  status?: ('active' | 'trialing' | 'past_due' | 'paused' | 'canceled' | 'expired') | null;
   startDate?: string | null;
   endDate?: string | null;
+  stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   renewalAttempts?: number | null;
+  autoRenew?: boolean | null;
+  canceledAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6747,6 +17200,9 @@ export interface Subscription {
  */
 export interface CreatorRedemption {
   id: number;
+  /**
+   * Single-use or campaign redemption code
+   */
   code: string;
   creator: number | Profile;
   subscriber?: (number | null) | Profile;
@@ -6754,6 +17210,9 @@ export interface CreatorRedemption {
   status?: ('unredeemed' | 'redeemed' | 'expired' | 'invalid') | null;
   expiresAt?: string | null;
   redeemedAt?: string | null;
+  /**
+   * Campaign info, source, notes, audit flags
+   */
   metadata?:
     | {
         [k: string]: unknown;
@@ -6872,7 +17331,7 @@ export interface MessageThread {
   participants?: (number | Profile)[] | null;
   lastActivity?: string | null;
   /**
-   * Prevent further messages.
+   * Prevent further replies in this thread.
    */
   isLocked?: boolean | null;
   createdBy?: (number | null) | User;
@@ -6887,6 +17346,9 @@ export interface MessageThread {
 export interface Announcement {
   id: number;
   title: string;
+  /**
+   * Auto-generated if empty.
+   */
   slug?: string | null;
   status?: ('draft' | 'scheduled' | 'active' | 'expired' | 'archived') | null;
   priority?: ('high' | 'normal' | 'low') | null;
@@ -6914,15 +17376,9 @@ export interface Announcement {
    * Target certain roles (optional)
    */
   roles?: ('free' | 'creator' | 'pro' | 'industry' | 'host' | 'editor' | 'admin')[] | null;
-  /**
-   * Only show to logged-in users
-   */
   requireAuth?: boolean | null;
   relatedEvents?: (number | Event)[] | null;
   relatedShows?: (number | Show)[] | null;
-  /**
-   * Users can dismiss this announcement
-   */
   dismissible?: boolean | null;
   metadata?:
     | {
@@ -6942,18 +17398,30 @@ export interface Announcement {
  */
 export interface ChannelSchedule {
   id: number;
+  /**
+   * Channel this schedule belongs to
+   */
   channel: number | CreatorChannel;
   title: string;
   scheduleType: 'one-time' | 'recurring';
   eventType?: ('post' | 'livestream' | 'announcement') | null;
+  /**
+   * Execution time for one-time events
+   */
   scheduledAt?: string | null;
+  /**
+   * Rules for recurring schedules
+   */
   recurrence?: {
     frequency?: ('daily' | 'weekly' | 'monthly') | null;
+    /**
+     * Repeat every N units
+     */
     interval?: number | null;
     endDate?: string | null;
   };
   /**
-   * Metadata for the scheduled event
+   * Metadata for the scheduled action (post id, livestream id, announcement body, etc.)
    */
   payload?:
     | {
@@ -6964,17 +17432,30 @@ export interface ChannelSchedule {
     | number
     | boolean
     | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
 /**
+ * System-generated analytics snapshots. Read-only for humans.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "channel-analytics".
  */
 export interface ChannelAnalytic {
   id: number;
+  /**
+   * Channel this analytics snapshot belongs to
+   */
   channel: number | CreatorChannel;
+  /**
+   * Aggregation window for this snapshot
+   */
   scope?: ('daily' | 'weekly' | 'monthly' | 'lifetime') | null;
+  /**
+   * Anchor date for this snapshot (e.g. day start, week start)
+   */
   date: string;
   views?: number | null;
   uniqueViewers?: number | null;
@@ -6992,6 +17473,9 @@ export interface ChannelAnalytic {
     pollVotes?: number | null;
     chatMessages?: number | null;
   };
+  /**
+   * Attributed revenue for this window. Informational unless reconciled.
+   */
   revenue?: {
     subscriptions?: number | null;
     contentPurchases?: number | null;
@@ -7000,7 +17484,7 @@ export interface ChannelAnalytic {
     currency?: string | null;
   };
   /**
-   * Optional breakdown by content type, device, geography, etc.
+   * Optional breakdowns (content type, device, geo, referrer, etc.)
    */
   breakdowns?:
     | {
@@ -7011,6 +17495,10 @@ export interface ChannelAnalytic {
     | number
     | boolean
     | null;
+  /**
+   * Source of this analytics snapshot
+   */
+  generatedBy?: ('system' | 'backfill' | 'manual') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7020,11 +17508,26 @@ export interface ChannelAnalytic {
  */
 export interface ChannelPoll {
   id: number;
+  /**
+   * Channel that owns this poll
+   */
   channel: number | CreatorChannel;
   question: string;
+  /**
+   * Once a poll is closed, options and results become immutable.
+   */
   status?: ('draft' | 'active' | 'closed') | null;
+  /**
+   * Poll audience gate. Tiered visibility is staff-controlled.
+   */
   visibility?: ('public' | 'subscribers' | 'tiers') | null;
+  /**
+   * Which tiers may participate in this poll
+   */
   allowedTiers?: (number | CreatorTier)[] | null;
+  /**
+   * Poll answer options (immutable once poll is active)
+   */
   options: {
     label: string;
     value: string;
@@ -7090,27 +17593,57 @@ export interface ChannelPoll {
  */
 export interface ChannelChat {
   id: number;
+  /**
+   * Channel this chat message belongs to
+   */
   channel: number | CreatorChannel;
+  /**
+   * Livestream this message was sent in
+   */
   livestream: number | ChannelLivestream;
+  /**
+   * User who sent the message
+   */
   user: number | Profile;
+  /**
+   * Chat message (immutable)
+   */
   message: string;
   /**
    * Optional reply to another chat message
    */
   replyTo?: (number | null) | ChannelChat;
   /**
-   * Quick emoji reactions for this chat message.
+   * Emoji reactions for this chat message
    */
-  reactions?: (number | Reaction)[] | null;
+  reactions?: (number | ChannelReaction)[] | null;
+  /**
+   * Soft-delete flag (message hidden but preserved)
+   */
   isDeleted?: boolean | null;
+  /**
+   * Reason for moderation action
+   */
   deletedReason?: string | null;
+  /**
+   * Pinned messages appear at the top of chat
+   */
+  isPinned?: boolean | null;
+  /**
+   * Flagged by moderation system
+   */
   isToxic?: boolean | null;
   /**
-   * 0–1 from AI moderation.
+   * 0–1 score from AI moderation
    */
   toxicityScore?: number | null;
-  isPinned?: boolean | null;
+  /**
+   * Client source
+   */
   source?: ('web' | 'mobile' | 'tv') | null;
+  /**
+   * Client or system metadata
+   */
   metadata?:
     | {
         [k: string]: unknown;
@@ -7120,6 +17653,8 @@ export interface ChannelChat {
     | number
     | boolean
     | null;
+  createdBy?: (number | null) | User;
+  updatedBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -7133,7 +17668,7 @@ export interface Block {
   blocked: number | Profile;
   reason: 'harassment' | 'spam' | 'scam' | 'abuse' | 'impersonation' | 'inappropriate' | 'terms' | 'safety' | 'other';
   /**
-   * Optional moderator notes.
+   * Moderator-only notes.
    */
   notes?: string | null;
   /**
@@ -7141,7 +17676,7 @@ export interface Block {
    */
   expiresAt?: string | null;
   /**
-   * Optional AI content analysis that led to block.
+   * AI moderation evidence (staff only).
    */
   aiEvidence?:
     | {
@@ -7188,6 +17723,9 @@ export interface Following {
   id: number;
   user: number | Profile;
   following: number | Profile;
+  /**
+   * Managed automatically by Followers sync.
+   */
   syncWithFollowers?: boolean | null;
   createdBy?: (number | null) | User;
   updatedAt: string;
@@ -7287,6 +17825,7 @@ export interface Ad {
     | number
     | boolean
     | null;
+  _searchable?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7302,6 +17841,7 @@ export interface Advertiser {
   website?: string | null;
   logo?: (number | null) | Media;
   notes?: string | null;
+  _searchable?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7315,6 +17855,7 @@ export interface AdPlacement {
   placementType: 'radio' | 'tv' | 'web' | 'mobile' | 'podcast' | 'app' | 'live-event';
   description?: string | null;
   dimensions?: string | null;
+  _searchable?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7340,6 +17881,7 @@ export interface Campaign {
     | number
     | boolean
     | null;
+  _searchable?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7369,6 +17911,26 @@ export interface AdAnalytic {
     | number
     | boolean
     | null;
+  _searchable?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "moderation-jobs".
+ */
+export interface ModerationJob {
+  id: number;
+  collection: string;
+  docId: string;
+  status?: ('queued' | 'processing' | 'done' | 'error') | null;
+  /**
+   * When this job becomes eligible to run.
+   */
+  runAt: string;
+  attempts?: number | null;
+  lastError?: string | null;
+  createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -7419,6 +17981,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'media-variants';
+        value: number | MediaVariant;
+      } | null)
+    | ({
+        relationTo: 'media-tags';
+        value: number | MediaTag;
+      } | null)
+    | ({
+        relationTo: 'media-albums';
+        value: number | MediaAlbum;
+      } | null)
+    | ({
+        relationTo: 'photos';
+        value: number | Photo;
+      } | null)
+    | ({
+        relationTo: 'photo-galleries';
+        value: number | PhotoGallery;
+      } | null)
+    | ({
+        relationTo: 'video-galleries';
+        value: number | VideoGallery;
       } | null)
     | ({
         relationTo: 'shows';
@@ -7767,6 +18353,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'ad-analytics';
         value: number | AdAnalytic;
+      } | null)
+    | ({
+        relationTo: 'moderation-jobs';
+        value: number | ModerationJob;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -7850,8 +18440,32 @@ export interface GlobalSettingsSelect<T extends boolean = true> {
               title?: T;
               description?: T;
               keywords?: T;
-              ogImage?: T;
+              canonicalUrl?: T;
               noIndex?: T;
+              noFollow?: T;
+              openGraph?:
+                | T
+                | {
+                    ogTitle?: T;
+                    ogDescription?: T;
+                    ogImage?: T;
+                    ogType?: T;
+                  };
+              twitter?:
+                | T
+                | {
+                    cardType?: T;
+                    twitterTitle?: T;
+                    twitterDescription?: T;
+                    twitterImage?: T;
+                  };
+              structuredData?: T;
+              platformControls?:
+                | T
+                | {
+                    excludeFromInternalSearch?: T;
+                    excludeFromRecommendations?: T;
+                  };
             };
       };
   updatedAt?: T;
@@ -7899,6 +18513,8 @@ export interface PopupsSelect<T extends boolean = true> {
         url?: T;
       };
   image?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7979,8 +18595,33 @@ export interface ProfilesSelect<T extends boolean = true> {
   creatorPayouts?: T;
   interestClusters?: T;
   preferredFormats?: T;
-  discoveryPreferences?: T;
-  preferredListeningTimes?: T;
+  moodPreferences?: T;
+  listeningContext?:
+    | T
+    | {
+        preferredTimes?: T;
+        sessionLengthPreference?: T;
+      };
+  contentAvoidance?:
+    | T
+    | {
+        blockedGenres?: T;
+        blockedFormats?: T;
+      };
+  implicitSignals?:
+    | T
+    | {
+        topGenresByEngagement?: T;
+        topCreatorsByEngagement?: T;
+        formatAffinityScores?: T;
+        lastInteractionAt?: T;
+      };
+  personalizationControls?:
+    | T
+    | {
+        personalizationLevel?: T;
+        allowBehaviorTracking?: T;
+      };
   savedContent?: T;
   likedContent?: T;
   followedCharts?: T;
@@ -8012,17 +18653,75 @@ export interface ProfilesSelect<T extends boolean = true> {
         smsEnabled?: T;
         inAppEnabled?: T;
         categories?: T;
+        deliveryControls?:
+          | T
+          | {
+              frequency?: T;
+              quietHoursStart?: T;
+              quietHoursEnd?: T;
+            };
+        consentMetadata?:
+          | T
+          | {
+              lastUpdatedAt?: T;
+              lastUpdatedBy?: T;
+            };
       };
   user?: T;
   groups?: T;
+  verification?:
+    | T
+    | {
+        isVerified?: T;
+        verificationType?: T;
+        verifiedAt?: T;
+      };
+  moderation?:
+    | T
+    | {
+        status?: T;
+        reason?: T;
+        expiresAt?: T;
+      };
+  trustSignals?:
+    | T
+    | {
+        trustScore?: T;
+        flagsCount?: T;
+        lastFlagAt?: T;
+      };
   seo?:
     | T
     | {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   createdBy?: T;
   updatedBy?: T;
@@ -8035,6 +18734,26 @@ export interface ProfilesSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  visibility?: T;
+  status?: T;
+  folderSlug?: T;
+  tagSlugs?: T;
+  albumSlug?: T;
+  internalNotes?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  normalizedFilename?: T;
+  storageKey?: T;
+  sha256?: T;
+  title?: T;
+  caption?: T;
+  alt?: T;
+  attribution?: T;
+  license?: T;
+  focalPoint?: T;
   variants?:
     | T
     | {
@@ -8088,22 +18807,129 @@ export interface MediaSelect<T extends boolean = true> {
               height?: T;
             };
       };
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  caption?: T;
-  attribution?: T;
-  focalPoint?: T;
   createdBy?: T;
   updatedBy?: T;
+  source?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
   thumbnailURL?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-variants_select".
+ */
+export interface MediaVariantsSelect<T extends boolean = true> {
+  parent?: T;
+  label?: T;
+  type?: T;
+  variant?: T;
+  generatedBy?: T;
+  notes?: T;
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-tags_select".
+ */
+export interface MediaTagsSelect<T extends boolean = true> {
+  label?: T;
+  value?: T;
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-albums_select".
+ */
+export interface MediaAlbumsSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  items?:
+    | T
+    | {
+        media?: T;
+        caption?: T;
+        attribution?: T;
+        id?: T;
+      };
+  visibility?: T;
+  status?: T;
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photos_select".
+ */
+export interface PhotosSelect<T extends boolean = true> {
+  title?: T;
+  image?: T;
+  caption?: T;
+  alt?: T;
+  attribution?: T;
+  visibility?: T;
+  status?: T;
+  folderSlug?: T;
+  tagSlugs?: T;
+  albumSlug?: T;
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-galleries_select".
+ */
+export interface PhotoGalleriesSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  visibility?: T;
+  status?: T;
+  photos?:
+    | T
+    | {
+        photo?: T;
+        caption?: T;
+        attribution?: T;
+        id?: T;
+      };
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "video-galleries_select".
+ */
+export interface VideoGalleriesSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  visibility?: T;
+  status?: T;
+  videos?:
+    | T
+    | {
+        video?: T;
+        caption?: T;
+        attribution?: T;
+        id?: T;
+      };
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8141,8 +18967,32 @@ export interface ShowsSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   followersCount?: T;
   playsCount?: T;
@@ -8191,13 +19041,6 @@ export interface EpisodesSelect<T extends boolean = true> {
         clipVideo?: T;
         id?: T;
       };
-  behindTheScenes?:
-    | T
-    | {
-        title?: T;
-        video?: T;
-        id?: T;
-      };
   promos?:
     | T
     | {
@@ -8211,8 +19054,32 @@ export interface EpisodesSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   views?: T;
   likes?: T;
@@ -8236,6 +19103,10 @@ export interface ScheduleSelect<T extends boolean = true> {
   timeZone?: T;
   relatedShow?: T;
   relatedEpisode?: T;
+  sortOrder?: T;
+  active?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8261,7 +19132,11 @@ export interface EpgSelect<T extends boolean = true> {
         frequency?: T;
         daysOfWeek?: T;
       };
+  sortOrder?: T;
+  active?: T;
   metadata?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8328,8 +19203,32 @@ export interface FilmsSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   views?: T;
   likes?: T;
@@ -8404,8 +19303,32 @@ export interface VodSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   views?: T;
   likes?: T;
@@ -8435,6 +19358,7 @@ export interface PodcastsSelect<T extends boolean = true> {
   editors?: T;
   guests?: T;
   episodes?: T;
+  vod?: T;
   playlists?: T;
   category?: T;
   tags?: T;
@@ -8444,8 +19368,32 @@ export interface PodcastsSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   followersCount?: T;
   playsCount?: T;
@@ -8477,6 +19425,7 @@ export interface PodcastEpisodesSelect<T extends boolean = true> {
   hosts?: T;
   guests?: T;
   producers?: T;
+  vod?: T;
   runtimeMinutes?: T;
   genre?: T;
   tags?: T;
@@ -8502,8 +19451,32 @@ export interface PodcastEpisodesSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   plays?: T;
   likes?: T;
@@ -8549,8 +19522,32 @@ export interface TracksSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   streams?: T;
   likes?: T;
@@ -8586,8 +19583,32 @@ export interface AlbumsSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   streams?: T;
   likes?: T;
@@ -8710,7 +19731,10 @@ export interface ArticlesSelect<T extends boolean = true> {
   heroImageAlt?: T;
   publishedDate?: T;
   scheduledPublishDate?: T;
+  scheduledPublishTimezone?: T;
   lastUpdated?: T;
+  createdBy?: T;
+  updatedBy?: T;
   author?: T;
   slug?: T;
   sponsorDisclosure?: T;
@@ -8737,105 +19761,23 @@ export interface ArticlesSelect<T extends boolean = true> {
   contentBlocks?:
     | T
     | {
-        richText?:
+        adUnit?:
           | T
           | {
-              content?: T;
-              id?: T;
-              blockName?: T;
-            };
-        image?:
-          | T
-          | {
+              adType?: T;
               media?: T;
-              caption?: T;
-              attribution?: T;
-              id?: T;
-              blockName?: T;
-            };
-        video?:
-          | T
-          | {
-              media?: T;
-              caption?: T;
-              id?: T;
-              blockName?: T;
-            };
-        carousel?:
-          | T
-          | {
-              items?:
-                | T
-                | {
-                    media?: T;
-                    caption?: T;
-                    attribution?: T;
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        pullQuote?:
-          | T
-          | {
-              quote?: T;
-              source?: T;
-              id?: T;
-              blockName?: T;
-            };
-        callout?:
-          | T
-          | {
-              style?: T;
-              content?: T;
-              id?: T;
-              blockName?: T;
-            };
-        embed?:
-          | T
-          | {
-              embedUrl?: T;
-              caption?: T;
-              id?: T;
-              blockName?: T;
-            };
-        sideBySide?:
-          | T
-          | {
-              left?: T;
-              right?: T;
-              caption?: T;
-              id?: T;
-              blockName?: T;
-            };
-        dropcap?:
-          | T
-          | {
-              text?: T;
-              id?: T;
-              blockName?: T;
-            };
-        timeline?:
-          | T
-          | {
-              events?:
-                | T
-                | {
-                    year?: T;
-                    title?: T;
-                    description?: T;
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        quoteWithImage?:
-          | T
-          | {
-              quote?: T;
-              source?: T;
-              media?: T;
-              position?: T;
+              bannerAlt?: T;
+              clickUrl?: T;
+              nativeText?: T;
+              script?: T;
+              sandbox?: T;
+              sponsorName?: T;
+              disclosure?: T;
+              alignment?: T;
+              showLabel?: T;
+              trackingId?: T;
+              approvedBy?: T;
+              internalNotes?: T;
               id?: T;
               blockName?: T;
             };
@@ -8845,30 +19787,141 @@ export interface ArticlesSelect<T extends boolean = true> {
               author?: T;
               bio?: T;
               photo?: T;
+              photoAlt?: T;
+              title?: T;
+              organization?: T;
+              socialLinks?:
+                | T
+                | {
+                    platform?: T;
+                    url?: T;
+                    id?: T;
+                  };
+              layout?: T;
+              showDivider?: T;
+              ariaLabel?: T;
+              internalNotes?: T;
               id?: T;
               blockName?: T;
             };
-        adUnit?:
+        callout?:
           | T
           | {
-              adType?: T;
-              media?: T;
-              nativeText?: T;
-              script?: T;
-              sponsorName?: T;
+              style?: T;
+              title?: T;
+              icon?: T;
+              content?: T;
+              alignment?: T;
+              emphasis?: T;
+              dismissible?: T;
+              visibility?: T;
+              ariaLabel?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        carousel?:
+          | T
+          | {
+              headline?: T;
+              intro?: T;
+              items?:
+                | T
+                | {
+                    media?: T;
+                    altText?: T;
+                    caption?: T;
+                    attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    linkUrl?: T;
+                    internalNotes?: T;
+                    id?: T;
+                  };
+              layout?: T;
+              aspectRatio?: T;
+              autoPlay?: T;
+              autoPlayInterval?: T;
+              showIndicators?: T;
+              showArrows?: T;
+              ariaLabel?: T;
+              trackingId?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        dropcap?:
+          | T
+          | {
+              text?: T;
+              enableDropcap?: T;
+              dropcapStyle?: T;
+              dropcapSize?: T;
+              emphasis?: T;
+              ariaLabel?: T;
+              searchExcerpt?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        embed?:
+          | T
+          | {
+              embedUrl?: T;
+              provider?: T;
+              caption?: T;
+              aspectRatio?: T;
+              alignment?: T;
+              ariaLabel?: T;
+              sandbox?: T;
+              allowFullscreen?: T;
+              trackingId?: T;
+              internalNotes?: T;
               id?: T;
               blockName?: T;
             };
         footnotes?:
           | T
           | {
+              headline?: T;
+              intro?: T;
               notes?:
                 | T
                 | {
                     label?: T;
+                    anchorId?: T;
                     content?: T;
+                    source?: T;
+                    url?: T;
+                    date?: T;
+                    type?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                   };
+              displayStyle?: T;
+              showBackLinks?: T;
+              internalId?: T;
+              id?: T;
+              blockName?: T;
+            };
+        image?:
+          | T
+          | {
+              media?: T;
+              altText?: T;
+              caption?: T;
+              attribution?: T;
+              licenseType?: T;
+              licenseSource?: T;
+              licenseExpiresAt?: T;
+              alignment?: T;
+              aspectRatio?: T;
+              isHeroCandidate?: T;
+              hideCaption?: T;
+              ariaLabel?: T;
+              internalNotes?: T;
               id?: T;
               blockName?: T;
             };
@@ -8877,18 +19930,191 @@ export interface ArticlesSelect<T extends boolean = true> {
           | {
               poll?: T;
               showResultsInline?: T;
+              allowVoteChange?: T;
+              headline?: T;
+              description?: T;
+              visibility?: T;
+              trackingId?: T;
+              ariaLabel?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        pullQuote?:
+          | T
+          | {
+              quote?: T;
+              source?: T;
+              sourceTitle?: T;
+              alignment?: T;
+              emphasis?: T;
+              context?: T;
+              citation?: T;
+              ariaLabel?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        quoteWithImage?:
+          | T
+          | {
+              quote?: T;
+              source?: T;
+              sourceTitle?: T;
+              media?: T;
+              imageAlt?: T;
+              position?: T;
+              emphasis?: T;
+              context?: T;
+              citation?: T;
+              ariaLabel?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        richText?:
+          | T
+          | {
+              content?: T;
+              variant?: T;
+              align?: T;
+              ariaLabel?: T;
+              emphasizeFirstParagraph?: T;
+              allowDropCap?: T;
+              searchExcerpt?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        sideBySide?:
+          | T
+          | {
+              left?: T;
+              right?: T;
+              leftAlt?: T;
+              rightAlt?: T;
+              leftCaption?: T;
+              rightCaption?: T;
+              caption?: T;
+              layout?: T;
+              stackOnMobile?: T;
+              internalNotes?: T;
+              id?: T;
+              blockName?: T;
+            };
+        timeline?:
+          | T
+          | {
+              headline?: T;
+              intro?: T;
+              events?:
+                | T
+                | {
+                    year?: T;
+                    sortOrder?: T;
+                    title?: T;
+                    description?: T;
+                    media?: T;
+                    mediaCaption?: T;
+                    category?: T;
+                    relatedLink?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
+                    id?: T;
+                  };
+              layout?: T;
+              highlightFirst?: T;
+              internalId?: T;
+              id?: T;
+              blockName?: T;
+            };
+        video?:
+          | T
+          | {
+              sourceType?: T;
+              media?: T;
+              externalUrl?: T;
+              headline?: T;
+              caption?: T;
+              credit?: T;
+              altText?: T;
+              transcript?: T;
+              hasCaptions?: T;
+              autoplay?: T;
+              loop?: T;
+              muted?: T;
+              isSponsored?: T;
+              sponsorDisclosure?: T;
+              trackingId?: T;
+              internalNotes?: T;
               id?: T;
               blockName?: T;
             };
       };
+  workflowLog?:
+    | T
+    | {
+        from?: T;
+        to?: T;
+        by?: T;
+        at?: T;
+        reason?: T;
+        id?: T;
+      };
+  rollback?:
+    | T
+    | {
+        sourceVersionId?: T;
+        rollbackReason?: T;
+        rolledBackAt?: T;
+      };
+  toxicityScore?: T;
+  isToxic?: T;
+  moderationStatus?: T;
+  moderationLog?:
+    | T
+    | {
+        at?: T;
+        by?: T;
+        action?: T;
+        score?: T;
+        isToxic?: T;
+        message?: T;
+        id?: T;
+      };
+  searchIndex?: T;
   seo?:
     | T
     | {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   engagement?:
     | T
@@ -8921,6 +20147,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -8928,30 +20161,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -8960,6 +20234,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -8967,7 +20248,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -8975,7 +20264,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -8984,7 +20281,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -8992,20 +20296,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9014,8 +20337,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9025,6 +20355,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9033,22 +20377,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9057,6 +20422,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9073,6 +20445,8 @@ export interface ArticlesSelect<T extends boolean = true> {
                   };
             };
         creditsSources?: T;
+        searchSummary?: T;
+        excludeFromSearch?: T;
       };
   breakingNewsFields?:
     | T
@@ -9093,6 +20467,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9100,30 +20481,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9132,6 +20554,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9139,7 +20568,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9147,7 +20584,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9156,7 +20601,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9164,20 +20616,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9186,8 +20657,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9197,6 +20675,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9205,22 +20697,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9229,12 +20742,21 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
             };
         socialCopyTwitter?: T;
         socialCopyInstagram?: T;
+        isDeveloping?: T;
+        editorialContext?: T;
       };
   musicReviewFields?:
     | T
@@ -9250,6 +20772,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9257,30 +20786,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9289,6 +20859,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9296,7 +20873,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9304,7 +20889,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9313,7 +20906,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9321,20 +20921,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9343,8 +20962,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9354,6 +20980,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9362,22 +21002,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9386,14 +21047,33 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
             };
         rating?: T;
+        ratingTone?: T;
+        analysis?:
+          | T
+          | {
+              soundProduction?: T;
+              vocals?: T;
+              lyricsThemes?: T;
+              culturalContext?: T;
+              verdict?: T;
+            };
         tracklist?: T;
         relatedTracks?: T;
         relatedAlbums?: T;
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   filmTVReviewFields?:
     | T
@@ -9408,6 +21088,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9415,30 +21102,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9447,6 +21175,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9454,7 +21189,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9462,7 +21205,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9471,7 +21222,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9479,20 +21237,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9501,8 +21278,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9512,6 +21296,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9520,22 +21318,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9544,13 +21363,34 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
             };
         rating?: T;
+        ratingTone?: T;
+        analysis?:
+          | T
+          | {
+              direction?: T;
+              acting?: T;
+              cinematography?: T;
+              writing?: T;
+              themes?: T;
+              culturalImpact?: T;
+              verdict?: T;
+            };
         relatedShow?: T;
         relatedFilm?: T;
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   interviewFields?:
     | T
@@ -9569,6 +21409,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9576,30 +21423,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9608,6 +21496,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9615,7 +21510,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9623,7 +21526,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9632,7 +21543,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9640,20 +21558,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9662,8 +21599,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9673,6 +21617,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9681,22 +21639,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9705,6 +21684,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9714,6 +21700,7 @@ export interface ArticlesSelect<T extends boolean = true> {
           | {
               question?: T;
               answer?: T;
+              highlight?: T;
               id?: T;
             };
         closing?:
@@ -9723,6 +21710,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9730,30 +21724,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9762,6 +21797,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9769,7 +21811,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9777,7 +21827,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9786,7 +21844,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9794,20 +21859,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9816,8 +21900,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9827,6 +21918,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9835,22 +21940,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9859,6 +21985,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9887,6 +22020,8 @@ export interface ArticlesSelect<T extends boolean = true> {
                   };
             };
         relatedArtists?: T;
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   featureFields?:
     | T
@@ -9902,6 +22037,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9909,30 +22051,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9941,6 +22124,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9948,7 +22138,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9956,7 +22154,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9965,7 +22171,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9973,20 +22186,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -9995,8 +22227,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10006,6 +22245,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10014,22 +22267,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10038,11 +22312,30 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
             };
+        featureFramework?:
+          | T
+          | {
+              lede?: T;
+              coreStory?: T;
+              voices?: T;
+              analysis?: T;
+              impact?: T;
+              future?: T;
+            };
         creditsSources?: T;
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   eventRecapFields?:
     | T
@@ -10058,6 +22351,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10065,30 +22365,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10097,6 +22438,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10104,7 +22452,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10112,7 +22468,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10121,7 +22485,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10129,20 +22500,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10151,8 +22541,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10162,6 +22559,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10170,22 +22581,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10194,18 +22626,36 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
+            };
+        eventContext?:
+          | T
+          | {
+              location?: T;
+              eventDate?: T;
+              atmosphere?: T;
+              culturalTakeaways?: T;
             };
         photos?:
           | T
           | {
               image?: T;
               alt?: T;
+              credit?: T;
               id?: T;
             };
         relatedEvents?: T;
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   aaFields?:
     | T
@@ -10220,6 +22670,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10227,30 +22684,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10259,6 +22757,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10266,7 +22771,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10274,7 +22787,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10283,7 +22804,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10291,20 +22819,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10313,8 +22860,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10324,6 +22878,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10332,22 +22900,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10356,6 +22945,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10388,6 +22984,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10395,30 +22998,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10427,6 +23071,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10434,7 +23085,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10442,7 +23101,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10451,7 +23118,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10459,20 +23133,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10481,8 +23174,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10492,6 +23192,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10500,22 +23214,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10524,17 +23259,35 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
+            };
+        lifestyleFramework?:
+          | T
+          | {
+              insight?: T;
+              examples?: T;
+              practicalTips?: T;
+              culturalRelevance?: T;
             };
         imagery?:
           | T
           | {
               image?: T;
               alt?: T;
+              credit?: T;
               id?: T;
             };
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   faithFields?:
     | T
@@ -10549,6 +23302,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10556,30 +23316,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10588,6 +23389,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10595,7 +23403,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10603,7 +23419,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10612,7 +23436,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10620,20 +23451,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10642,8 +23492,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10653,6 +23510,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10661,22 +23532,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10685,10 +23577,29 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
             };
+        devotionalFramework?:
+          | T
+          | {
+              scripture?: T;
+              reflection?: T;
+              message?: T;
+              application?: T;
+              prayerOrAffirmation?: T;
+            };
+        culturalContext?: T;
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   sponsoredFields?:
     | T
@@ -10705,6 +23616,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10712,30 +23630,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10744,6 +23703,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10751,7 +23717,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10759,7 +23733,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10768,7 +23750,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10776,20 +23765,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10798,8 +23806,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10809,6 +23824,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10817,22 +23846,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10841,6 +23891,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10860,6 +23917,9 @@ export interface ArticlesSelect<T extends boolean = true> {
               alt?: T;
               id?: T;
             };
+        sponsorApproved?: T;
+        legalReviewed?: T;
+        internalNotes?: T;
       };
   csFields?:
     | T
@@ -10875,6 +23935,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     content?: T;
+                    variant?: T;
+                    align?: T;
+                    ariaLabel?: T;
+                    emphasizeFirstParagraph?: T;
+                    allowDropCap?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10882,30 +23949,71 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     media?: T;
+                    altText?: T;
                     caption?: T;
                     attribution?: T;
+                    licenseType?: T;
+                    licenseSource?: T;
+                    licenseExpiresAt?: T;
+                    alignment?: T;
+                    aspectRatio?: T;
+                    isHeroCandidate?: T;
+                    hideCaption?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               video?:
                 | T
                 | {
+                    sourceType?: T;
                     media?: T;
+                    externalUrl?: T;
+                    headline?: T;
                     caption?: T;
+                    credit?: T;
+                    altText?: T;
+                    transcript?: T;
+                    hasCaptions?: T;
+                    autoplay?: T;
+                    loop?: T;
+                    muted?: T;
+                    isSponsored?: T;
+                    sponsorDisclosure?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               carousel?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     items?:
                       | T
                       | {
                           media?: T;
+                          altText?: T;
                           caption?: T;
                           attribution?: T;
+                          licenseType?: T;
+                          licenseSource?: T;
+                          licenseExpiresAt?: T;
+                          linkUrl?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    aspectRatio?: T;
+                    autoPlay?: T;
+                    autoPlayInterval?: T;
+                    showIndicators?: T;
+                    showArrows?: T;
+                    ariaLabel?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10914,6 +24022,13 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10921,7 +24036,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     style?: T;
+                    title?: T;
+                    icon?: T;
                     content?: T;
+                    alignment?: T;
+                    emphasis?: T;
+                    dismissible?: T;
+                    visibility?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10929,7 +24052,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     embedUrl?: T;
+                    provider?: T;
                     caption?: T;
+                    aspectRatio?: T;
+                    alignment?: T;
+                    ariaLabel?: T;
+                    sandbox?: T;
+                    allowFullscreen?: T;
+                    trackingId?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10938,7 +24069,14 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     left?: T;
                     right?: T;
+                    leftAlt?: T;
+                    rightAlt?: T;
+                    leftCaption?: T;
+                    rightCaption?: T;
                     caption?: T;
+                    layout?: T;
+                    stackOnMobile?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10946,20 +24084,39 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | T
                 | {
                     text?: T;
+                    enableDropcap?: T;
+                    dropcapStyle?: T;
+                    dropcapSize?: T;
+                    emphasis?: T;
+                    ariaLabel?: T;
+                    searchExcerpt?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               timeline?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     events?:
                       | T
                       | {
                           year?: T;
+                          sortOrder?: T;
                           title?: T;
                           description?: T;
+                          media?: T;
+                          mediaCaption?: T;
+                          category?: T;
+                          relatedLink?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    layout?: T;
+                    highlightFirst?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10968,8 +24125,15 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     quote?: T;
                     source?: T;
+                    sourceTitle?: T;
                     media?: T;
+                    imageAlt?: T;
                     position?: T;
+                    emphasis?: T;
+                    context?: T;
+                    citation?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10979,6 +24143,20 @@ export interface ArticlesSelect<T extends boolean = true> {
                     author?: T;
                     bio?: T;
                     photo?: T;
+                    photoAlt?: T;
+                    title?: T;
+                    organization?: T;
+                    socialLinks?:
+                      | T
+                      | {
+                          platform?: T;
+                          url?: T;
+                          id?: T;
+                        };
+                    layout?: T;
+                    showDivider?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -10987,22 +24165,43 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     adType?: T;
                     media?: T;
+                    bannerAlt?: T;
+                    clickUrl?: T;
                     nativeText?: T;
                     script?: T;
+                    sandbox?: T;
                     sponsorName?: T;
+                    disclosure?: T;
+                    alignment?: T;
+                    showLabel?: T;
+                    trackingId?: T;
+                    approvedBy?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
               footnotes?:
                 | T
                 | {
+                    headline?: T;
+                    intro?: T;
                     notes?:
                       | T
                       | {
                           label?: T;
+                          anchorId?: T;
                           content?: T;
+                          source?: T;
+                          url?: T;
+                          date?: T;
+                          type?: T;
+                          ariaLabel?: T;
+                          internalNotes?: T;
                           id?: T;
                         };
+                    displayStyle?: T;
+                    showBackLinks?: T;
+                    internalId?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -11011,9 +24210,24 @@ export interface ArticlesSelect<T extends boolean = true> {
                 | {
                     poll?: T;
                     showResultsInline?: T;
+                    allowVoteChange?: T;
+                    headline?: T;
+                    description?: T;
+                    visibility?: T;
+                    trackingId?: T;
+                    ariaLabel?: T;
+                    internalNotes?: T;
                     id?: T;
                     blockName?: T;
                   };
+            };
+        spotlightFramework?:
+          | T
+          | {
+              origin?: T;
+              work?: T;
+              vision?: T;
+              alignment?: T;
             };
         mediaAssets?:
           | T
@@ -11024,6 +24238,9 @@ export interface ArticlesSelect<T extends boolean = true> {
               credit?: T;
               id?: T;
             };
+        relatedCreator?: T;
+        excerpt?: T;
+        excludeFromSearch?: T;
       };
   updatedAt?: T;
   createdAt?: T;
@@ -11043,10 +24260,9 @@ export interface ReviewsSelect<T extends boolean = true> {
   reviewer?: T;
   mediaType?: T;
   mediaItem?: T;
-  reactions?: T;
-  comments?: T;
   toxicityScore?: T;
   isToxic?: T;
+  excerpt?: T;
   createdBy?: T;
   updatedBy?: T;
   updatedAt?: T;
@@ -11076,6 +24292,30 @@ export interface ArtistSpotlightSelect<T extends boolean = true> {
   extraInfo?: T;
   featuredArticle?: T;
   featuredRelease?: T;
+  featureFlags?:
+    | T
+    | {
+        isFeatured?: T;
+        featureOnHomepage?: T;
+        featureInMenu?: T;
+        featureOnArtistPage?: T;
+        featureInCarousel?: T;
+      };
+  featureBanner?:
+    | T
+    | {
+        bannerImageOverride?: T;
+        bannerHeadline?: T;
+        bannerSubheadline?: T;
+      };
+  featureSchedule?:
+    | T
+    | {
+        featureStart?: T;
+        featureEnd?: T;
+      };
+  featurePriority?: T;
+  featureNotes?: T;
   slug?: T;
   createdBy?: T;
   updatedBy?: T;
@@ -11164,10 +24404,10 @@ export interface GroupEventsSelect<T extends boolean = true> {
   title?: T;
   description?: T;
   group?: T;
+  createdBy?: T;
   start?: T;
   end?: T;
   location?: T;
-  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -11209,6 +24449,7 @@ export interface EventsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
   status?: T;
+  visibility?: T;
   eventType?: T;
   isFeatured?: T;
   description?: T;
@@ -11254,8 +24495,32 @@ export interface EventsSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   views?: T;
   clicks?: T;
@@ -11378,20 +24643,31 @@ export interface EventPassesSelect<T extends boolean = true> {
  * via the `definition` "event-promotions_select".
  */
 export interface EventPromotionsSelect<T extends boolean = true> {
-  code?: T;
+  name?: T;
+  slug?: T;
+  event?: T;
   status?: T;
-  discountType?: T;
-  value?: T;
-  appliesToEvents?: T;
-  appliesToTicketTypes?: T;
-  appliesToGroups?: T;
-  affiliateCreator?: T;
-  maxUses?: T;
-  uses?: T;
-  limitPerUser?: T;
-  startDate?: T;
-  endDate?: T;
-  isPublic?: T;
+  startsAt?: T;
+  endsAt?: T;
+  channels?: T;
+  placements?: T;
+  headline?: T;
+  subheadline?: T;
+  ctaLabel?: T;
+  creativeImage?: T;
+  creativeVideo?: T;
+  budget?: T;
+  spendToDate?: T;
+  currency?: T;
+  metrics?:
+    | T
+    | {
+        impressions?: T;
+        clicks?: T;
+        conversions?: T;
+        conversionRate?: T;
+      };
+  notes?: T;
   createdBy?: T;
   updatedBy?: T;
   updatedAt?: T;
@@ -11550,8 +24826,32 @@ export interface ProductsSelect<T extends boolean = true> {
         title?: T;
         description?: T;
         keywords?: T;
-        ogImage?: T;
+        canonicalUrl?: T;
         noIndex?: T;
+        noFollow?: T;
+        openGraph?:
+          | T
+          | {
+              ogTitle?: T;
+              ogDescription?: T;
+              ogImage?: T;
+              ogType?: T;
+            };
+        twitter?:
+          | T
+          | {
+              cardType?: T;
+              twitterTitle?: T;
+              twitterDescription?: T;
+              twitterImage?: T;
+            };
+        structuredData?: T;
+        platformControls?:
+          | T
+          | {
+              excludeFromInternalSearch?: T;
+              excludeFromRecommendations?: T;
+            };
       };
   createdBy?: T;
   updatedBy?: T;
@@ -11703,13 +25003,19 @@ export interface SubscriptionPlansSelect<T extends boolean = true> {
   slug?: T;
   interval?: T;
   price?: T;
+  status?: T;
   benefits?:
     | T
     | {
         text?: T;
         id?: T;
       };
-  status?: T;
+  entitlements?:
+    | T
+    | {
+        key?: T;
+        id?: T;
+      };
   stripeProductId?: T;
   stripePriceId?: T;
   updatedAt?: T;
@@ -11725,8 +25031,11 @@ export interface SubscriptionsSelect<T extends boolean = true> {
   status?: T;
   startDate?: T;
   endDate?: T;
+  stripeCustomerId?: T;
   stripeSubscriptionId?: T;
   renewalAttempts?: T;
+  autoRenew?: T;
+  canceledAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -11745,6 +25054,8 @@ export interface CreatorTiersSelect<T extends boolean = true> {
   description?: T;
   benefits?: T;
   mediaPreview?: T;
+  stripeProductId?: T;
+  stripePriceId?: T;
   metadata?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -11757,6 +25068,7 @@ export interface CreatorTierBenefitsSelect<T extends boolean = true> {
   title?: T;
   description?: T;
   badgeIcon?: T;
+  internal?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -11882,12 +25194,11 @@ export interface ContentAccessSelect<T extends boolean = true> {
 export interface MessagesSelect<T extends boolean = true> {
   sender?: T;
   chat?: T;
+  replyTo?: T;
   text?: T;
   attachments?: T;
-  replyTo?: T;
   status?: T;
   readBy?: T;
-  reactions?: T;
   toxicityScore?: T;
   isToxic?: T;
   isFlagged?: T;
@@ -11910,7 +25221,6 @@ export interface ChatsSelect<T extends boolean = true> {
   isLocked?: T;
   allowedRoles?: T;
   pinnedMessages?: T;
-  reactions?: T;
   description?: T;
   bannerImage?: T;
   createdBy?: T;
@@ -11953,8 +25263,6 @@ export interface InboxSelect<T extends boolean = true> {
   review?: T;
   comment?: T;
   reaction?: T;
-  mediaType?: T;
-  mediaItem?: T;
   previewText?: T;
   toxicityScore?: T;
   isToxic?: T;
@@ -12083,8 +25391,32 @@ export interface CreatorChannelsSelect<T extends boolean = true> {
               title?: T;
               description?: T;
               keywords?: T;
-              ogImage?: T;
+              canonicalUrl?: T;
               noIndex?: T;
+              noFollow?: T;
+              openGraph?:
+                | T
+                | {
+                    ogTitle?: T;
+                    ogDescription?: T;
+                    ogImage?: T;
+                    ogType?: T;
+                  };
+              twitter?:
+                | T
+                | {
+                    cardType?: T;
+                    twitterTitle?: T;
+                    twitterDescription?: T;
+                    twitterImage?: T;
+                  };
+              structuredData?: T;
+              platformControls?:
+                | T
+                | {
+                    excludeFromInternalSearch?: T;
+                    excludeFromRecommendations?: T;
+                  };
             };
       };
   createdBy?: T;
@@ -12132,6 +25464,8 @@ export interface ChannelMediaSelect<T extends boolean = true> {
   visibility?: T;
   allowedTiers?: T;
   metadata?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -12170,6 +25504,8 @@ export interface ChannelAnnouncementsSelect<T extends boolean = true> {
   allowedTiers?: T;
   pinned?: T;
   expiresAt?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12186,6 +25522,8 @@ export interface ChannelCommentsSelect<T extends boolean = true> {
   reactions?: T;
   isToxic?: T;
   toxicityScore?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12210,6 +25548,8 @@ export interface ChannelModeratorsSelect<T extends boolean = true> {
   user?: T;
   role?: T;
   permissions?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12253,6 +25593,8 @@ export interface ChannelSchedulesSelect<T extends boolean = true> {
         endDate?: T;
       };
   payload?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12289,6 +25631,7 @@ export interface ChannelAnalyticsSelect<T extends boolean = true> {
         currency?: T;
       };
   breakdowns?: T;
+  generatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12339,11 +25682,13 @@ export interface ChannelChatSelect<T extends boolean = true> {
   reactions?: T;
   isDeleted?: T;
   deletedReason?: T;
+  isPinned?: T;
   isToxic?: T;
   toxicityScore?: T;
-  isPinned?: T;
   source?: T;
   metadata?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12478,6 +25823,8 @@ export interface NotificationRulesSelect<T extends boolean = true> {
 export interface ReactionsSelect<T extends boolean = true> {
   label?: T;
   emoji?: T;
+  createdBy?: T;
+  updatedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12493,6 +25840,7 @@ export interface AdsSelect<T extends boolean = true> {
   creative?: T;
   ctaUrl?: T;
   metadata?: T;
+  _searchable?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12505,6 +25853,7 @@ export interface AdPlacementsSelect<T extends boolean = true> {
   placementType?: T;
   description?: T;
   dimensions?: T;
+  _searchable?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12521,6 +25870,7 @@ export interface CampaignsSelect<T extends boolean = true> {
   budget?: T;
   channels?: T;
   metadata?: T;
+  _searchable?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12535,6 +25885,7 @@ export interface AdvertisersSelect<T extends boolean = true> {
   website?: T;
   logo?: T;
   notes?: T;
+  _searchable?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -12557,6 +25908,22 @@ export interface AdAnalyticsSelect<T extends boolean = true> {
         cost?: T;
       };
   raw?: T;
+  _searchable?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "moderation-jobs_select".
+ */
+export interface ModerationJobsSelect<T extends boolean = true> {
+  collection?: T;
+  docId?: T;
+  status?: T;
+  runAt?: T;
+  attempts?: T;
+  lastError?: T;
+  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

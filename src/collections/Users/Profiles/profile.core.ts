@@ -1,14 +1,68 @@
 // src/collections/Profiles/profile.core.ts
 
-import type { Field } from 'payload'
+import type { Field, FieldAccess } from 'payload'
+import { isAdminRole } from '@/access/control'
+
+/* ============================================================
+   FIELD ACCESS HELPERS (BOOLEAN ONLY)
+============================================================ */
+
+/**
+ * Admin-only field
+ */
+const adminOnlyField: FieldAccess = ({ req }): boolean => Boolean(req?.user && isAdminRole(req))
+
+/**
+ * Profile owner OR Admin
+ * (Profile collection already enforces ownership at collection level;
+ * this is an extra guard against cross-profile updates.)
+ */
+const selfOrAdminField: FieldAccess = ({ req, siblingData }): boolean => {
+  if (!req?.user) return false
+  if (isAdminRole(req)) return true
+
+  const profileId = siblingData?.id
+  if (!profileId) return false
+
+  const userProfile =
+    typeof (req.user as any)?.profile === 'string'
+      ? (req.user as any).profile
+      : (req.user as any)?.profile?.id
+
+  if (!userProfile) return false
+
+  return String(profileId) === String(userProfile)
+}
+
+/* ============================================================
+   PROFILE CORE FIELDS
+============================================================ */
 
 export const profileCoreFields: Field[] = [
+  /* ----------------------------------------------------------
+     NAME / DISPLAY
+  ---------------------------------------------------------- */
   {
     type: 'row',
     fields: [
-      { name: 'firstName', type: 'text', admin: { width: '33%' } },
-      { name: 'middleInitial', type: 'text', admin: { width: '10%' } },
-      { name: 'lastName', type: 'text', admin: { width: '33%' } },
+      {
+        name: 'firstName',
+        type: 'text',
+        admin: { width: '33%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'middleInitial',
+        type: 'text',
+        admin: { width: '10%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'lastName',
+        type: 'text',
+        admin: { width: '33%' },
+        access: { update: selfOrAdminField },
+      },
       {
         name: 'displayName',
         type: 'text',
@@ -17,10 +71,15 @@ export const profileCoreFields: Field[] = [
           width: '24%',
           description: 'Public display name on WaveNation.',
         },
+        access: { update: selfOrAdminField },
       },
     ],
   },
 
+  /* ----------------------------------------------------------
+     HANDLE / SLUG
+     (Handle = user-controlled, Slug = system-generated)
+  ---------------------------------------------------------- */
   {
     type: 'row',
     fields: [
@@ -29,65 +88,163 @@ export const profileCoreFields: Field[] = [
         type: 'text',
         unique: true,
         index: true,
-        admin: { width: '50%', description: '@handle for profiles and creator channels.' },
+        admin: {
+          width: '50%',
+          description: '@handle for profiles and creator channels.',
+        },
+        access: { update: selfOrAdminField },
       },
       {
         name: 'slug',
         type: 'text',
         unique: true,
         index: true,
-        admin: { width: '50%', description: 'Auto-generated if empty.' },
+        admin: {
+          width: '50%',
+          description: 'Auto-generated if empty.',
+          readOnly: true,
+        },
+        access: {
+          update: adminOnlyField,
+        },
+      },
+    ],
+  },
+
+  /* ----------------------------------------------------------
+     MEDIA
+  ---------------------------------------------------------- */
+  {
+    type: 'row',
+    fields: [
+      {
+        name: 'avatar',
+        type: 'upload',
+        relationTo: 'media',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'banner',
+        type: 'upload',
+        relationTo: 'media',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
+    ],
+  },
+
+  /* ----------------------------------------------------------
+     BIO
+  ---------------------------------------------------------- */
+  {
+    name: 'bio',
+    type: 'textarea',
+    access: { update: selfOrAdminField },
+  },
+
+  /* ----------------------------------------------------------
+     LOCATION
+  ---------------------------------------------------------- */
+  {
+    type: 'row',
+    fields: [
+      {
+        name: 'city',
+        type: 'text',
+        admin: { width: '33%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'state',
+        type: 'text',
+        admin: { width: '33%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'country',
+        type: 'text',
+        admin: { width: '33%' },
+        access: { update: selfOrAdminField },
       },
     ],
   },
 
   {
-    type: 'row',
-    fields: [
-      { name: 'avatar', type: 'upload', relationTo: 'media', admin: { width: '50%' } },
-      { name: 'banner', type: 'upload', relationTo: 'media', admin: { width: '50%' } },
-    ],
+    name: 'timeZone',
+    type: 'text',
+    admin: { description: 'Optional preferred time zone.' },
+    access: { update: selfOrAdminField },
   },
 
-  { name: 'bio', type: 'textarea' },
-
+  /* ----------------------------------------------------------
+     SOCIAL LINKS
+  ---------------------------------------------------------- */
   {
     type: 'row',
     fields: [
-      { name: 'city', type: 'text', admin: { width: '33%' } },
-      { name: 'state', type: 'text', admin: { width: '33%' } },
-      { name: 'country', type: 'text', admin: { width: '33%' } },
-    ],
-  },
-
-  { name: 'timeZone', type: 'text', admin: { description: 'Optional preferred time zone.' } },
-
-  {
-    type: 'row',
-    fields: [
-      { name: 'website', type: 'text', admin: { width: '50%' } },
-      { name: 'instagram', type: 'text', admin: { width: '50%' } },
-    ],
-  },
-  {
-    type: 'row',
-    fields: [
-      { name: 'twitter', type: 'text', admin: { width: '50%' } },
-      { name: 'tiktok', type: 'text', admin: { width: '50%' } },
+      {
+        name: 'website',
+        type: 'text',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'instagram',
+        type: 'text',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
     ],
   },
   {
     type: 'row',
     fields: [
-      { name: 'youtube', type: 'text', admin: { width: '50%' } },
-      { name: 'facebook', type: 'text', admin: { width: '50%' } },
+      {
+        name: 'twitter',
+        type: 'text',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'tiktok',
+        type: 'text',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
+    ],
+  },
+  {
+    type: 'row',
+    fields: [
+      {
+        name: 'youtube',
+        type: 'text',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
+      {
+        name: 'facebook',
+        type: 'text',
+        admin: { width: '50%' },
+        access: { update: selfOrAdminField },
+      },
     ],
   },
 
+  /* ----------------------------------------------------------
+     PRIMARY ROLE (DISPLAY ONLY)
+  ---------------------------------------------------------- */
   {
     name: 'primaryRole',
     type: 'select',
     defaultValue: 'listener',
+    access: {
+      update: adminOnlyField,
+    },
+    admin: {
+      description: 'High-level display role (does not control permissions).',
+    },
     options: [
       { label: 'Listener', value: 'listener' },
       { label: 'Artist', value: 'artist' },

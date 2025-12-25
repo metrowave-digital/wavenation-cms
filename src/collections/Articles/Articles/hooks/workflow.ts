@@ -4,7 +4,12 @@ import { Roles } from '@/access/roles'
 export const enforceWorkflow: CollectionBeforeChangeHook = ({ req, data, originalDoc }) => {
   if (!data) return data
 
-  const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
+  // Require authenticated user for workflow changes
+  if (!req?.user) {
+    throw new Error('Authentication is required to change article workflow.')
+  }
+
+  const roles = Array.isArray(req.user.roles) ? req.user.roles : []
 
   const isPublisher =
     roles.includes(Roles.SYSTEM) ||
@@ -13,27 +18,35 @@ export const enforceWorkflow: CollectionBeforeChangeHook = ({ req, data, origina
     roles.includes(Roles.STAFF) ||
     roles.includes(Roles.EDITOR)
 
-  const nextStatus = data.status
-  const prevStatus = originalDoc?.status
+  const prevStatus = originalDoc?.status ?? 'draft'
 
-  // Only publisher-level roles may move to 'published' or 'scheduled'
+  // Normalize next status FIRST
+  const nextStatus = data.status ?? prevStatus
+  data.status = nextStatus
+
+  /* ---------------------------------------------------------
+     PUBLISH / SCHEDULE GATE
+  --------------------------------------------------------- */
+
   if ((nextStatus === 'published' || nextStatus === 'scheduled') && !isPublisher) {
     throw new Error('Only editorial staff may publish or schedule articles.')
   }
 
-  // If scheduling, require a date
+  /* ---------------------------------------------------------
+     SCHEDULING RULE
+  --------------------------------------------------------- */
+
   if (nextStatus === 'scheduled' && !data.scheduledPublishDate) {
     throw new Error('Scheduled articles must have a Scheduled Publish Date.')
   }
 
-  // Default status if none provided
-  if (!data.status) {
-    data.status = prevStatus ?? 'draft'
-  }
+  /* ---------------------------------------------------------
+     UNPUBLISHING (EDITORIAL DECISION)
+     Allowed for publishers
+  --------------------------------------------------------- */
 
-  // Simple state sanity: if previously published, keep it published
   if (prevStatus === 'published' && nextStatus !== 'published' && isPublisher) {
-    // This is allowed but treated as an editorial choice (e.g., unpublishing)
+    // Allowed — handled as an editorial action
     return data
   }
 

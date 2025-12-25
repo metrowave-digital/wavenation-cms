@@ -1,4 +1,21 @@
-import type { CollectionConfig } from 'payload'
+// src/collections/Events/EventCheckins.ts
+
+import type { CollectionConfig, FieldAccess } from 'payload'
+import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   FIELD ACCESS HELPERS (BOOLEAN ONLY)
+============================================================ */
+
+/**
+ * Audit fields are admin-only
+ */
+const adminOnly: FieldAccess = ({ req }) => Boolean(req?.user && AccessControl.isAdminRole(req))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const EventCheckins: CollectionConfig = {
   slug: 'event-checkins',
@@ -6,14 +23,33 @@ export const EventCheckins: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     group: 'Events',
-    defaultColumns: ['ticket', 'event', 'method', 'checkedInAt'],
+    defaultColumns: ['ticket', 'event', 'method', 'checkedInAt', 'valid'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (COLLECTION LEVEL)
+     NOTE: No `doc` here (Payload v3 rule)
+  ----------------------------------------------------------- */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user), // scanning app or staff
+    /**
+     * Read: staff+, admins, system
+     */
+    read: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.STAFF)),
+
+    /**
+     * Create: scanner apps, staff, admins
+     */
+    create: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.STAFF)),
+
+    /**
+     * Immutable log
+     */
     update: () => false,
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+
+    /**
+     * Delete: admin only (emergency remediation)
+     */
+    delete: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN)),
   },
 
   timestamps: true,
@@ -63,7 +99,7 @@ export const EventCheckins: CollectionConfig = {
       name: 'device',
       type: 'text',
       admin: {
-        description: 'Device used for scan (scanner ID or kiosk ID).',
+        description: 'Scanner ID, kiosk ID, or device fingerprint.',
       },
     },
 
@@ -88,14 +124,16 @@ export const EventCheckins: CollectionConfig = {
       name: 'valid',
       type: 'checkbox',
       defaultValue: true,
+      access: { update: adminOnly },
       admin: {
-        description: 'Marked false if duplicate scan or invalid ticket.',
+        description: 'False if duplicate scan, expired pass, wrong event, or fraud.',
       },
     },
 
     {
       name: 'notes',
       type: 'textarea',
+      access: { update: adminOnly },
     },
 
     /* ---------------- AUDIT ---------------- */
@@ -103,18 +141,31 @@ export const EventCheckins: CollectionConfig = {
       name: 'createdBy',
       type: 'relationship',
       relationTo: 'users',
+      access: { update: () => false },
       admin: { readOnly: true },
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
       ({ req, data, operation }) => {
+        // Attach audit info
         if (operation === 'create' && req.user) {
           data.createdBy = req.user.id
         }
+
+        // Default check-in timestamp if missing
+        if (!data.checkedInAt) {
+          data.checkedInAt = new Date()
+        }
+
         return data
       },
     ],
   },
 }
+
+export default EventCheckins

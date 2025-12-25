@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isStaffAccess } from '@/access/control'
 
 export const Inbox: CollectionConfig = {
   slug: 'inbox',
@@ -9,29 +10,33 @@ export const Inbox: CollectionConfig = {
     defaultColumns: ['user', 'type', 'isRead', 'priority', 'createdAt'],
   },
 
+  /* ============================================================
+     ACCESS (COARSE — SAFE)
+  ============================================================ */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user), // system and rules create entries
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
+    read: ({ req }) => Boolean(req?.user),
+    create: ({ req }) => Boolean(req?.user), // system / backend
+    update: ({ req }) => Boolean(req?.user),
+    delete: ({ req }) => Boolean(req?.user),
   },
 
   timestamps: true,
 
   fields: [
-    /* ---------------------------------------------------------------------
-     * USER OWNER OF THIS INBOX ITEM
-     --------------------------------------------------------------------- */
+    /* ---------------------------------------------------------
+     * OWNER
+     --------------------------------------------------------- */
     {
       name: 'user',
       type: 'relationship',
       relationTo: 'profiles',
       required: true,
+      access: { update: () => false },
     },
 
-    /* ---------------------------------------------------------------------
-     * TYPE OF INBOX ITEM
-     --------------------------------------------------------------------- */
+    /* ---------------------------------------------------------
+     * TYPE
+     --------------------------------------------------------- */
     {
       name: 'type',
       type: 'select',
@@ -49,9 +54,9 @@ export const Inbox: CollectionConfig = {
       ],
     },
 
-    /* ---------------------------------------------------------------------
-     * STATUS & PRIORITY (smart inbox logic)
-     --------------------------------------------------------------------- */
+    /* ---------------------------------------------------------
+     * STATUS
+     --------------------------------------------------------- */
     {
       name: 'isRead',
       type: 'checkbox',
@@ -72,197 +77,166 @@ export const Inbox: CollectionConfig = {
         { label: 'Normal', value: 'normal' },
         { label: 'Low', value: 'low' },
       ],
+      access: { update: () => false },
     },
 
-    /* ---------------------------------------------------------------------
-     * ACTOR (who triggered it)
-     --------------------------------------------------------------------- */
+    /* ---------------------------------------------------------
+     * ACTOR
+     --------------------------------------------------------- */
     {
       name: 'actor',
       type: 'relationship',
       relationTo: 'profiles',
-      admin: { description: 'User who triggered this inbox item' },
+      access: { update: () => false },
     },
 
-    /* ---------------------------------------------------------------------
-     * RELATED ENTITIES (ONE-TO-MANY RELATION, SWITCH BY TYPE)
-     --------------------------------------------------------------------- */
-
-    // Direct Message
+    /* ---------------------------------------------------------
+     * RELATIONS (UNCHANGED)
+     --------------------------------------------------------- */
     {
       name: 'message',
       type: 'relationship',
       relationTo: 'messages',
-      admin: { condition: (data) => data?.type === 'message' },
+      admin: { condition: (d) => d?.type === 'message' },
     },
-
-    // Thread Reply
     {
       name: 'threadReply',
       type: 'relationship',
       relationTo: 'messages',
-      admin: { condition: (data) => data?.type === 'thread-reply' },
+      admin: { condition: (d) => d?.type === 'thread-reply' },
     },
-
-    // Notification
     {
       name: 'notification',
       type: 'relationship',
       relationTo: 'notifications',
-      admin: { condition: (data) => data?.type === 'notification' },
+      admin: { condition: (d) => d?.type === 'notification' },
     },
-
-    // Mention (comments, messages, reviews)
     {
       name: 'mentionSource',
       type: 'relationship',
       relationTo: ['comments', 'messages', 'reviews'],
-      admin: { condition: (data) => data?.type === 'mention' },
+      admin: { condition: (d) => d?.type === 'mention' },
     },
-
-    // Follow event
     {
       name: 'follower',
       type: 'relationship',
       relationTo: 'profiles',
-      admin: { condition: (data) => data?.type === 'follow' },
+      admin: { condition: (d) => d?.type === 'follow' },
     },
-
-    // Review event
     {
       name: 'review',
       type: 'relationship',
       relationTo: 'reviews',
-      admin: { condition: (data) => data?.type === 'review' },
+      admin: { condition: (d) => d?.type === 'review' },
     },
-
-    // Comment event
     {
       name: 'comment',
       type: 'relationship',
       relationTo: 'comments',
-      admin: { condition: (data) => data?.type === 'comment' },
+      admin: { condition: (d) => d?.type === 'comment' },
     },
-
-    // Reaction event
     {
       name: 'reaction',
       type: 'relationship',
       relationTo: ['review-reactions', 'message-reactions', 'comment-reactions'],
-      admin: { condition: (data) => data?.type === 'reaction' },
+      admin: { condition: (d) => d?.type === 'reaction' },
     },
 
-    /* ---------------------------------------------------------------------
-     * CONTENT LINKS (optional deep linking support)
-     --------------------------------------------------------------------- */
-    {
-      name: 'mediaType',
-      type: 'select',
-      admin: { description: 'Optional — attach media for quick navigation' },
-      options: [
-        'tracks',
-        'albums',
-        'podcasts',
-        'podcast-episodes',
-        'shows',
-        'episodes',
-        'films',
-        'vod',
-        'articles',
-        'playlists',
-        'charts',
-      ].map((x) => ({ label: x, value: x })),
-    },
-
-    {
-      name: 'mediaItem',
-      type: 'relationship',
-      relationTo: [
-        'tracks',
-        'albums',
-        'podcasts',
-        'podcast-episodes',
-        'shows',
-        'episodes',
-        'films',
-        'vod',
-        'articles',
-        'playlists',
-        'charts',
-      ],
-      admin: { condition: (data) => !!data?.mediaType },
-    },
-
-    /* ---------------------------------------------------------------------
-     * MESSAGE SNIPPET / PREVIEW
-     --------------------------------------------------------------------- */
+    /* ---------------------------------------------------------
+     * PREVIEW
+     --------------------------------------------------------- */
     {
       name: 'previewText',
       type: 'text',
-      admin: {
-        description: 'Short text preview displayed in Inbox UI.',
-      },
     },
 
-    /* ---------------------------------------------------------------------
-     * AI TOXICITY / MODERATION (optional for mentions & messages)
-     --------------------------------------------------------------------- */
+    /* ---------------------------------------------------------
+     * AI / MODERATION
+     --------------------------------------------------------- */
     {
       name: 'toxicityScore',
       type: 'number',
-      admin: {
-        readOnly: true,
-        description: 'AI toxicity score for moderation UI',
-      },
+      admin: { readOnly: true },
     },
     {
       name: 'isToxic',
       type: 'checkbox',
       defaultValue: false,
-      admin: {
-        readOnly: true,
-      },
+      admin: { readOnly: true },
     },
 
-    /* ---------------------------------------------------------------------
+    /* ---------------------------------------------------------
      * AUDIT
-     --------------------------------------------------------------------- */
+     --------------------------------------------------------- */
     {
       name: 'createdBy',
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
     {
       name: 'updatedBy',
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
   ],
 
-  /* ---------------------------------------------------------------------
-   * HOOKS
-   --------------------------------------------------------------------- */
+  /* ============================================================
+     HOOKS — ENFORCEMENT
+  ============================================================ */
   hooks: {
     beforeChange: [
-      ({ req, operation, data }) => {
-        // audit
-        if (req.user) {
-          if (operation === 'create') data.createdBy = req.user.id
-          data.updatedBy = req.user.id
-        }
+      async ({ req, data, operation, req: { payload } }) => {
+        if (!req?.user) return data
 
-        // auto-priority assignment
+        /* ------------------------------------------------------
+           Audit + ownership
+        ------------------------------------------------------ */
         if (operation === 'create') {
-          if (['system', 'reaction', 'review', 'thread-reply'].includes(data.type)) {
-            data.priority = 'high'
-          }
+          data.createdBy = req.user.id
+          data.actor = data.actor || req.user.id
+        }
+        data.updatedBy = req.user.id
+
+        /* ------------------------------------------------------
+           Auto priority
+        ------------------------------------------------------ */
+        if (
+          operation === 'create' &&
+          ['system', 'reaction', 'review', 'thread-reply'].includes(data.type)
+        ) {
+          data.priority = 'high'
         }
 
-        // preview autofill
-        if (!data.previewText && data.message) {
-          data.previewText = '[message]'
+        /* ------------------------------------------------------
+           Preview fallback
+        ------------------------------------------------------ */
+        if (!data.previewText) {
+          data.previewText = `[${data.type}]`
+        }
+
+        /* ------------------------------------------------------
+           Prevent duplicate inbox entries
+        ------------------------------------------------------ */
+        if (operation === 'create') {
+          const existing = await payload.find({
+            collection: 'inbox',
+            where: {
+              and: [
+                { user: { equals: data.user } },
+                { type: { equals: data.type } },
+                { message: { equals: data.message } },
+              ],
+            },
+            limit: 1,
+          })
+
+          if (existing.docs.length > 0) {
+            throw new Error('Duplicate inbox entry blocked.')
+          }
         }
 
         return data

@@ -1,4 +1,22 @@
-import type { CollectionConfig } from 'payload'
+// src/collections/Events/EventAnalytics.ts
+
+import type { CollectionConfig, FieldAccess } from 'payload'
+import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   FIELD ACCESS HELPERS (BOOLEAN ONLY)
+============================================================ */
+
+/**
+ * Analytics fields are system / admin write-only
+ */
+const systemOnly: FieldAccess = ({ req }) =>
+  Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const EventAnalytics: CollectionConfig = {
   slug: 'event-analytics',
@@ -9,19 +27,36 @@ export const EventAnalytics: CollectionConfig = {
     defaultColumns: ['event', 'date', 'channel'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (COLLECTION LEVEL)
+     NOTE: No `doc` here (Payload v3 rule)
+  ----------------------------------------------------------- */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) =>
-      Boolean(req.user?.roles?.includes('admin') || req.user?.roles?.includes('system')),
-    update: ({ req }) =>
-      Boolean(req.user?.roles?.includes('admin') || req.user?.roles?.includes('system')),
-    delete: ({ req }) =>
-      Boolean(req.user?.roles?.includes('admin') || req.user?.roles?.includes('system')),
+    /**
+     * Read-only for logged-in users (dashboards, reports)
+     */
+    read: ({ req }) => Boolean(req?.user),
+
+    /**
+     * Create: system + admin ingestion jobs
+     */
+    create: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN)),
+
+    /**
+     * Immutable analytics
+     */
+    update: () => false,
+
+    /**
+     * Delete: admin only (emergency cleanup)
+     */
+    delete: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN)),
   },
 
   timestamps: true,
 
   fields: [
+    /* ---------------- IDENTIFIERS ---------------- */
     {
       name: 'event',
       type: 'relationship',
@@ -56,6 +91,7 @@ export const EventAnalytics: CollectionConfig = {
     {
       name: 'funnel',
       type: 'group',
+      access: { update: systemOnly },
       fields: [
         {
           type: 'row',
@@ -82,6 +118,7 @@ export const EventAnalytics: CollectionConfig = {
     {
       name: 'attendance',
       type: 'group',
+      access: { update: systemOnly },
       fields: [
         {
           type: 'row',
@@ -97,6 +134,7 @@ export const EventAnalytics: CollectionConfig = {
     {
       name: 'extra',
       type: 'json',
+      access: { update: systemOnly },
       admin: {
         description: 'Custom analytic dimensions (e.g., by ticket type, promo code).',
       },
@@ -107,6 +145,7 @@ export const EventAnalytics: CollectionConfig = {
       name: 'ingestedBy',
       type: 'relationship',
       relationTo: 'users',
+      access: { update: () => false },
       admin: {
         description: 'System or admin that inserted this record.',
         readOnly: true,
@@ -114,6 +153,9 @@ export const EventAnalytics: CollectionConfig = {
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
       ({ req, data, operation }) => {
@@ -125,3 +167,5 @@ export const EventAnalytics: CollectionConfig = {
     ],
   },
 }
+
+export default EventAnalytics

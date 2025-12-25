@@ -2,9 +2,10 @@ import type { Field } from 'payload'
 import { articleBlocks } from '../blocks/allBlocks'
 
 export const africanAmericanCultureStoryFields: Field[] = [
-  // ------------------------------------------
-  // BASIC METADATA
-  // ------------------------------------------
+  /* ============================================================
+     BASIC METADATA
+  ============================================================ */
+
   {
     type: 'text',
     name: 'subtitle',
@@ -26,9 +27,10 @@ export const africanAmericanCultureStoryFields: Field[] = [
     relationTo: 'categories',
   },
 
-  // ------------------------------------------
-  // MAIN ARTICLE BODY (Blocks)
-  // ------------------------------------------
+  /* ============================================================
+     MAIN ARTICLE BODY (BLOCKS)
+  ============================================================ */
+
   {
     type: 'blocks',
     name: 'content',
@@ -36,17 +38,19 @@ export const africanAmericanCultureStoryFields: Field[] = [
     required: true,
     blocks: articleBlocks,
     admin: {
-      description: 'Build your Hook → Background → Main Story → Voices → Connection using Blocks.',
+      description:
+        'Build your Hook → Background → Main Story → Voices → Cultural Connection using Blocks.',
     },
   },
 
-  // ------------------------------------------
-  // LOCAL VOICES (array)
-  // ------------------------------------------
+  /* ============================================================
+     LOCAL VOICES (STRUCTURED QUOTES)
+  ============================================================ */
+
   {
     type: 'array',
     name: 'localVoices',
-    dbName: 'aa_localvoices', // safe
+    dbName: 'aa_localvoices',
     label: 'Local Voices',
     labels: {
       singular: 'Voice',
@@ -70,9 +74,10 @@ export const africanAmericanCultureStoryFields: Field[] = [
     ],
   },
 
-  // ------------------------------------------
-  // RESOURCES (array)
-  // ------------------------------------------
+  /* ============================================================
+     RESOURCES / REFERENCES
+  ============================================================ */
+
   {
     type: 'array',
     name: 'resources',
@@ -83,7 +88,7 @@ export const africanAmericanCultureStoryFields: Field[] = [
       plural: 'Resources',
     },
     admin: {
-      description: 'Optional resources, links, or cultural references.',
+      description: 'Optional resources, references, or cultural materials related to the story.',
     },
     fields: [
       {

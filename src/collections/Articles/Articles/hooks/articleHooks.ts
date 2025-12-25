@@ -1,22 +1,23 @@
 import type { CollectionBeforeChangeHook } from 'payload'
-import { isAdminBoolean, isStaffBoolean } from '@/access/control'
+import { isAdminRole, isStaff } from '@/access/control'
 
 /* ============================================================
    STATUS PERMISSIONS
 ============================================================ */
 
 const enforceStatusChangePermissions: CollectionBeforeChangeHook = ({ req, data, originalDoc }) => {
-  if (!originalDoc) return data
+  if (!originalDoc || !data) return data
 
   // 🔑 ADMIN ALWAYS ALLOWED
-  if (isAdminBoolean(req)) return data
+  if (req && isAdminRole(req)) return data
 
-  if (
-    typeof data.status !== 'undefined' &&
-    data.status !== originalDoc.status &&
-    !isStaffBoolean(req)
-  ) {
-    throw new Error('Only staff or admins can change article status.')
+  // Status changed?
+  if (typeof data.status !== 'undefined' && data.status !== originalDoc.status) {
+    const staffAllowed = Boolean(req && isStaff({ req }))
+
+    if (!staffAllowed) {
+      throw new Error('Only staff or admins can change article status.')
+    }
   }
 
   return data
@@ -27,21 +28,29 @@ const enforceStatusChangePermissions: CollectionBeforeChangeHook = ({ req, data,
 ============================================================ */
 
 const enforceBadgePermissions: CollectionBeforeChangeHook = ({ req, data, originalDoc }) => {
-  if (!originalDoc) return data
+  if (!originalDoc || !data) return data
 
   // 🔑 ADMIN ALWAYS ALLOWED
-  if (isAdminBoolean(req)) return data
+  if (req && isAdminRole(req)) return data
 
+  // Badges changed?
   if (
     Array.isArray(data.badges) &&
-    JSON.stringify(data.badges) !== JSON.stringify(originalDoc.badges) &&
-    !isStaffBoolean(req)
+    JSON.stringify(data.badges) !== JSON.stringify(originalDoc.badges)
   ) {
-    throw new Error('Only staff or admins can update article badges.')
+    const staffAllowed = Boolean(req && isStaff({ req }))
+
+    if (!staffAllowed) {
+      throw new Error('Only staff or admins can update article badges.')
+    }
   }
 
   return data
 }
+
+/* ============================================================
+   EXPORT
+============================================================ */
 
 export const articleHooks = {
   beforeChange: [enforceStatusChangePermissions, enforceBadgePermissions],

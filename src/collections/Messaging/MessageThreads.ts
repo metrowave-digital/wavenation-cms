@@ -1,4 +1,17 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Access, FieldAccess } from 'payload'
+import { isLoggedIn, isStaffAccess, isModeratorOrAboveField } from '@/access/control'
+
+/* ============================================================
+   COLLECTION ACCESS (COARSE — NO doc HERE)
+============================================================ */
+
+const canReadThreads: Access = ({ req }) => Boolean(req?.user)
+const canCreateThreads: Access = isLoggedIn
+const canUpdateThreads: Access = ({ req }) => Boolean(req?.user && isStaffAccess({ req }))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const MessageThreads: CollectionConfig = {
   slug: 'message-threads',
@@ -6,41 +19,65 @@ export const MessageThreads: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     group: 'Communications',
-    defaultColumns: ['rootMessage', 'chat', 'createdAt'],
+    defaultColumns: ['rootMessage', 'chat', 'lastActivity'],
   },
 
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
-    update: ({ req }) => Boolean(req.user),
+    read: canReadThreads,
+    create: canCreateThreads,
+    update: canUpdateThreads,
+    delete: ({ req }) => Boolean(req?.user?.roles?.includes('admin')),
   },
 
   timestamps: true,
 
+  /* ============================================================
+     HOOKS — THREAD RULE ENFORCEMENT
+  ============================================================ */
+  hooks: {
+    beforeChange: [
+      async ({ req, data, originalDoc, operation }) => {
+        if (!req?.user) return data
+
+        // Audit
+        if (operation === 'create') data.createdBy = req.user.id
+        data.updatedBy = req.user.id
+
+        // Auto last activity
+        data.lastActivity = new Date()
+
+        // Prevent updates to locked threads (except staff)
+        if (operation === 'update' && originalDoc?.isLocked && !isStaffAccess({ req })) {
+          throw new Error('This thread is locked.')
+        }
+
+        return data
+      },
+    ],
+  },
+
   fields: [
     /* ---------------------------------------------------------
-     * ROOT MESSAGE (The main message this thread belongs to)
+     * CORE RELATIONS
      --------------------------------------------------------- */
     {
       name: 'rootMessage',
       type: 'relationship',
       relationTo: 'messages',
       required: true,
+      access: { update: () => false },
     },
 
-    /* ---------------------------------------------------------
-     * CHAT RELATION
-     --------------------------------------------------------- */
     {
       name: 'chat',
       type: 'relationship',
       relationTo: 'chats',
       required: true,
+      access: { update: () => false },
     },
 
     /* ---------------------------------------------------------
-     * REPLIES IN THE THREAD
+     * THREAD CONTENT
      --------------------------------------------------------- */
     {
       name: 'messages',
@@ -52,9 +89,6 @@ export const MessageThreads: CollectionConfig = {
       },
     },
 
-    /* ---------------------------------------------------------
-     * THREAD PARTICIPANTS
-     --------------------------------------------------------- */
     {
       name: 'participants',
       type: 'relationship',
@@ -66,7 +100,7 @@ export const MessageThreads: CollectionConfig = {
     },
 
     /* ---------------------------------------------------------
-     * THREAD METADATA
+     * METADATA
      --------------------------------------------------------- */
     {
       name: 'lastActivity',
@@ -77,7 +111,12 @@ export const MessageThreads: CollectionConfig = {
       name: 'isLocked',
       type: 'checkbox',
       defaultValue: false,
-      admin: { description: 'Prevent further messages.' },
+      admin: {
+        description: 'Prevent further replies in this thread.',
+      },
+      access: {
+        update: isModeratorOrAboveField,
+      },
     },
 
     /* ---------------------------------------------------------
@@ -88,31 +127,14 @@ export const MessageThreads: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
     {
       name: 'updatedBy',
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
   ],
-
-  hooks: {
-    beforeChange: [
-      async ({ req, data, operation }) => {
-        // Audit
-        if (req.user) {
-          if (operation === 'create') {
-            data.createdBy = req.user.id
-          }
-          data.updatedBy = req.user.id
-        }
-
-        // Auto-update last activity
-        data.lastActivity = new Date()
-
-        return data
-      },
-    ],
-  },
 }

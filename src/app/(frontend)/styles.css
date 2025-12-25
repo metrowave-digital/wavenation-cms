@@ -15,6 +15,184 @@
 /* -------------------------------------------------------------
    GLOBAL LAYOUT
 ------------------------------------------------------------- */
+/* =========================================================
+   BASE CONTAINER
+========================================================= */
+
+.container {
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  color: #f5f7fa;
+  background-color: #0b0f14;
+}
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.hero {
+  margin-bottom: 3rem;
+}
+
+.title {
+  font-size: 2.3rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+}
+
+.subtitle {
+  font-size: 1.05rem;
+  color: #cfd6e0;
+}
+
+/* =========================================================
+   SECTIONS
+========================================================= */
+
+.section {
+  margin-bottom: 3.5rem;
+}
+
+.section h2 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #ffffff;
+}
+
+.section p {
+  max-width: 900px;
+  line-height: 1.65;
+  font-size: 0.95rem;
+  color: #e6ebf2;
+}
+
+/* =========================================================
+   LISTS
+========================================================= */
+
+.bullets {
+  margin-top: 1rem;
+  padding-left: 1.3rem;
+}
+
+.bullets li {
+  margin-bottom: 0.6rem;
+  line-height: 1.55;
+  color: #e3e8f0;
+}
+
+/* =========================================================
+   GRID / CARDS
+========================================================= */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.4rem;
+  margin-top: 1.5rem;
+}
+
+.card {
+  background: #14181f;
+  border: 1px solid #2a3240;
+  border-radius: 12px;
+  padding: 1.4rem;
+}
+
+.card h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  color: #ffffff;
+}
+
+.card p {
+  font-size: 0.9rem;
+  color: #dbe1ea;
+  margin-bottom: 0.8rem;
+}
+
+.card ul {
+  padding-left: 1.1rem;
+}
+
+.card li {
+  font-size: 0.85rem;
+  margin-bottom: 0.45rem;
+  color: #cfd6e0;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #e8edf5;
+}
+
+.table th,
+.table td {
+  border: 1px solid #2a3240;
+  padding: 0.85rem;
+  text-align: left;
+}
+
+.table th {
+  background: #1a202b;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.table td {
+  background: #0f141b;
+}
+
+/* =========================================================
+   INLINE CODE (CSS MODULE SAFE)
+========================================================= */
+
+.container code {
+  background: #1e2633;
+  color: #9fd3ff;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #2a3240;
+  font-size: 0.85rem;
+  color: #b8c0cc;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 1.9rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 .wn-dashboard {
   background: var(--wn-black);

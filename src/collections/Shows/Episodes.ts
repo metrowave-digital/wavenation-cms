@@ -1,14 +1,21 @@
 // src/collections/Shows/Episodes.ts
 
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { seoFields } from '../../fields/seo'
 
-const isAdmin = ({ req }: { req: PayloadRequest }) => {
-  // Cast to any so we don't fight the User type for `roles`
-  const roles = Array.isArray((req.user as any)?.roles) ? ((req.user as any).roles as string[]) : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
+import {
+  isPublic,
+  isEditorOrAbove,
+  isStaffAccess,
+  isAdmin,
+  isStaffAccessField,
+  isAdminField,
+} from '@/access/control'
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Episodes: CollectionConfig = {
   slug: 'episodes',
@@ -16,13 +23,16 @@ export const Episodes: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: 'Content',
-    defaultColumns: ['title', 'episodeNumber', 'seasonNumber', 'show'],
+    defaultColumns: ['title', 'episodeNumber', 'seasonNumber', 'show', 'status'],
   },
 
+  /* ------------------------------------------------------------
+     ACCESS CONTROL
+  ------------------------------------------------------------ */
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
+    read: isPublic,
+    create: isEditorOrAbove,
+    update: isStaffAccess,
     delete: isAdmin,
   },
 
@@ -32,24 +42,22 @@ export const Episodes: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
-        /* ---------------------------------------------
-         * TAB 1 — Episode Information
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 1 — EPISODE INFO
+        ===================================================== */
         {
           label: 'Episode Info',
           fields: [
-            {
-              name: 'title',
-              type: 'text',
-              required: true,
-            },
+            { name: 'title', type: 'text', required: true },
+
             {
               name: 'slug',
               type: 'text',
               unique: true,
               index: true,
-              admin: { description: 'Auto-generated if left empty.' },
+              admin: { description: 'Auto-generated if left empty' },
             },
+
             {
               type: 'row',
               fields: [
@@ -66,6 +74,7 @@ export const Episodes: CollectionConfig = {
                 },
               ],
             },
+
             {
               name: 'status',
               type: 'select',
@@ -77,10 +86,9 @@ export const Episodes: CollectionConfig = {
                 { label: 'Archived', value: 'archived' },
               ],
             },
-            {
-              name: 'airDate',
-              type: 'date',
-            },
+
+            { name: 'airDate', type: 'date' },
+
             {
               name: 'description',
               type: 'richText',
@@ -89,9 +97,9 @@ export const Episodes: CollectionConfig = {
           ],
         },
 
-        /* ---------------------------------------------
-         * TAB 2 — Video Source
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 2 — VIDEO SOURCE
+        ===================================================== */
         {
           label: 'Video Source',
           fields: [
@@ -107,25 +115,24 @@ export const Episodes: CollectionConfig = {
               ],
             },
 
-            // Cloudflare Stream fields
             {
               name: 'cloudflareVideoId',
               type: 'text',
               admin: {
-                description: 'Cloudflare Stream video UID',
                 condition: (data) => data?.videoProvider === 'cloudflare',
+                description: 'Cloudflare Stream video UID',
               },
             },
+
             {
               name: 'cloudflarePlaybackUrl',
               type: 'text',
               admin: {
-                description: 'HLS/DASH playback URL',
                 condition: (data) => data?.videoProvider === 'cloudflare',
+                description: 'HLS / DASH playback URL',
               },
             },
 
-            // S3 / R2 hosted MP4
             {
               name: 's3VideoFile',
               type: 'upload',
@@ -136,21 +143,20 @@ export const Episodes: CollectionConfig = {
               },
             },
 
-            // External link
             {
               name: 'externalUrl',
               type: 'text',
               admin: {
                 condition: (data) => data?.videoProvider === 'external',
-                description: 'Paste YouTube, Vimeo, or custom HLS URL',
+                description: 'YouTube, Vimeo, or custom HLS URL',
               },
             },
           ],
         },
 
-        /* ---------------------------------------------
-         * TAB 3 — Images & Branding
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 3 — BRANDING
+        ===================================================== */
         {
           label: 'Branding',
           fields: [
@@ -161,22 +167,17 @@ export const Episodes: CollectionConfig = {
                   name: 'thumbnail',
                   type: 'upload',
                   relationTo: 'media',
-                  admin: {
-                    width: '50%',
-                    description: 'Episode poster image',
-                  },
+                  admin: { width: '50%' },
                 },
                 {
                   name: 'bannerImage',
                   type: 'upload',
                   relationTo: 'media',
-                  admin: {
-                    width: '50%',
-                    description: 'Wide banner artwork',
-                  },
+                  admin: { width: '50%' },
                 },
               ],
             },
+
             {
               name: 'brandColor',
               type: 'text',
@@ -185,9 +186,9 @@ export const Episodes: CollectionConfig = {
           ],
         },
 
-        /* ---------------------------------------------
-         * TAB 4 — Associated Show & Cast
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 4 — RELATIONSHIPS
+        ===================================================== */
         {
           label: 'Relationships',
           fields: [
@@ -196,7 +197,6 @@ export const Episodes: CollectionConfig = {
               type: 'relationship',
               relationTo: 'shows',
               required: true,
-              admin: { description: 'Episode belongs to which TV show?' },
             },
 
             {
@@ -204,7 +204,6 @@ export const Episodes: CollectionConfig = {
               type: 'relationship',
               relationTo: 'profiles',
               hasMany: true,
-              admin: { description: 'On-screen hosts or talent' },
             },
 
             {
@@ -212,44 +211,24 @@ export const Episodes: CollectionConfig = {
               type: 'relationship',
               relationTo: 'profiles',
               hasMany: true,
-              admin: { description: 'Guest appearances' },
             },
 
-            {
-              name: 'writers',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'producers',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'editors',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
+            { name: 'writers', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'producers', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'editors', type: 'relationship', relationTo: 'profiles', hasMany: true },
           ],
         },
 
-        /* ---------------------------------------------
-         * TAB 5 — Ratings & Metadata
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 5 — METADATA
+        ===================================================== */
         {
           label: 'Metadata',
           fields: [
             {
               type: 'row',
               fields: [
-                {
-                  name: 'runtimeMinutes',
-                  type: 'number',
-                  admin: { width: '33%', description: 'Duration in minutes' },
-                },
+                { name: 'runtimeMinutes', type: 'number', admin: { width: '33%' } },
                 {
                   name: 'contentRating',
                   type: 'select',
@@ -275,55 +254,33 @@ export const Episodes: CollectionConfig = {
               type: 'relationship',
               relationTo: 'tags',
               hasMany: true,
-              admin: { description: 'Add episode tags' },
             },
 
             {
               name: 'transcript',
               type: 'richText',
               editor: lexicalEditor(),
-              admin: { description: 'Optional episode transcript' },
             },
           ],
         },
 
-        /* ---------------------------------------------
-         * TAB 6 — Clips, Extras, Promos
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 6 — EXTRAS
+        ===================================================== */
         {
           label: 'Extras',
           fields: [
             {
               name: 'clips',
               type: 'array',
-              labels: { singular: 'Clip', plural: 'Clips' },
-              fields: [
-                {
-                  name: 'title',
-                  type: 'text',
-                },
-                {
-                  name: 'clipVideo',
-                  type: 'upload',
-                  relationTo: 'media',
-                },
-              ],
-            },
-
-            {
-              name: 'behindTheScenes',
-              type: 'array',
-              labels: { singular: 'Featurette', plural: 'BTS' },
               fields: [
                 { name: 'title', type: 'text' },
-                { name: 'video', type: 'upload', relationTo: 'media' },
+                { name: 'clipVideo', type: 'upload', relationTo: 'media' },
               ],
             },
-
             {
               name: 'promos',
               type: 'array',
-              labels: { singular: 'Promo', plural: 'Promos' },
               fields: [
                 { name: 'title', type: 'text' },
                 { name: 'video', type: 'upload', relationTo: 'media' },
@@ -332,55 +289,37 @@ export const Episodes: CollectionConfig = {
           ],
         },
 
-        /* ---------------------------------------------
-         * TAB 7 — SEO
-         * --------------------------------------------- */
-        {
-          label: 'SEO',
-          fields: [seoFields],
-        },
+        /* =====================================================
+           TAB 7 — SEO
+        ===================================================== */
+        { label: 'SEO', fields: [seoFields] },
 
-        /* ---------------------------------------------
-         * TAB 8 — Analytics
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 8 — ANALYTICS (LOCKED)
+        ===================================================== */
         {
           label: 'Analytics',
           fields: [
             {
               type: 'row',
               fields: [
-                {
-                  name: 'views',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
-                },
-                {
-                  name: 'likes',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
-                },
-                {
-                  name: 'shares',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
-                },
+                { name: 'views', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+                { name: 'likes', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+                { name: 'shares', type: 'number', defaultValue: 0, admin: { readOnly: true } },
                 {
                   name: 'engagementScore',
                   type: 'number',
                   defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
+                  admin: { readOnly: true },
                 },
               ],
             },
           ],
         },
 
-        /* ---------------------------------------------
-         * TAB 9 — Audit
-         * --------------------------------------------- */
+        /* =====================================================
+           TAB 9 — AUDIT
+        ===================================================== */
         {
           label: 'Audit',
           fields: [
@@ -388,12 +327,14 @@ export const Episodes: CollectionConfig = {
               name: 'createdBy',
               type: 'relationship',
               relationTo: 'users',
+              access: { update: isAdminField },
               admin: { readOnly: true, position: 'sidebar' },
             },
             {
               name: 'updatedBy',
               type: 'relationship',
               relationTo: 'users',
+              access: { update: isAdminField },
               admin: { readOnly: true, position: 'sidebar' },
             },
           ],
@@ -402,17 +343,17 @@ export const Episodes: CollectionConfig = {
     },
   ],
 
+  /* ------------------------------------------------------------
+     HOOKS
+  ------------------------------------------------------------ */
   hooks: {
     beforeChange: [
-      async ({ data = {}, req, operation }) => {
-        // Guarded default for strict TS; `data` is never undefined inside now
-
+      async ({ data, req, operation }) => {
         if (req.user) {
-          if (operation === 'create') data.createdBy = (req.user as any).id
-          data.updatedBy = (req.user as any).id
+          if (operation === 'create') data.createdBy = req.user.id
+          data.updatedBy = req.user.id
         }
 
-        // auto slug
         if (data.title && !data.slug) {
           data.slug = data.title
             .toLowerCase()

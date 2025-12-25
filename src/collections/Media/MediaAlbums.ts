@@ -1,24 +1,39 @@
-import type { CollectionConfig, Access } from 'payload'
+import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import * as AccessControl from '@/access/control'
 
 /* ============================================================
-   ACCESS
+   ACCESS HELPERS
 ============================================================ */
 
-const isLoggedIn: Access = ({ req }) => Boolean(req.user)
+const isLoggedIn: Access = ({ req }) => Boolean(req?.user)
 
-/**
- * Admin OR creator (safe — no collection lookup)
- */
-const canUpdateAlbum: Access = ({ req }) => {
-  if (!req.user) return false
+const canUpdateAlbum: Access = async ({ req, id }: AccessArgs) => {
+  if (!req?.user) return false
 
-  // 🔑 ADMIN ALWAYS WINS
   if (AccessControl.isAdmin({ req })) return true
+  if (AccessControl.isStaff({ req })) return true
 
-  // creators & staff can update their own albums
-  const roles = Array.isArray(req.user.roles) ? req.user.roles : []
-  return roles.includes('creator') || roles.includes('staff')
+  if (!id) return false
+
+  const album = await req.payload.findByID({
+    collection: 'media-albums',
+    id: String(id),
+    depth: 0,
+  })
+
+  const ownerId =
+    typeof (album as any).createdBy === 'string'
+      ? (album as any).createdBy
+      : (album as any).createdBy?.id
+
+  return ownerId === String(req.user.id)
+}
+
+const canDeleteAlbum: Access = ({ req }) => AccessControl.isAdmin({ req })
+
+const canReadAlbums: Access = ({ req }) => {
+  if (req?.user) return true
+  return AccessControl.apiLockedRead({ req } as any)
 }
 
 /* ============================================================
@@ -36,20 +51,19 @@ export const MediaAlbums: CollectionConfig = {
   admin: {
     group: 'Media',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'items'],
+    defaultColumns: ['title', 'items', 'createdBy', 'updatedAt'],
   },
 
   access: {
-    read: () => true,
+    read: canReadAlbums,
     create: isLoggedIn,
     update: canUpdateAlbum,
-    delete: AccessControl.isAdmin,
+    delete: canDeleteAlbum,
   },
 
   timestamps: true,
 
   fields: [
-    /* ---------------- BASIC ---------------- */
     {
       name: 'title',
       type: 'text',
@@ -61,7 +75,6 @@ export const MediaAlbums: CollectionConfig = {
       type: 'textarea',
     },
 
-    /* ---------------- ALBUM ITEMS ---------------- */
     {
       type: 'array',
       name: 'items',
@@ -85,7 +98,35 @@ export const MediaAlbums: CollectionConfig = {
       ],
     },
 
-    /* ---------------- AUDIT ---------------- */
+    {
+      name: 'visibility',
+      type: 'select',
+      defaultValue: 'public',
+      required: true,
+      options: [
+        { label: 'Public', value: 'public' },
+        { label: 'Unlisted', value: 'unlisted' },
+        { label: 'Private', value: 'private' },
+      ],
+      admin: {
+        description: 'Controls public API visibility. Private albums require authentication.',
+      },
+    },
+
+    {
+      name: 'status',
+      type: 'select',
+      defaultValue: 'active',
+      required: true,
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Archived', value: 'archived' },
+      ],
+      admin: {
+        description: 'Archive instead of deleting to preserve references.',
+      },
+    },
+
     {
       name: 'createdBy',
       type: 'relationship',
@@ -103,15 +144,15 @@ export const MediaAlbums: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
-        if (!req.user) return data
+        if (!req?.user) return data
 
         const userId = String(req.user.id)
 
         if (operation === 'create') {
-          data.createdBy = userId
+          ;(data as any).createdBy = userId
         }
 
-        data.updatedBy = userId
+        ;(data as any).updatedBy = userId
 
         return data
       },

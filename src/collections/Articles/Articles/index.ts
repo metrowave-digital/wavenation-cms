@@ -4,21 +4,79 @@ import { articleFields } from './fields'
 import { articleHooks } from './hooks'
 import * as ArticleBlocks from './blocks'
 
-/* ============================================================
-   ACCESS CONTROL
-============================================================ */
+import {
+  isCreator,
+  isStaff,
+  isPublic,
+  hasRoleAtOrAbove,
+  isAdminRole,
+  apiLockedRead,
+} from '@/access/control'
 
-import { isCreator, isStaff, isPublic, hasRoleAtOrAbove } from '@/access/control'
 import { Roles } from '@/access/roles'
 
 /* ============================================================
-   ACCESS HELPERS (TYPE-SAFE)
+   COLLECTION READ ACCESS
 ============================================================ */
 
-const canUpdateArticle: Access = ({ req }) => {
-  if (!req?.user) return false
-  return hasRoleAtOrAbove(req, Roles.EDITOR)
+const canReadArticles: Access = ({ req }) => {
+  // Admin UI (cookie auth)
+  if (req?.user) return true
+
+  // Public / frontend API (strict, centralized)
+  return apiLockedRead({ req } as any)
 }
+
+/* ============================================================
+   ACCESS HELPERS
+============================================================ */
+
+const canCreateArticle: Access = ({ req }) => {
+  if (!req?.user) return false
+  if (isAdminRole(req)) return true
+  return isCreator({ req })
+}
+
+const canUpdateArticle: Access = ({ req, id }) => {
+  if (!req?.user) return false
+
+  // Admin override
+  if (isAdminRole(req)) return true
+
+  // Editor+
+  if (hasRoleAtOrAbove(req, Roles.EDITOR)) return true
+
+  // Creator can update own article
+  if (isCreator({ req }) && id) {
+    return {
+      id: { equals: id },
+      createdBy: { equals: req.user.id },
+    }
+  }
+
+  return false
+}
+
+const canDeleteArticle: Access = ({ req, id }) => {
+  if (!req?.user) return false
+
+  // Admin + Staff override
+  if (isAdminRole(req) || isStaff({ req })) return true
+
+  // Creator can delete own article
+  if (isCreator({ req }) && id) {
+    return {
+      id: { equals: id },
+      createdBy: { equals: req.user.id },
+    }
+  }
+
+  return false
+}
+
+/* ============================================================
+   FIELD-LEVEL ACCESS (BOOLEAN ONLY)
+============================================================ */
 
 const editorialFieldUpdate: FieldAccess = ({ req }) => {
   if (!req?.user) return false
@@ -45,30 +103,19 @@ export const Articles: CollectionConfig = {
     group: 'Content',
   },
 
-  /* -----------------------------------------------------------
-     ACCESS
-  ----------------------------------------------------------- */
   access: {
-    read: isPublic,
-    create: isCreator,
+    read: canReadArticles,
+    create: canCreateArticle,
     update: canUpdateArticle,
-    delete: isStaff,
+    delete: canDeleteArticle,
   },
 
-  /* -----------------------------------------------------------
-     FIELDS — DATA SAFE
-  ----------------------------------------------------------- */
   fields: [
     /* ================= TITLE + TYPE ================= */
     {
       type: 'row',
       fields: [
-        {
-          type: 'text',
-          name: 'title',
-          required: true,
-          admin: { width: '70%' },
-        },
+        { type: 'text', name: 'title', required: true, admin: { width: '70%' } },
         {
           type: 'select',
           name: 'type',
@@ -96,8 +143,8 @@ export const Articles: CollectionConfig = {
     {
       type: 'select',
       name: 'status',
-      required: true,
       defaultValue: 'draft',
+      required: true,
       access: { update: editorialFieldUpdate },
       admin: { position: 'sidebar' },
       options: [
@@ -119,8 +166,8 @@ export const Articles: CollectionConfig = {
       options: [
         { label: 'Breaking News', value: 'breaking' },
         { label: 'Staff Pick', value: 'staff-pick' },
-        { label: 'Discussed on WaveNation FM', value: 'radio' },
-        { label: 'Watch on WaveNation One', value: 'tv' },
+        { label: 'Radio Feature', value: 'radio' },
+        { label: 'TV Feature', value: 'tv' },
         { label: 'Sponsored', value: 'sponsored' },
         { label: 'Exclusive', value: 'exclusive' },
         { label: 'News Menu Feature', value: 'news-menu-feature' },
@@ -128,96 +175,75 @@ export const Articles: CollectionConfig = {
       ],
     },
 
-    /* ================= HERO IMAGE ================= */
+    /* ================= HERO ================= */
     {
       type: 'upload',
       name: 'heroImage',
       relationTo: 'media',
       access: { update: editorialFieldUpdate },
     },
-    {
-      type: 'text',
-      name: 'heroImageAlt',
-      access: { update: editorialFieldUpdate },
-    },
+    { type: 'text', name: 'heroImageAlt', access: { update: editorialFieldUpdate } },
 
     /* ================= PUBLISHING ================= */
+    { type: 'date', name: 'publishedDate', admin: { position: 'sidebar' } },
+    { type: 'date', name: 'scheduledPublishDate', admin: { position: 'sidebar' } },
     {
-      type: 'date',
-      name: 'publishedDate',
+      type: 'select',
+      name: 'scheduledPublishTimezone',
+      defaultValue: 'UTC',
       admin: { position: 'sidebar' },
-      access: { update: editorialFieldUpdate },
-    },
-    {
-      type: 'date',
-      name: 'scheduledPublishDate',
-      admin: { position: 'sidebar' },
-      access: { update: editorialFieldUpdate },
-    },
-    {
-      type: 'date',
-      name: 'lastUpdated',
-      admin: { position: 'sidebar', readOnly: true },
+      options: [
+        { label: 'UTC', value: 'UTC' },
+        { label: 'US Eastern', value: 'America/New_York' },
+        { label: 'US Central', value: 'America/Chicago' },
+        { label: 'US Pacific', value: 'America/Los_Angeles' },
+      ],
     },
 
-    /* ================= AUTHOR (UI-SAFE) ================= */
+    /* ================= AUDIT ================= */
+    { type: 'date', name: 'lastUpdated', admin: { readOnly: true, position: 'sidebar' } },
+    {
+      type: 'relationship',
+      name: 'createdBy',
+      relationTo: 'users',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      type: 'relationship',
+      name: 'updatedBy',
+      relationTo: 'users',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+
+    /* ================= AUTHOR ================= */
     {
       type: 'relationship',
       name: 'author',
       relationTo: 'profiles',
       access: { update: editorialFieldUpdate },
-      admin: {
-        condition: (_, data) => Boolean(data?.author),
-      },
     },
 
     /* ================= SLUG ================= */
-    {
-      type: 'text',
-      name: 'slug',
-      unique: true,
-      admin: { position: 'sidebar' },
-      access: { update: editorialFieldUpdate },
-    },
+    { type: 'text', name: 'slug', unique: true, admin: { position: 'sidebar' } },
 
-    /* ================= SPONSOR DISCLOSURE ================= */
+    /* ================= SPONSORED ================= */
     {
       type: 'textarea',
       name: 'sponsorDisclosure',
       admin: {
         position: 'sidebar',
-        condition: (_, siblingData) => siblingData?.type === 'sponsored',
+        condition: (data) => data?.type === 'sponsored',
       },
-      access: { update: editorialFieldUpdate },
     },
 
-    /* ================= MEDIA TIE-IN (UI-SAFE) ================= */
+    /* ================= MEDIA TIE-IN ================= */
     {
       type: 'group',
       name: 'mediaTieIn',
-      access: { update: editorialFieldUpdate },
-      admin: {
-        condition: (_, data) => Boolean(data?.mediaTieIn),
-      },
       fields: [
-        {
-          type: 'select',
-          name: 'type',
-          options: [
-            { label: 'Radio', value: 'radio' },
-            { label: 'TV', value: 'tv' },
-            { label: 'Playlist', value: 'playlist' },
-          ],
-        },
+        { type: 'select', name: 'type', options: ['radio', 'tv', 'playlist'] },
         { type: 'text', name: 'label' },
-        {
-          type: 'relationship',
-          name: 'relatedEntity',
-          relationTo: ['shows', 'playlists'],
-          admin: {
-            condition: (_, siblingData) => Boolean(siblingData?.relatedEntity),
-          },
-        },
+        { type: 'relationship', name: 'relatedEntity', relationTo: ['shows', 'playlists'] },
         { type: 'text', name: 'url' },
       ],
     },
@@ -226,17 +252,11 @@ export const Articles: CollectionConfig = {
     {
       type: 'group',
       name: 'cta',
-      access: { update: editorialFieldUpdate },
       fields: [
         {
           type: 'select',
           name: 'type',
-          options: [
-            { label: 'Subscribe', value: 'subscribe' },
-            { label: 'Listen Live', value: 'listen-live' },
-            { label: 'Watch More', value: 'watch-more' },
-            { label: 'Join WaveNation+', value: 'join-plus' },
-          ],
+          options: ['subscribe', 'listen-live', 'watch-more', 'join-plus'],
         },
         { type: 'text', name: 'headline' },
         { type: 'textarea', name: 'description' },
@@ -245,61 +265,78 @@ export const Articles: CollectionConfig = {
       ],
     },
 
-    /* ================= READING TIME ================= */
-    {
-      type: 'number',
-      name: 'readingTime',
-      admin: { readOnly: true },
-      access: {
-        create: () => true,
-        update: () => true,
-      },
-    },
+    /* ================= READING ================= */
+    { type: 'number', name: 'readingTime', admin: { readOnly: true } },
 
     /* ================= EDITORIAL NOTES ================= */
-    {
-      type: 'textarea',
-      name: 'editorialNotes',
-      admin: { position: 'sidebar' },
-      access: { update: editorialFieldUpdate },
-    },
+    { type: 'textarea', name: 'editorialNotes', admin: { position: 'sidebar' } },
 
-    /* ================= PLAYLISTS (UI-SAFE) ================= */
-    {
-      type: 'relationship',
-      name: 'playlists',
-      relationTo: 'playlists',
-      hasMany: true,
-      access: { update: editorialFieldUpdate },
-      admin: {
-        condition: (_, data) => Array.isArray(data?.playlists) && data.playlists.length > 0,
-      },
-    },
+    /* ================= PLAYLISTS ================= */
+    { type: 'relationship', name: 'playlists', relationTo: 'playlists', hasMany: true },
 
-    /* ================= CONTENT BLOCKS ================= */
+    /* ================= CONTENT ================= */
     {
       type: 'blocks',
       name: 'contentBlocks',
-      blocks: [
-        ArticleBlocks.RichTextBlock,
-        ArticleBlocks.ImageBlock,
-        ArticleBlocks.VideoBlock,
-        ArticleBlocks.CarouselBlock,
-        ArticleBlocks.PullQuoteBlock,
-        ArticleBlocks.CalloutBlock,
-        ArticleBlocks.EmbedBlock,
-        ArticleBlocks.SideBySideBlock,
-        ArticleBlocks.DropcapParagraphBlock,
-        ArticleBlocks.TimelineBlock,
-        ArticleBlocks.QuoteWithImageBlock,
-        ArticleBlocks.AuthorBioBlock,
-        ArticleBlocks.AdsBlock,
-        ArticleBlocks.FootnotesBlock,
-        ArticleBlocks.InteractivePollBlock,
+      blocks: Object.values(ArticleBlocks),
+    },
+
+    /* ================= WORKFLOW LOG ================= */
+    {
+      type: 'array',
+      name: 'workflowLog',
+      admin: { readOnly: true },
+      fields: [
+        { type: 'text', name: 'from' },
+        { type: 'text', name: 'to' },
+        { type: 'relationship', name: 'by', relationTo: 'users' },
+        { type: 'date', name: 'at' },
+        { type: 'textarea', name: 'reason' },
       ],
     },
 
-    /* ================= TEMPLATE FIELDS ================= */
+    /* ================= ROLLBACK ================= */
+    {
+      type: 'group',
+      name: 'rollback',
+      admin: { position: 'sidebar' },
+      fields: [
+        { type: 'text', name: 'sourceVersionId', admin: { readOnly: true } },
+        { type: 'textarea', name: 'rollbackReason' },
+        { type: 'date', name: 'rolledBackAt', admin: { readOnly: true } },
+      ],
+    },
+
+    /* ================= MODERATION ================= */
+    { type: 'number', name: 'toxicityScore', admin: { readOnly: true } },
+    { type: 'checkbox', name: 'isToxic', admin: { readOnly: true } },
+
+    {
+      type: 'select',
+      name: 'moderationStatus',
+      defaultValue: 'unscanned',
+      admin: { readOnly: true },
+      options: ['unscanned', 'queued', 'scanned', 'flagged', 'error'],
+    },
+
+    {
+      type: 'array',
+      name: 'moderationLog',
+      admin: { readOnly: true },
+      fields: [
+        { type: 'date', name: 'at' },
+        { type: 'relationship', name: 'by', relationTo: 'users' },
+        { type: 'text', name: 'action' },
+        { type: 'number', name: 'score' },
+        { type: 'checkbox', name: 'isToxic' },
+        { type: 'textarea', name: 'message' },
+      ],
+    },
+
+    /* ================= SEARCH INDEX ================= */
+    { type: 'json', name: 'searchIndex', admin: { readOnly: true } },
+
+    /* ================= TEMPLATE / VARIANT FIELDS ================= */
     ...articleFields,
   ],
 

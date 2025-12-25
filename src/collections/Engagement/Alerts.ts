@@ -1,4 +1,7 @@
+// src/collections/engagement/Alerts.ts
+
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 export const Alerts: CollectionConfig = {
   slug: 'alerts',
@@ -9,17 +12,53 @@ export const Alerts: CollectionConfig = {
     defaultColumns: ['title', 'severity', 'active', 'startsAt', 'endsAt'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (RBAC SAFE)
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: ({ req }) => !!req.user?.roles?.includes('admin'),
-    update: ({ req }) => !!req.user?.roles?.includes('admin'),
-    delete: ({ req }) => !!req.user?.roles?.includes('admin'),
+    /**
+     * READ
+     * - Public frontend (API key + fetch code)
+     * - Logged-in users (admin UI & authenticated apps)
+     */
+    read: AccessControl.isPublic,
+
+    /**
+     * CREATE
+     * - Staff+
+     * - Admin override applies
+     */
+    create: AccessControl.isStaffAccess,
+
+    /**
+     * UPDATE
+     * - Staff+
+     * - Admin override applies
+     */
+    update: AccessControl.isStaffAccess,
+
+    /**
+     * DELETE
+     * - Admin only (destructive)
+     */
+    delete: AccessControl.isAdmin,
   },
 
+  /* -----------------------------------------------------------
+     FIELDS
+  ----------------------------------------------------------- */
   fields: [
-    { name: 'title', type: 'text', required: true },
+    {
+      name: 'title',
+      type: 'text',
+      required: true,
+    },
 
-    { name: 'message', type: 'textarea', required: true },
+    {
+      name: 'message',
+      type: 'textarea',
+      required: true,
+    },
 
     {
       name: 'severity',
@@ -33,13 +72,25 @@ export const Alerts: CollectionConfig = {
       ],
     },
 
-    { name: 'active', type: 'checkbox', defaultValue: true },
+    {
+      name: 'active',
+      type: 'checkbox',
+      defaultValue: true,
+    },
 
     {
       type: 'row',
       fields: [
-        { name: 'startsAt', type: 'date', admin: { width: '50%' } },
-        { name: 'endsAt', type: 'date', admin: { width: '50%' } },
+        {
+          name: 'startsAt',
+          type: 'date',
+          admin: { width: '50%' },
+        },
+        {
+          name: 'endsAt',
+          type: 'date',
+          admin: { width: '50%' },
+        },
       ],
     },
 
@@ -47,8 +98,14 @@ export const Alerts: CollectionConfig = {
       name: 'cta',
       type: 'group',
       fields: [
-        { name: 'label', type: 'text' },
-        { name: 'url', type: 'text' },
+        {
+          name: 'label',
+          type: 'text',
+        },
+        {
+          name: 'url',
+          type: 'text',
+        },
       ],
     },
   ],

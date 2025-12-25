@@ -1,4 +1,8 @@
+// src/collections/Profiles/index.ts
+
 import type { CollectionConfig, Access, AccessArgs, CollectionBeforeChangeHook } from 'payload'
+
+import { isAdminRole } from '@/access/control'
 
 /* ============================================================
    IMPORT SUB-FIELD GROUPS
@@ -15,34 +19,35 @@ import { profileNotificationFields } from './profile.notifications'
 import { profileSystemFields } from './profile.system'
 
 /* ============================================================
-   ACCESS HELPERS
+   ACCESS HELPERS (COLLECTION-LEVEL ONLY)
 ============================================================ */
 
-const getUserRoles = (req: AccessArgs['req']): string[] =>
-  Array.isArray((req.user as any)?.roles) ? ((req.user as any).roles as string[]) : []
+/**
+ * Admin only
+ */
+const isAdminAccess: Access = ({ req }) => Boolean(req?.user && isAdminRole(req))
 
-const isAdminAccess: Access = ({ req }) => {
-  const roles = getUserRoles(req)
-  return roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')
-}
+/**
+ * Admin OR profile owner
+ */
+const isAdminOrSelfProfile: Access = ({ req, id }: AccessArgs): boolean => {
+  if (!req?.user || !id) return false
 
-const isAdminOrSelfProfile: Access = ({ req, id }) => {
-  if (!req.user) return false
+  // Admin override
+  if (isAdminRole(req)) return true
 
-  const roles = getUserRoles(req)
-
-  // Admin roles always allowed
-  if (roles.includes('admin') || roles.includes('super-admin') || roles.includes('system')) {
-    return true
-  }
-
-  // Self-profile edit
-  const userProfileId =
+  /**
+   * The authenticated user's linked profile
+   * (relationship stored on users collection)
+   */
+  const userProfile =
     typeof (req.user as any)?.profile === 'string'
       ? (req.user as any).profile
       : (req.user as any)?.profile?.id
 
-  return Boolean(userProfileId && id && String(userProfileId) === String(id))
+  if (!userProfile) return false
+
+  return String(userProfile) === String(id)
 }
 
 /* ============================================================
@@ -52,14 +57,19 @@ const isAdminOrSelfProfile: Access = ({ req, id }) => {
 const profilesBeforeChange: CollectionBeforeChangeHook = ({ data, req, operation }) => {
   if (!data) return data
 
-  if (req.user) {
+  /**
+   * Audit fields
+   */
+  if (req?.user) {
     if (operation === 'create') {
       ;(data as any).createdBy = String(req.user.id)
     }
     ;(data as any).updatedBy = String(req.user.id)
   }
 
-  // Slug generation
+  /**
+   * Slug generation (idempotent)
+   */
   if (!data.slug) {
     const base =
       data.displayName ||
@@ -70,6 +80,7 @@ const profilesBeforeChange: CollectionBeforeChangeHook = ({ data, req, operation
     if (base) {
       data.slug = base
         .toLowerCase()
+        .trim()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
     }
@@ -92,9 +103,25 @@ export const Profiles: CollectionConfig = {
   },
 
   access: {
+    /**
+     * Public read (profiles are discoverable)
+     */
     read: () => true,
-    create: ({ req }) => Boolean(req.user),
+
+    /**
+     * Any logged-in user may create a profile
+     * (usually created automatically at signup)
+     */
+    create: ({ req }) => Boolean(req?.user),
+
+    /**
+     * Owner or Admin may update
+     */
     update: isAdminOrSelfProfile,
+
+    /**
+     * Admin-only delete
+     */
     delete: isAdminAccess,
   },
 

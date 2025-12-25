@@ -1,4 +1,21 @@
-import type { CollectionConfig } from 'payload'
+// src/collections/Events/EventReports.ts
+
+import type { CollectionConfig, FieldAccess } from 'payload'
+import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   FIELD ACCESS HELPERS (PAYLOAD-SAFE)
+============================================================ */
+
+/* ============================================================
+   FIELD ACCESS HELPERS (BOOLEAN ONLY — PAYLOAD SAFE)
+============================================================ */
+
+const metricsUpdateAccess: FieldAccess = ({ req }) =>
+  Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN))
+
+const auditReadOnly: FieldAccess = ({ req }) => Boolean(req?.user && AccessControl.isAdminRole(req))
 
 export const EventReports: CollectionConfig = {
   slug: 'event-reports',
@@ -9,14 +26,17 @@ export const EventReports: CollectionConfig = {
     defaultColumns: ['name', 'scope', 'rangeType', 'generatedAt'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (COLLECTION)
+  ----------------------------------------------------------- */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) =>
-      Boolean(req.user?.roles?.includes('admin') || req.user?.roles?.includes('super-admin')),
-    update: ({ req }) =>
-      Boolean(req.user?.roles?.includes('admin') || req.user?.roles?.includes('super-admin')),
-    delete: ({ req }) =>
-      Boolean(req.user?.roles?.includes('admin') || req.user?.roles?.includes('super-admin')),
+    read: AccessControl.isLoggedIn,
+
+    create: ({ req }) => AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN),
+
+    update: ({ req }) => AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN),
+
+    delete: ({ req }) => AccessControl.hasRoleAtOrAbove(req, Roles.SUPER_ADMIN),
   },
 
   timestamps: true,
@@ -92,6 +112,7 @@ export const EventReports: CollectionConfig = {
     {
       name: 'generatedAt',
       type: 'date',
+      admin: { readOnly: true },
     },
 
     /* ---------------- METRICS SNAPSHOT ---------------- */
@@ -102,40 +123,97 @@ export const EventReports: CollectionConfig = {
         {
           type: 'row',
           fields: [
-            { name: 'ticketsSold', type: 'number', defaultValue: 0, admin: { width: '25%' } },
-            { name: 'ticketsScanned', type: 'number', defaultValue: 0, admin: { width: '25%' } },
-            { name: 'uniqueAttendees', type: 'number', defaultValue: 0, admin: { width: '25%' } },
+            {
+              name: 'ticketsSold',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'ticketsScanned',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'uniqueAttendees',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
             {
               name: 'noShowRate',
               type: 'number',
-              admin: { width: '25%', description: '0–1 fraction' },
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%', description: '0–1 fraction' },
             },
           ],
         },
         {
           type: 'row',
           fields: [
-            { name: 'grossRevenue', type: 'number', defaultValue: 0, admin: { width: '25%' } },
-            { name: 'feesCollected', type: 'number', defaultValue: 0, admin: { width: '25%' } },
-            { name: 'refunds', type: 'number', defaultValue: 0, admin: { width: '25%' } },
-            { name: 'netRevenue', type: 'number', defaultValue: 0, admin: { width: '25%' } },
+            {
+              name: 'grossRevenue',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'feesCollected',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'refunds',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'netRevenue',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
           ],
         },
         {
           type: 'row',
           fields: [
-            { name: 'pageViews', type: 'number', defaultValue: 0, admin: { width: '25%' } },
-            { name: 'checkoutStarts', type: 'number', defaultValue: 0, admin: { width: '25%' } },
+            {
+              name: 'pageViews',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'checkoutStarts',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
             {
               name: 'checkoutCompletions',
               type: 'number',
               defaultValue: 0,
-              admin: { width: '25%' },
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
             },
             {
               name: 'conversionRate',
               type: 'number',
-              admin: { width: '25%', description: '0–1 fraction' },
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%', description: '0–1 fraction' },
             },
           ],
         },
@@ -160,24 +238,26 @@ export const EventReports: CollectionConfig = {
       name: 'generatedBy',
       type: 'relationship',
       relationTo: 'profiles',
-      admin: {
-        description: 'Profile who triggered this report generation.',
-      },
     },
     {
       name: 'createdBy',
       type: 'relationship',
       relationTo: 'users',
+      access: { update: auditReadOnly },
       admin: { readOnly: true },
     },
     {
       name: 'updatedBy',
       type: 'relationship',
       relationTo: 'users',
+      access: { update: auditReadOnly },
       admin: { readOnly: true },
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
@@ -202,3 +282,5 @@ export const EventReports: CollectionConfig = {
     ],
   },
 }
+
+export default EventReports

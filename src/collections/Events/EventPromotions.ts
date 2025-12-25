@@ -1,159 +1,296 @@
-import type { CollectionConfig } from 'payload'
+// src/collections/Events/EventPromotions.ts
+
+import type { CollectionConfig, FieldAccess } from 'payload'
+import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   FIELD ACCESS HELPERS (BOOLEAN ONLY)
+============================================================ */
+
+/**
+ * Metrics can only be updated by Admin+
+ */
+const metricsUpdateAccess: FieldAccess = ({ req }) =>
+  Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN))
+
+/**
+ * Audit fields are admin-only
+ */
+const auditFieldAccess: FieldAccess = ({ req }) =>
+  Boolean(req?.user && AccessControl.isAdminRole(req))
 
 export const EventPromotions: CollectionConfig = {
   slug: 'event-promotions',
 
   admin: {
-    useAsTitle: 'code',
+    useAsTitle: 'name',
     group: 'Events',
-    defaultColumns: ['code', 'discountType', 'value', 'status'],
+    defaultColumns: ['name', 'event', 'status', 'startsAt', 'endsAt'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (COLLECTION)
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+    read: ({ req }) => Boolean(req?.user),
+
+    create: ({ req }) => AccessControl.hasRoleAtOrAbove(req, Roles.EDITOR),
+
+    update: ({ req }) => AccessControl.hasRoleAtOrAbove(req, Roles.EDITOR),
+
+    delete: ({ req }) => AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN),
   },
 
   timestamps: true,
 
   fields: [
-    /* ---------------- CODE ---------------- */
+    /* =============================
+       CORE INFO
+    ============================== */
     {
-      name: 'code',
+      name: 'name',
+      type: 'text',
+      required: true,
+      admin: {
+        description: 'Internal campaign name (e.g. “Spring Festival Push – Week 1”).',
+      },
+    },
+
+    {
+      name: 'slug',
       type: 'text',
       unique: true,
-      required: true,
       index: true,
+      admin: {
+        description: 'Auto-generated if empty.',
+      },
+    },
+
+    {
+      name: 'event',
+      type: 'relationship',
+      relationTo: 'events',
+      required: true,
+      admin: {
+        description: 'Event this promotion is attached to.',
+      },
     },
 
     {
       name: 'status',
       type: 'select',
-      defaultValue: 'active',
+      defaultValue: 'draft',
       options: [
+        { label: 'Draft', value: 'draft' },
+        { label: 'Scheduled', value: 'scheduled' },
         { label: 'Active', value: 'active' },
-        { label: 'Expired', value: 'expired' },
-        { label: 'Disabled', value: 'disabled' },
+        { label: 'Paused', value: 'paused' },
+        { label: 'Completed', value: 'completed' },
+        { label: 'Cancelled', value: 'cancelled' },
       ],
     },
 
-    /* ---------------- DISCOUNT SETTINGS ---------------- */
-    {
-      name: 'discountType',
-      type: 'select',
-      required: true,
-      defaultValue: 'percent',
-      options: [
-        { label: 'Percentage (%)', value: 'percent' },
-        { label: 'Fixed Amount ($)', value: 'amount' },
-        { label: 'Free Ticket', value: 'free' },
-      ],
-    },
-
-    {
-      name: 'value',
-      type: 'number',
-      admin: { description: 'Apply % or $ discount based on type.' },
-    },
-
-    {
-      name: 'appliesToEvents',
-      type: 'relationship',
-      relationTo: 'events',
-      hasMany: true,
-    },
-
-    {
-      name: 'appliesToTicketTypes',
-      type: 'relationship',
-      relationTo: 'ticket-types',
-      hasMany: true,
-    },
-
-    {
-      name: 'appliesToGroups',
-      type: 'relationship',
-      relationTo: 'groups',
-      hasMany: true,
-    },
-
-    {
-      name: 'affiliateCreator',
-      type: 'relationship',
-      relationTo: 'profiles',
-      admin: { description: 'Optional influencer/creator code.' },
-    },
-
-    /* ---------------- USAGE LIMITS ---------------- */
+    /* =============================
+       PROMOTION WINDOW
+    ============================== */
     {
       type: 'row',
       fields: [
         {
-          name: 'maxUses',
+          name: 'startsAt',
+          type: 'date',
+          admin: { width: '50%' },
+        },
+        {
+          name: 'endsAt',
+          type: 'date',
+          admin: { width: '50%' },
+        },
+      ],
+    },
+
+    /* =============================
+       CHANNELS & PLACEMENTS
+    ============================== */
+    {
+      name: 'channels',
+      type: 'select',
+      hasMany: true,
+      options: [
+        { label: 'Homepage Feature', value: 'homepage' },
+        { label: 'Events Listing', value: 'events-list' },
+        { label: 'Push Notification', value: 'push' },
+        { label: 'Email Newsletter', value: 'email' },
+        { label: 'Social Media', value: 'social' },
+        { label: 'On-Air Promo', value: 'on-air' },
+        { label: 'Paid Ads', value: 'paid-ads' },
+      ],
+    },
+
+    {
+      name: 'placements',
+      type: 'select',
+      hasMany: true,
+      options: [
+        { label: 'Hero', value: 'hero' },
+        { label: 'Featured Rail', value: 'featured' },
+        { label: 'Sidebar', value: 'sidebar' },
+        { label: 'Inline Card', value: 'inline' },
+        { label: 'Footer Promo', value: 'footer' },
+      ],
+    },
+
+    /* =============================
+       CREATIVE
+    ============================== */
+    {
+      name: 'headline',
+      type: 'text',
+    },
+    {
+      name: 'subheadline',
+      type: 'text',
+    },
+    {
+      name: 'ctaLabel',
+      type: 'text',
+      defaultValue: 'Get Tickets',
+    },
+    {
+      name: 'creativeImage',
+      type: 'upload',
+      relationTo: 'media',
+    },
+    {
+      name: 'creativeVideo',
+      type: 'upload',
+      relationTo: 'media',
+    },
+
+    /* =============================
+       BUDGETING
+    ============================== */
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'budget',
           type: 'number',
           admin: { width: '33%' },
         },
         {
-          name: 'uses',
+          name: 'spendToDate',
           type: 'number',
           defaultValue: 0,
-          admin: { width: '33%', readOnly: true },
+          admin: { readOnly: true, width: '33%' },
         },
         {
-          name: 'limitPerUser',
-          type: 'number',
+          name: 'currency',
+          type: 'select',
+          defaultValue: 'USD',
           admin: { width: '33%' },
+          options: [
+            { label: 'USD', value: 'USD' },
+            { label: 'EUR', value: 'EUR' },
+            { label: 'GBP', value: 'GBP' },
+          ],
         },
       ],
     },
 
+    /* =============================
+       PERFORMANCE METRICS
+    ============================== */
     {
-      type: 'row',
+      name: 'metrics',
+      type: 'group',
       fields: [
-        { name: 'startDate', type: 'date', admin: { width: '50%' } },
-        { name: 'endDate', type: 'date', admin: { width: '50%' } },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'impressions',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'clicks',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'conversions',
+              type: 'number',
+              defaultValue: 0,
+              access: { update: metricsUpdateAccess },
+              admin: { readOnly: true, width: '25%' },
+            },
+            {
+              name: 'conversionRate',
+              type: 'number',
+              access: { update: metricsUpdateAccess },
+              admin: {
+                readOnly: true,
+                width: '25%',
+                description: '0–1 fraction',
+              },
+            },
+          ],
+        },
       ],
     },
 
-    /* ---------------- VISIBILITY ---------------- */
+    /* =============================
+       NOTES & AUDIT
+    ============================== */
     {
-      name: 'isPublic',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: { description: 'If false, code is hidden unless entered manually.' },
+      name: 'notes',
+      type: 'textarea',
     },
-
-    /* ---------------- AUDIT ---------------- */
     {
       name: 'createdBy',
       type: 'relationship',
       relationTo: 'users',
+      access: { update: auditFieldAccess },
       admin: { readOnly: true },
     },
     {
       name: 'updatedBy',
       type: 'relationship',
       relationTo: 'users',
+      access: { update: auditFieldAccess },
       admin: { readOnly: true },
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
-      ({ req, data, operation }) => {
-        if (operation === 'create' && req.user) data.createdBy = req.user.id
-        if (req.user) data.updatedBy = req.user.id
-
-        // expiration autocheck
-        if (data.endDate && new Date(data.endDate) < new Date()) {
-          data.status = 'expired'
+      ({ data, req, operation }) => {
+        if (data.name && !data.slug) {
+          data.slug = data.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
         }
 
-        // usage limit autocheck
-        if (data.maxUses && data.uses >= data.maxUses) {
-          data.status = 'expired'
+        if (req.user) {
+          if (operation === 'create') data.createdBy = req.user.id
+          data.updatedBy = req.user.id
+        }
+
+        // Auto-complete promotion after window ends
+        if (data.endsAt && new Date(data.endsAt) < new Date()) {
+          if (data.status === 'active') {
+            data.status = 'completed'
+          }
         }
 
         return data
@@ -161,3 +298,5 @@ export const EventPromotions: CollectionConfig = {
     ],
   },
 }
+
+export default EventPromotions

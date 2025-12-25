@@ -2,13 +2,17 @@ import type { Field } from 'payload'
 import { articleBlocks } from '../blocks/allBlocks'
 
 export const breakingNewsFields: Field[] = [
-  // -----------------------------------------
-  // BASIC METADATA
-  // -----------------------------------------
+  /* ============================================================
+     BASIC METADATA
+  ============================================================ */
+
   {
     type: 'text',
     name: 'subtitle',
     label: 'Subtitle',
+    admin: {
+      description: 'Optional secondary headline or deck.',
+    },
   },
 
   {
@@ -34,17 +38,20 @@ export const breakingNewsFields: Field[] = [
     hasMany: true,
   },
 
-  // -----------------------------------------
-  // HIGH-PRIORITY BREAKING DETAILS
-  // -----------------------------------------
+  /* ============================================================
+     HIGH-PRIORITY BREAKING DETAILS
+     (Used for alerts, feeds, push, tickers)
+  ============================================================ */
+
   {
     type: 'text',
     name: 'summary',
     label: 'What Happened — 1–2 Sentence Summary',
-    admin: {
-      description: 'Keep extremely concise.',
-    },
     required: true,
+    admin: {
+      description:
+        'Extremely concise factual summary. Used for alerts, banners, and breaking tickers.',
+    },
   },
 
   {
@@ -53,7 +60,7 @@ export const breakingNewsFields: Field[] = [
     label: 'Confirmed Details',
     hasMany: true,
     admin: {
-      description: 'Each entry is ONE verified fact.',
+      description: 'Each entry must be ONE independently verified fact.',
     },
   },
 
@@ -63,7 +70,7 @@ export const breakingNewsFields: Field[] = [
     label: 'Unverified / Pending Confirmation',
     hasMany: true,
     admin: {
-      description: 'Short bullet-style entries only.',
+      description: 'Clearly label information that is still developing.',
     },
   },
 
@@ -73,7 +80,8 @@ export const breakingNewsFields: Field[] = [
     label: 'Official Statements',
     hasMany: true,
     admin: {
-      description: 'Only formal statements from authorities or PR.',
+      description:
+        'Formal statements from authorities, organizers, or verified representatives only.',
     },
   },
 
@@ -83,13 +91,15 @@ export const breakingNewsFields: Field[] = [
     label: 'Live Updates',
     hasMany: true,
     admin: {
-      description: 'Add breaking updates as the story evolves.',
+      description: 'Chronological breaking updates as the story evolves.',
     },
   },
 
-  // -----------------------------------------
-  // MAIN BODY — now uses BLOCKS
-  // -----------------------------------------
+  /* ============================================================
+     FULL STORY BODY — BLOCKS
+     Optional at first, expands as reporting develops
+  ============================================================ */
+
   {
     type: 'blocks',
     name: 'content',
@@ -97,21 +107,56 @@ export const breakingNewsFields: Field[] = [
     blocks: articleBlocks,
     required: false,
     admin: {
-      description: 'Use this for extended reporting, embeds, images, quotes, etc.',
+      description:
+        'Use blocks for extended reporting, embeds, photos, pull quotes, timelines, and context.',
     },
   },
 
-  // -----------------------------------------
-  // SOCIAL COPY
-  // -----------------------------------------
+  /* ============================================================
+     SOCIAL / DISTRIBUTION COPY
+  ============================================================ */
+
   {
     type: 'text',
     name: 'socialCopyTwitter',
-    label: 'Social Copy — Twitter/X',
+    label: 'Social Copy — Twitter / X',
+    admin: {
+      description: 'Short breaking headline (character-limited).',
+    },
   },
+
   {
     type: 'textarea',
     name: 'socialCopyInstagram',
-    label: 'Social Copy — Instagram Caption',
+    label: 'Social Copy — Instagram',
+    admin: {
+      description: 'Caption-style breaking summary.',
+    },
+  },
+
+  /* ============================================================
+     OPTIONAL: NEWSROOM CONTROL FIELDS
+     (Safe additions — no migrations)
+  ============================================================ */
+
+  {
+    type: 'checkbox',
+    name: 'isDeveloping',
+    label: 'Developing Story',
+    defaultValue: true,
+    admin: {
+      position: 'sidebar',
+      description: 'Marks this story as actively developing.',
+    },
+  },
+
+  {
+    type: 'textarea',
+    name: 'editorialContext',
+    label: 'Internal Editorial Context',
+    admin: {
+      position: 'sidebar',
+      description: 'Internal notes for editors — never published.',
+    },
   },
 ]

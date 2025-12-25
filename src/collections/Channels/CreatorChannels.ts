@@ -12,16 +12,16 @@ export const CreatorChannels: CollectionConfig = {
   },
 
   /* -----------------------------------------------------------
-     ACCESS CONTROL
-     NOTE:
-     - Public read for search/discovery
-     - Controlled write access
+     ACCESS CONTROL (ENTERPRISE)
   ----------------------------------------------------------- */
   access: {
-    read: AccessControl.isPublic, // 🔓 search-safe
-    create: AccessControl.isCreator, // creators can create channels
-    update: AccessControl.isStaff, // moderation-safe
-    delete: AccessControl.isAdmin, // admin only
+    read: AccessControl.isPublic,
+    create: AccessControl.isCreator,
+
+    // Owner/moderator/staff/admin can update
+    update: ({ req, data }) => AccessControl.canEditChannel(req, data as any),
+
+    delete: AccessControl.isAdmin,
   },
 
   fields: [
@@ -61,6 +61,10 @@ export const CreatorChannels: CollectionConfig = {
         { label: 'Subscribers Only', value: 'subscribers' },
         { label: 'Tier-Restricted', value: 'tiers' },
       ],
+      access: {
+        // Field-level uses FieldAccess (boolean) not Access
+        update: AccessControl.isStaffAccessField,
+      },
     },
 
     {
@@ -71,6 +75,9 @@ export const CreatorChannels: CollectionConfig = {
       admin: {
         condition: (_, data) => data?.visibility === 'tiers',
         description: 'Which tiers can access this channel',
+      },
+      access: {
+        update: AccessControl.isStaffAccessField,
       },
     },
 
@@ -97,6 +104,9 @@ export const CreatorChannels: CollectionConfig = {
         position: 'sidebar',
       },
       defaultValue: [],
+      access: {
+        update: AccessControl.isStaffAccessField,
+      },
     },
 
     {
@@ -107,6 +117,9 @@ export const CreatorChannels: CollectionConfig = {
         readOnly: true,
         position: 'sidebar',
         description: 'Auto-generated follower count',
+      },
+      access: {
+        update: () => false,
       },
     },
 
@@ -121,6 +134,9 @@ export const CreatorChannels: CollectionConfig = {
       hooks: {
         beforeChange: [() => false],
       },
+      access: {
+        update: () => false,
+      },
     },
 
     /* ================= RELATIONSHIPS ================= */
@@ -129,6 +145,9 @@ export const CreatorChannels: CollectionConfig = {
       type: 'relationship',
       relationTo: 'channel-moderators',
       hasMany: true,
+      access: {
+        update: AccessControl.isStaffAccessField, // prevent self-assign
+      },
     },
 
     {
@@ -151,12 +170,14 @@ export const CreatorChannels: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
     {
       name: 'updatedBy',
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
   ],
 

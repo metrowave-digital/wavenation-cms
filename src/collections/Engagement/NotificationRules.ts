@@ -1,4 +1,7 @@
+// src/collections/Automations/NotificationRules.ts
+
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 export const NotificationRules: CollectionConfig = {
   slug: 'notification-rules',
@@ -6,18 +9,43 @@ export const NotificationRules: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: 'Automations',
-    defaultColumns: ['name', 'eventType', 'status'],
+    defaultColumns: ['name', 'eventType', 'status', 'updatedAt'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (AUTOMATION SAFE)
+  ----------------------------------------------------------- */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
-    update: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+    /**
+     * READ
+     * - Logged-in users only (admin UI, internal tools)
+     */
+    read: AccessControl.isLoggedIn,
+
+    /**
+     * CREATE
+     * - Admin / System only
+     */
+    create: AccessControl.isAdmin,
+
+    /**
+     * UPDATE
+     * - Admin / System only
+     */
+    update: AccessControl.isAdmin,
+
+    /**
+     * DELETE
+     * - Admin / System only
+     */
+    delete: AccessControl.isAdmin,
   },
 
   timestamps: true,
 
+  /* -----------------------------------------------------------
+     FIELDS
+  ----------------------------------------------------------- */
   fields: [
     /* ---------------------------------------------------------
      * RULE NAME
@@ -60,7 +88,7 @@ export const NotificationRules: CollectionConfig = {
         { label: 'All Users', value: 'all' },
         { label: 'Followers of Actor', value: 'followers' },
         { label: 'Content Owner', value: 'owner' },
-        { label: 'Participants (Chat/Thread)', value: 'participants' },
+        { label: 'Participants (Chat / Thread)', value: 'participants' },
         { label: 'Admins Only', value: 'admins' },
       ],
     },
@@ -70,22 +98,28 @@ export const NotificationRules: CollectionConfig = {
       type: 'relationship',
       relationTo: 'profiles',
       hasMany: true,
-      admin: { description: 'Optional manual recipients' },
+      admin: {
+        description: 'Optional manual recipients.',
+      },
     },
 
     /* ---------------------------------------------------------
-     * NOTIFICATION PAYLOAD TEMPLATE
+     * NOTIFICATION PAYLOAD TEMPLATES
      --------------------------------------------------------- */
     {
       name: 'titleTemplate',
       type: 'text',
-      admin: { description: 'Use {{variables}} from event.' },
+      admin: {
+        description: 'Supports {{variables}} from event payload.',
+      },
     },
 
     {
       name: 'messageTemplate',
       type: 'textarea',
-      admin: { description: 'Dynamic message body.' },
+      admin: {
+        description: 'Dynamic notification message body.',
+      },
     },
 
     {
@@ -99,12 +133,14 @@ export const NotificationRules: CollectionConfig = {
     },
 
     /* ---------------------------------------------------------
-     * ATTACH MEDIA
+     * ATTACHED MEDIA
      --------------------------------------------------------- */
     {
       name: 'mediaType',
       type: 'select',
-      admin: { description: 'Optional auto-attached media type.' },
+      admin: {
+        description: 'Optional auto-attached media type.',
+      },
       options: [
         'tracks',
         'albums',
@@ -135,7 +171,7 @@ export const NotificationRules: CollectionConfig = {
     },
 
     /* ---------------------------------------------------------
-     * AUDIT
+     * AUDIT (LOCKED)
      --------------------------------------------------------- */
     {
       name: 'createdBy',
@@ -151,11 +187,16 @@ export const NotificationRules: CollectionConfig = {
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
       ({ req, data, operation }) => {
-        if (req.user) {
-          if (operation === 'create') data.createdBy = req.user.id
+        if (req?.user) {
+          if (operation === 'create') {
+            data.createdBy = req.user.id
+          }
           data.updatedBy = req.user.id
         }
         return data
@@ -163,3 +204,5 @@ export const NotificationRules: CollectionConfig = {
     ],
   },
 }
+
+export default NotificationRules

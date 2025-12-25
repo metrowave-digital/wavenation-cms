@@ -1,4 +1,32 @@
+// src/collections/Engagement/Blocks.ts
+
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   INTERNAL HELPERS (PAYLOAD TYPING SAFE)
+============================================================ */
+
+/**
+ * Checks whether the current user is the blocker or blocked party.
+ * NOTE: Payload does not type `doc` in AccessArgs — this is expected.
+ */
+const isBlockParticipant = (req: any, doc: any): boolean => {
+  if (!req?.user || !doc) return false
+
+  const uid = String(req.user.id)
+
+  const blockerId = typeof doc.blocker === 'object' ? String(doc.blocker?.id) : String(doc.blocker)
+
+  const blockedId = typeof doc.blocked === 'object' ? String(doc.blocked?.id) : String(doc.blocked)
+
+  return uid === blockerId || uid === blockedId
+}
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Blocks: CollectionConfig = {
   slug: 'blocks',
@@ -9,15 +37,56 @@ export const Blocks: CollectionConfig = {
     defaultColumns: ['blocker', 'blocked', 'reason', 'createdAt'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (SAFETY-GRADE)
+  ----------------------------------------------------------- */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => false,
-    delete: ({ req }) => Boolean(req.user),
+    /**
+     * READ
+     * - Admin override
+     * - Staff+
+     * - Block participants only
+     */
+    read: ({ req, doc }: any) => {
+      if (AccessControl.isAdminRole(req)) return true
+      if (AccessControl.hasRoleAtOrAbove(req, Roles.STAFF)) return true
+      return isBlockParticipant(req, doc)
+    },
+
+    /**
+     * CREATE
+     * - Any logged-in user
+     */
+    create: AccessControl.isLoggedIn,
+
+    /**
+     * UPDATE
+     * - Never (immutable safety records)
+     */
+    update: () => false,
+
+    /**
+     * DELETE
+     * - Admin override
+     * - Blocker (self-unblock)
+     */
+    delete: ({ req, doc }: any) => {
+      if (AccessControl.isAdminRole(req)) return true
+      if (!req?.user || !doc) return false
+
+      const uid = String(req.user.id)
+      const blockerId =
+        typeof doc.blocker === 'object' ? String(doc.blocker?.id) : String(doc.blocker)
+
+      return uid === blockerId
+    },
   },
 
   timestamps: true,
 
+  /* -----------------------------------------------------------
+     FIELDS
+  ----------------------------------------------------------- */
   fields: [
     {
       name: 'blocker',
@@ -39,7 +108,7 @@ export const Blocks: CollectionConfig = {
       options: [
         { label: 'Harassment', value: 'harassment' },
         { label: 'Spam', value: 'spam' },
-        { label: 'Scam/Phishing', value: 'scam' },
+        { label: 'Scam / Phishing', value: 'scam' },
         { label: 'Abusive Language', value: 'abuse' },
         { label: 'Impersonation', value: 'impersonation' },
         { label: 'Inappropriate Content', value: 'inappropriate' },
@@ -52,7 +121,13 @@ export const Blocks: CollectionConfig = {
     {
       name: 'notes',
       type: 'textarea',
-      admin: { description: 'Optional moderator notes.' },
+      admin: {
+        description: 'Moderator-only notes.',
+      },
+      access: {
+        read: AccessControl.isStaffAccessField,
+        update: AccessControl.isStaffAccessField,
+      },
     },
 
     {
@@ -63,16 +138,18 @@ export const Blocks: CollectionConfig = {
       },
     },
 
-    // AI moderation extension
     {
       name: 'aiEvidence',
       type: 'json',
       admin: {
-        description: 'Optional AI content analysis that led to block.',
+        description: 'AI moderation evidence (staff only).',
+      },
+      access: {
+        read: AccessControl.isStaffAccessField,
+        update: AccessControl.isStaffAccessField,
       },
     },
 
-    // Audit
     {
       name: 'createdBy',
       type: 'relationship',
@@ -81,10 +158,13 @@ export const Blocks: CollectionConfig = {
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
       ({ req, operation, data }) => {
-        if (operation === 'create' && req.user) {
+        if (operation === 'create' && req?.user) {
           data.createdBy = req.user.id
         }
         return data
@@ -92,3 +172,5 @@ export const Blocks: CollectionConfig = {
     ],
   },
 }
+
+export default Blocks

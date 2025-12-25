@@ -1,4 +1,17 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Access, FieldAccess } from 'payload'
+import { isStaffAccess, isModeratorOrAboveField } from '@/access/control'
+
+/* ============================================================
+   COLLECTION ACCESS (COARSE — SAFE)
+============================================================ */
+
+const canReadChats: Access = ({ req }) => Boolean(req?.user)
+const canCreateChats: Access = ({ req }) => Boolean(req?.user)
+const canUpdateChats: Access = ({ req }) => Boolean(req?.user && isStaffAccess({ req }))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Chats: CollectionConfig = {
   slug: 'chats',
@@ -10,13 +23,58 @@ export const Chats: CollectionConfig = {
   },
 
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+    read: canReadChats,
+    create: canCreateChats,
+    update: canUpdateChats,
+    delete: ({ req }) => Boolean(req?.user?.roles?.includes('admin')),
   },
 
   timestamps: true,
+
+  /* ============================================================
+     HOOKS — MEMBERSHIP & LOCK ENFORCEMENT
+  ============================================================ */
+  hooks: {
+    beforeChange: [
+      ({ data, req, operation, originalDoc }) => {
+        if (!req?.user) return data
+
+        // Auto timestamps
+        data.lastActivity = new Date()
+
+        // Auto-title for DMs
+        if (!data.title && data.chatType === 'dm') {
+          data.title = 'Direct Message'
+        }
+
+        // Audit
+        if (operation === 'create') data.createdBy = req.user.id
+        data.updatedBy = req.user.id
+
+        // Prevent updates to locked chats (except staff)
+        if (operation === 'update' && originalDoc?.isLocked && !isStaffAccess({ req })) {
+          throw new Error('This chat is locked.')
+        }
+
+        // Enforce allowedRoles on create
+        if (
+          operation === 'create' &&
+          Array.isArray(data.allowedRoles) &&
+          data.allowedRoles.length > 0
+        ) {
+          const userRoles = Array.isArray(req.user.roles) ? req.user.roles : []
+
+          const allowed = data.allowedRoles.some((r) => userRoles.includes(r))
+
+          if (!allowed) {
+            throw new Error('You do not have permission to create this chat.')
+          }
+        }
+
+        return data
+      },
+    ],
+  },
 
   fields: [
     /* ---------------------------------------------------------
@@ -62,7 +120,7 @@ export const Chats: CollectionConfig = {
     },
 
     /* ---------------------------------------------------------
-     * LAST MESSAGE SNAPSHOT
+     * SNAPSHOT
      --------------------------------------------------------- */
     {
       name: 'lastMessage',
@@ -76,7 +134,7 @@ export const Chats: CollectionConfig = {
     },
 
     /* ---------------------------------------------------------
-     * CHAT SETTINGS
+     * SETTINGS
      --------------------------------------------------------- */
     {
       name: 'mutedBy',
@@ -90,7 +148,10 @@ export const Chats: CollectionConfig = {
       type: 'checkbox',
       defaultValue: false,
       admin: {
-        description: 'Admins can lock chat from further messages.',
+        description: 'Prevent further messages.',
+      },
+      access: {
+        update: isModeratorOrAboveField,
       },
     },
 
@@ -99,7 +160,7 @@ export const Chats: CollectionConfig = {
       type: 'select',
       hasMany: true,
       admin: {
-        description: 'Restrict chat to specific roles (optional)',
+        description: 'Restrict chat to specific roles (optional).',
       },
       options: [
         { label: 'Creator', value: 'creator' },
@@ -113,7 +174,7 @@ export const Chats: CollectionConfig = {
     },
 
     /* ---------------------------------------------------------
-     * PINNED MESSAGES
+     * PINNED
      --------------------------------------------------------- */
     {
       name: 'pinnedMessages',
@@ -123,17 +184,7 @@ export const Chats: CollectionConfig = {
     },
 
     /* ---------------------------------------------------------
-     * CHAT REACTIONS (optional: like group reactions)
-     --------------------------------------------------------- */
-    {
-      name: 'reactions',
-      type: 'relationship',
-      relationTo: 'reactions',
-      hasMany: true,
-    },
-
-    /* ---------------------------------------------------------
-     * CHAT DESCRIPTION & BANNER (group chats only)
+     * GROUP META
      --------------------------------------------------------- */
     {
       name: 'description',
@@ -160,33 +211,14 @@ export const Chats: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
     {
       name: 'updatedBy',
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
   ],
-
-  hooks: {
-    beforeChange: [
-      ({ data, req, operation }) => {
-        // Auto-lastActivity
-        data.lastActivity = new Date()
-
-        // Auto-title for DMs
-        if (!data.title && data.chatType === 'dm') {
-          data.title = 'Direct Message'
-        }
-
-        if (req.user) {
-          if (operation === 'create') data.createdBy = req.user.id
-          data.updatedBy = req.user.id
-        }
-
-        return data
-      },
-    ],
-  },
 }

@@ -11,15 +11,31 @@ export const Categories: CollectionConfig = {
   },
 
   /* -----------------------------------------------------------
-     ACCESS CONTROL
+     ACCESS CONTROL (ADMIN + PUBLIC SAFE)
   ----------------------------------------------------------- */
   access: {
-    read: AccessControl.isPublic, // 🔓 search-safe
-    create: AccessControl.isStaff, // taxonomy control
-    update: AccessControl.isStaff,
+    /**
+     * READ
+     * - Admin UI (logged-in users)
+     * - Public API (API key + fetch code)
+     */
+    read: AccessControl.isPublic,
+
+    /**
+     * Editorial taxonomy control
+     */
+    create: AccessControl.isEditorOrAbove,
+    update: AccessControl.isEditorOrAbove,
+
+    /**
+     * Destructive actions restricted
+     */
     delete: AccessControl.isAdmin,
   },
 
+  /* -----------------------------------------------------------
+     FIELDS
+  ----------------------------------------------------------- */
   fields: [
     {
       name: 'name',
@@ -48,15 +64,19 @@ export const Categories: CollectionConfig = {
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
-      async ({ data }) => {
+      ({ data }) => {
         if (data?.name && !data.slug) {
           data.slug = data.name
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '')
         }
+        return data
       },
     ],
   },

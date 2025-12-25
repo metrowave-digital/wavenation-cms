@@ -1,13 +1,66 @@
 // src/collections/VOD/VOD.ts
 
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig, Access, AccessArgs } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import * as AccessControl from '@/access/control'
 import { seoFields } from '../../fields/seo'
 
-const isAdmin = ({ req }: { req: PayloadRequest }) => {
-  const roles = Array.isArray((req.user as any)?.roles) ? ((req.user as any).roles as string[]) : []
-  return roles.includes('admin') || roles.includes('super-admin')
+/* ============================================================
+   ACCESS HELPERS
+============================================================ */
+
+/**
+ * READ
+ * - Logged-in users → full access
+ * - Public → API key + fetch code
+ */
+const canReadVOD: Access = ({ req }) => {
+  if (req?.user) return true
+  return AccessControl.apiLockedRead({ req } as any)
 }
+
+/**
+ * CREATE
+ * - Admin + Staff
+ */
+const canCreateVOD: Access = ({ req }) =>
+  AccessControl.isAdmin({ req }) || AccessControl.isStaff({ req })
+
+/**
+ * UPDATE
+ * - Admin override
+ * - Staff override
+ * - Creator (createdBy) can update their own VOD
+ */
+const canUpdateVOD: Access = async ({ req, id }: AccessArgs) => {
+  if (!req?.user) return false
+
+  if (AccessControl.isAdmin({ req })) return true
+  if (AccessControl.isStaff({ req })) return true
+
+  if (!id) return false
+
+  const vod = await req.payload.findByID({
+    collection: 'vod',
+    id: String(id),
+    depth: 0,
+  })
+
+  const ownerId =
+    typeof (vod as any).createdBy === 'string' ? (vod as any).createdBy : (vod as any).createdBy?.id
+
+  return ownerId === String(req.user.id)
+}
+
+/**
+ * DELETE
+ * - Admin only (VODs are highly referenced)
+ */
+const canDeleteVOD: Access = ({ req }) => AccessControl.isAdmin({ req })
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const VOD: CollectionConfig = {
   slug: 'vod',
@@ -15,25 +68,28 @@ export const VOD: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: 'Content',
-    defaultColumns: ['title', 'vodType', 'status', 'runtimeMinutes'],
+    defaultColumns: ['title', 'vodType', 'status', 'runtimeMinutes', 'updatedAt'],
   },
 
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
-    delete: isAdmin,
+    read: canReadVOD,
+    create: canCreateVOD,
+    update: canUpdateVOD,
+    delete: canDeleteVOD,
   },
 
   timestamps: true,
 
+  /* ============================================================
+     FIELDS
+  ============================================================ */
   fields: [
     {
       type: 'tabs',
       tabs: [
         /* ------------------------------------------------------------------
-         * TAB 1 — GENERAL INFO
-         ------------------------------------------------------------------ */
+           TAB 1 — DETAILS
+        ------------------------------------------------------------------ */
         {
           label: 'Details',
           fields: [
@@ -68,7 +124,7 @@ export const VOD: CollectionConfig = {
             {
               name: 'status',
               type: 'select',
-              defaultValue: 'published',
+              defaultValue: 'draft',
               options: [
                 { label: 'Published', value: 'published' },
                 { label: 'Scheduled', value: 'scheduled' },
@@ -86,13 +142,16 @@ export const VOD: CollectionConfig = {
             {
               name: 'publishedDate',
               type: 'date',
+              admin: {
+                condition: (_, siblingData) => siblingData?.status === 'scheduled',
+              },
             },
           ],
         },
 
         /* ------------------------------------------------------------------
-         * TAB 2 — VIDEO SOURCE
-         ------------------------------------------------------------------ */
+           TAB 2 — VIDEO SOURCE
+        ------------------------------------------------------------------ */
         {
           label: 'Video Source',
           fields: [
@@ -108,69 +167,44 @@ export const VOD: CollectionConfig = {
               ],
             },
 
-            /* CLOUD FLARE */
             {
               name: 'cloudflareVideoId',
               type: 'text',
-              admin: {
-                condition: (data) => data?.videoProvider === 'cloudflare',
-                description: 'Cloudflare Stream UID',
-              },
+              admin: { condition: (d) => d?.videoProvider === 'cloudflare' },
             },
 
             {
               name: 'cloudflarePlaybackUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.videoProvider === 'cloudflare',
-                description: 'Cloudflare playback URL (HLS/DASH)',
-              },
+              admin: { condition: (d) => d?.videoProvider === 'cloudflare' },
             },
 
-            /* S3 */
             {
               name: 's3VideoFile',
               type: 'upload',
               relationTo: 'media',
-              admin: {
-                condition: (data) => data?.videoProvider === 's3',
-                description: 'Upload MP4 / WEBM file',
-              },
+              admin: { condition: (d) => d?.videoProvider === 's3' },
             },
 
-            /* External */
             {
               name: 'externalUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.videoProvider === 'external',
-                description: 'YouTube, Vimeo, or direct URL',
-              },
+              admin: { condition: (d) => d?.videoProvider === 'external' },
             },
           ],
         },
 
         /* ------------------------------------------------------------------
-         * TAB 3 — IMAGES, ART, BRANDING
-         ------------------------------------------------------------------ */
+           TAB 3 — BRANDING
+        ------------------------------------------------------------------ */
         {
           label: 'Branding',
           fields: [
             {
               type: 'row',
               fields: [
-                {
-                  name: 'thumbnail',
-                  type: 'upload',
-                  relationTo: 'media',
-                  admin: { width: '50%' },
-                },
-                {
-                  name: 'bannerImage',
-                  type: 'upload',
-                  relationTo: 'media',
-                  admin: { width: '50%' },
-                },
+                { name: 'thumbnail', type: 'upload', relationTo: 'media' },
+                { name: 'bannerImage', type: 'upload', relationTo: 'media' },
               ],
             },
 
@@ -184,72 +218,49 @@ export const VOD: CollectionConfig = {
             {
               name: 'brandColor',
               type: 'text',
-              admin: { description: 'Optional HEX theme color' },
             },
           ],
         },
 
         /* ------------------------------------------------------------------
-         * TAB 4 — RELATIONSHIPS
-         ------------------------------------------------------------------ */
+           TAB 4 — RELATIONSHIPS
+        ------------------------------------------------------------------ */
         {
           label: 'Relationships',
           fields: [
-            {
-              name: 'hosts',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'guests',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
+            { name: 'hosts', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'guests', type: 'relationship', relationTo: 'profiles', hasMany: true },
             {
               name: 'creators',
               type: 'relationship',
               relationTo: 'profiles',
               hasMany: true,
-              admin: { description: 'Directors, producers, editors, creators' },
             },
-
             {
               name: 'relatedShows',
               type: 'relationship',
               relationTo: 'shows',
               hasMany: true,
-              admin: { description: 'Optional grouping to TV or Radio shows' },
             },
-
             {
               name: 'relatedEpisodes',
               type: 'relationship',
               relationTo: 'episodes',
               hasMany: true,
-              admin: {
-                description: 'Optional — if this VOD belongs with specific episodes',
-              },
             },
           ],
         },
 
         /* ------------------------------------------------------------------
-         * TAB 5 — METADATA
-         ------------------------------------------------------------------ */
+           TAB 5 — METADATA
+        ------------------------------------------------------------------ */
         {
           label: 'Metadata',
           fields: [
-            {
-              name: 'runtimeMinutes',
-              type: 'number',
-              admin: { width: '33%' },
-            },
+            { name: 'runtimeMinutes', type: 'number' },
             {
               name: 'contentRating',
               type: 'select',
-              admin: { width: '33%' },
               options: [
                 { label: 'All Ages', value: 'G' },
                 { label: 'PG', value: 'PG' },
@@ -257,58 +268,37 @@ export const VOD: CollectionConfig = {
                 { label: 'TV-MA', value: 'TV-MA' },
               ],
             },
-            {
-              name: 'genre',
-              type: 'relationship',
-              relationTo: 'categories',
-              admin: { width: '33%' },
-            },
-
-            {
-              name: 'tags',
-              type: 'relationship',
-              relationTo: 'tags',
-              hasMany: true,
-            },
-
-            {
-              name: 'transcript',
-              type: 'richText',
-              editor: lexicalEditor(),
-            },
+            { name: 'genre', type: 'relationship', relationTo: 'categories' },
+            { name: 'tags', type: 'relationship', relationTo: 'tags', hasMany: true },
+            { name: 'transcript', type: 'richText', editor: lexicalEditor() },
           ],
         },
 
         /* ------------------------------------------------------------------
-         * TAB 6 — EXTRAS (CLIPS, PROMOS)
-         ------------------------------------------------------------------ */
+           TAB 6 — EXTRAS
+        ------------------------------------------------------------------ */
         {
           label: 'Extras',
           fields: [
             {
               name: 'clips',
               type: 'array',
-              labels: { singular: 'Clip', plural: 'Clips' },
               fields: [
                 { name: 'title', type: 'text' },
                 { name: 'video', type: 'upload', relationTo: 'media' },
               ],
             },
-
             {
               name: 'behindTheScenes',
               type: 'array',
-              labels: { singular: 'BTS', plural: 'BTS' },
               fields: [
                 { name: 'title', type: 'text' },
                 { name: 'video', type: 'upload', relationTo: 'media' },
               ],
             },
-
             {
               name: 'promos',
               type: 'array',
-              labels: { singular: 'Promo', plural: 'Promos' },
               fields: [
                 { name: 'title', type: 'text' },
                 { name: 'video', type: 'upload', relationTo: 'media' },
@@ -318,16 +308,14 @@ export const VOD: CollectionConfig = {
         },
 
         /* ------------------------------------------------------------------
-         * TAB 7 — PLAYLISTS
-         ------------------------------------------------------------------ */
+           TAB 7 — PLAYLISTS
+        ------------------------------------------------------------------ */
         {
           label: 'Playlists',
           fields: [
             {
               name: 'collections',
               type: 'array',
-              labels: { singular: 'Collection', plural: 'Collections' },
-              admin: { description: 'Group VOD items into curated playlists' },
               fields: [
                 { name: 'title', type: 'text', required: true },
                 {
@@ -335,9 +323,6 @@ export const VOD: CollectionConfig = {
                   type: 'relationship',
                   relationTo: 'vod',
                   hasMany: true,
-                  admin: {
-                    description: 'Add other VOD videos to this collection',
-                  },
                 },
               ],
             },
@@ -345,16 +330,16 @@ export const VOD: CollectionConfig = {
         },
 
         /* ------------------------------------------------------------------
-         * TAB 8 — SEO
-         ------------------------------------------------------------------ */
+           TAB 8 — SEO
+        ------------------------------------------------------------------ */
         {
           label: 'SEO',
           fields: [seoFields],
         },
 
         /* ------------------------------------------------------------------
-         * TAB 9 — ANALYTICS
-         ------------------------------------------------------------------ */
+           TAB 9 — ANALYTICS
+        ------------------------------------------------------------------ */
         {
           label: 'Analytics',
           fields: [
@@ -376,8 +361,8 @@ export const VOD: CollectionConfig = {
         },
 
         /* ------------------------------------------------------------------
-         * TAB 10 — SYSTEM
-         ------------------------------------------------------------------ */
+           TAB 10 — SYSTEM
+        ------------------------------------------------------------------ */
         {
           label: 'System',
           fields: [
@@ -399,10 +384,15 @@ export const VOD: CollectionConfig = {
     },
   ],
 
+  /* ============================================================
+     HOOKS
+  ============================================================ */
   hooks: {
     beforeChange: [
-      async ({ data = {}, req, operation }) => {
-        if (req.user) {
+      ({ data, req, operation }) => {
+        if (!data) return data
+
+        if (req?.user) {
           if (operation === 'create') data.createdBy = (req.user as any).id
           data.updatedBy = (req.user as any).id
         }
@@ -419,3 +409,5 @@ export const VOD: CollectionConfig = {
     ],
   },
 }
+
+export default VOD

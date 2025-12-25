@@ -1,7 +1,23 @@
+// src/collections/EPGEntries.ts
+
 import type { CollectionConfig } from 'payload'
+
+import {
+  isPublic,
+  isEditorOrAbove,
+  isStaffAccess,
+  isAdmin,
+  isStaffAccessField,
+  isAdminField,
+} from '@/access/control'
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const EPGEntries: CollectionConfig = {
   slug: 'epg',
+
   labels: {
     singular: 'EPG Entry',
     plural: 'EPG Guide',
@@ -10,11 +26,25 @@ export const EPGEntries: CollectionConfig = {
   admin: {
     group: 'TV & Streaming',
     useAsTitle: 'title',
-    defaultColumns: ['mode', 'contentType', 'title', 'start', 'end'],
+    defaultColumns: ['mode', 'contentType', 'title', 'start', 'end', 'channel'],
   },
 
+  /* ------------------------------------------------------------
+     ACCESS CONTROL
+  ------------------------------------------------------------ */
+  access: {
+    read: isPublic,
+    create: isEditorOrAbove,
+    update: isStaffAccess,
+    delete: isAdmin,
+  },
+
+  timestamps: true,
+
   fields: [
-    /** MODE: Manual or Linked */
+    /* =========================================================
+       MODE
+    ========================================================= */
     {
       name: 'mode',
       type: 'select',
@@ -26,7 +56,9 @@ export const EPGEntries: CollectionConfig = {
       ],
     },
 
-    /** LINKED CONTENT (optional if mode = linked) */
+    /* =========================================================
+       LINKED CONTENT
+    ========================================================= */
     {
       name: 'content',
       type: 'relationship',
@@ -53,48 +85,45 @@ export const EPGEntries: CollectionConfig = {
       ],
     },
 
-    /** MANUAL ENTRY FIELDS */
+    /* =========================================================
+       MANUAL ENTRY
+    ========================================================= */
     {
       name: 'manualTitle',
       type: 'text',
-      admin: {
-        condition: (data) => data?.mode === 'manual',
-      },
+      admin: { condition: (data) => data?.mode === 'manual' },
     },
 
     {
       name: 'manualDescription',
       type: 'textarea',
-      admin: {
-        condition: (data) => data?.mode === 'manual',
-      },
+      admin: { condition: (data) => data?.mode === 'manual' },
     },
 
     {
       name: 'manualThumbnail',
       type: 'upload',
       relationTo: 'media',
-      admin: {
-        condition: (data) => data?.mode === 'manual',
-      },
+      admin: { condition: (data) => data?.mode === 'manual' },
     },
 
-    /** UNIVERSAL TITLE (used in UI, computed via hook if desired) */
+    /* =========================================================
+       DISPLAY
+    ========================================================= */
     {
       name: 'title',
       type: 'text',
       required: true,
       admin: {
-        description: 'Internal or display title',
+        description: 'Display title (auto-filled for linked content if empty)',
       },
     },
 
-    {
-      name: 'subtitle',
-      type: 'text',
-    },
+    { name: 'subtitle', type: 'text' },
 
-    /** BROADCAST SCHEDULE */
+    /* =========================================================
+       TIME WINDOW
+    ========================================================= */
     {
       name: 'start',
       type: 'date',
@@ -107,7 +136,9 @@ export const EPGEntries: CollectionConfig = {
       required: true,
     },
 
-    /** OPTIONAL CHANNEL (for multi-channel streaming lanes) */
+    /* =========================================================
+       CHANNEL LANE
+    ========================================================= */
     {
       name: 'channel',
       type: 'relationship',
@@ -117,13 +148,13 @@ export const EPGEntries: CollectionConfig = {
       },
     },
 
-    /** OPTIONAL RECURRING RULE */
+    /* =========================================================
+       RECURRENCE
+    ========================================================= */
     {
       name: 'recurrence',
       type: 'group',
-      admin: {
-        description: 'Optional: Automatically repeat schedule',
-      },
+      admin: { description: 'Optional: Automatically repeat schedule' },
       fields: [
         {
           name: 'frequency',
@@ -156,10 +187,81 @@ export const EPGEntries: CollectionConfig = {
       ],
     },
 
-    /** OPTIONAL META */
+    /* =========================================================
+       SORT + STATUS
+    ========================================================= */
+    {
+      name: 'sortOrder',
+      type: 'number',
+      defaultValue: 0,
+      access: { update: isStaffAccessField },
+      admin: {
+        description: 'Lower numbers appear earlier in the grid',
+      },
+    },
+
+    {
+      name: 'active',
+      type: 'checkbox',
+      defaultValue: true,
+      access: { update: isStaffAccessField },
+      admin: {
+        description: 'Disable to temporarily hide from live EPG',
+      },
+    },
+
+    /* =========================================================
+       METADATA
+    ========================================================= */
     {
       name: 'metadata',
       type: 'json',
     },
+
+    /* =========================================================
+       AUDIT
+    ========================================================= */
+    {
+      name: 'createdBy',
+      type: 'relationship',
+      relationTo: 'users',
+      access: { update: isAdminField },
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+
+    {
+      name: 'updatedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      access: { update: isAdminField },
+      admin: { readOnly: true, position: 'sidebar' },
+    },
   ],
+
+  /* ------------------------------------------------------------
+     HOOKS
+  ------------------------------------------------------------ */
+  hooks: {
+    beforeChange: [
+      async ({ data, req, operation }) => {
+        /* ---------- audit ---------- */
+        if (req.user) {
+          if (operation === 'create') data.createdBy = req.user.id
+          data.updatedBy = req.user.id
+        }
+
+        /* ---------- time sanity ---------- */
+        if (data.start && data.end && new Date(data.end) <= new Date(data.start)) {
+          throw new Error('EPG end time must be after start time')
+        }
+
+        /* ---------- auto title (linked) ---------- */
+        if (data.mode === 'linked' && data.content && !data.title) {
+          data.title = 'Linked Program'
+        }
+
+        return data
+      },
+    ],
+  },
 }

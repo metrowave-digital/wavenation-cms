@@ -1,11 +1,8 @@
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { seoFields } from '../../fields/seo'
 
-const isAdmin = ({ req }: { req: PayloadRequest }) => {
-  const roles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
+import * as AccessControl from '@/access/control'
 
 export const Podcasts: CollectionConfig = {
   slug: 'podcasts',
@@ -16,11 +13,14 @@ export const Podcasts: CollectionConfig = {
     defaultColumns: ['title', 'status', 'primaryHost', 'category'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS (ENTERPRISE SAFE — NO DATA CHANGES)
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
-    delete: isAdmin,
+    read: AccessControl.isPublic, // 🔐 API key OR logged-in
+    create: AccessControl.isAdmin,
+    update: AccessControl.isAdmin,
+    delete: AccessControl.isAdmin,
   },
 
   timestamps: true,
@@ -40,7 +40,6 @@ export const Podcasts: CollectionConfig = {
               type: 'text',
               required: true,
             },
-
             {
               name: 'slug',
               type: 'text',
@@ -50,7 +49,6 @@ export const Podcasts: CollectionConfig = {
                 description: 'Auto-generated if empty.',
               },
             },
-
             {
               name: 'status',
               type: 'select',
@@ -62,11 +60,10 @@ export const Podcasts: CollectionConfig = {
                 { label: 'Ended', value: 'ended' },
               ],
             },
-
             {
               name: 'description',
               type: 'richText',
-              editor: lexicalEditor(), // FIXED
+              editor: lexicalEditor(),
             },
           ],
         },
@@ -94,7 +91,6 @@ export const Podcasts: CollectionConfig = {
                 },
               ],
             },
-
             {
               name: 'brandColor',
               type: 'text',
@@ -103,7 +99,7 @@ export const Podcasts: CollectionConfig = {
         },
 
         // ------------------------------------------------------------------
-        // TAB 3 — HOSTS / PRODUCERS / CAST
+        // TAB 3 — PEOPLE
         // ------------------------------------------------------------------
         {
           label: 'People',
@@ -163,7 +159,25 @@ export const Podcasts: CollectionConfig = {
         },
 
         // ------------------------------------------------------------------
-        // TAB 5 — PLAYLISTS
+        // TAB 5 — VIDEO / VOD (OPTIONAL)
+        // ------------------------------------------------------------------
+        {
+          label: 'Video / VOD',
+          fields: [
+            {
+              name: 'vod',
+              type: 'relationship',
+              relationTo: 'vod',
+              admin: {
+                description:
+                  'Optional video or vodcast version of this podcast (studio recording, simulcast, or companion video)',
+              },
+            },
+          ],
+        },
+
+        // ------------------------------------------------------------------
+        // TAB 6 — PLAYLISTS
         // ------------------------------------------------------------------
         {
           label: 'Playlists',
@@ -178,7 +192,7 @@ export const Podcasts: CollectionConfig = {
         },
 
         // ------------------------------------------------------------------
-        // TAB 6 — TAXONOMY
+        // TAB 7 — TAXONOMY
         // ------------------------------------------------------------------
         {
           label: 'Taxonomy',
@@ -198,7 +212,7 @@ export const Podcasts: CollectionConfig = {
         },
 
         // ------------------------------------------------------------------
-        // TAB 7 — SEO
+        // TAB 8 — SEO
         // ------------------------------------------------------------------
         {
           label: 'SEO',
@@ -206,7 +220,7 @@ export const Podcasts: CollectionConfig = {
         },
 
         // ------------------------------------------------------------------
-        // TAB 8 — ANALYTICS
+        // TAB 9 — ANALYTICS
         // ------------------------------------------------------------------
         {
           label: 'Analytics',
@@ -244,7 +258,7 @@ export const Podcasts: CollectionConfig = {
         },
 
         // ------------------------------------------------------------------
-        // TAB 9 — SYSTEM
+        // TAB 10 — SYSTEM
         // ------------------------------------------------------------------
         {
           label: 'System',
@@ -270,11 +284,11 @@ export const Podcasts: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data = {}, req, operation }) => {
-        const user = (req.user as any)?.id
+        const userId = req.user ? String(req.user.id) : undefined
 
-        if (user) {
-          if (operation === 'create') data.createdBy = user
-          data.updatedBy = user
+        if (userId) {
+          if (operation === 'create') data.createdBy = userId
+          data.updatedBy = userId
         }
 
         if (data?.title && !data?.slug) {
@@ -289,3 +303,5 @@ export const Podcasts: CollectionConfig = {
     ],
   },
 }
+
+export default Podcasts

@@ -42,6 +42,12 @@ import { Profiles } from './collections/Users/Profiles'
 
 /* Media */
 import { Media } from './collections/Media/Media'
+import { Photos } from './collections/Media/Photos'
+import { PhotoGallery } from './collections/Media/PhotoGallery'
+import { VideoGallery } from './collections/Media/VideoGallery'
+import { MediaAlbums } from './collections/Media/MediaAlbums'
+import { MediaTags } from './collections/Media/MediaTags'
+import { MediaVariants } from './collections/Media/MediaVariants'
 
 /* Shows / TV / Radio */
 import { Shows } from './collections/Shows/Shows'
@@ -69,9 +75,9 @@ import { Categories } from './collections/Categories/Categories'
 
 /* Articles */
 import { Articles } from './collections/Articles/Articles'
-import { Reviews } from './collections/Articles/Reviews'
+import Reviews from './collections/Articles/Articles/fields/reviews'
 import { ReviewReactions } from './collections/Articles/ReviewReactions'
-import ArtistSpotlight from './collections/Articles/ArtistSpotlight'
+import ArtistSpotlight from './collections/Articles/Articles/fields/artistSpotlight'
 
 /* Polls */
 import { Polls } from './collections/Polls/Polls'
@@ -154,6 +160,9 @@ import { NotificationRules } from './collections/Engagement/NotificationRules'
 import { Reactions } from './collections/Engagement/Reactions'
 import { Comments } from './collections/Engagement/Comments'
 import { CommentReactions } from './collections/Engagement/CommentReactions'
+
+/* Moderation */
+import { ModerationJobs } from './collections/ModerationJobs'
 
 /* ============================
    PATH
@@ -258,6 +267,12 @@ export default buildConfig({
     Users,
     Profiles,
     Media,
+    MediaVariants,
+    MediaTags,
+    MediaAlbums,
+    Photos,
+    PhotoGallery,
+    VideoGallery,
     Shows,
     Episodes,
     Schedule,
@@ -345,6 +360,7 @@ export default buildConfig({
     Campaigns,
     Advertisers,
     AdAnalytics,
+    ModerationJobs,
   ],
 
   /* -----------------------------------------------------------

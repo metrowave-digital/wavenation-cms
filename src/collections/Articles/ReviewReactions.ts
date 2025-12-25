@@ -10,18 +10,17 @@ import * as AccessControl from '@/access/control'
  * - Admin
  * - OR the reaction belongs to the user
  */
-const canDeleteReaction: Access = ({ req, id }) => {
-  if (!req.user) return false
+const canDeleteReaction: Access = ({ req }) => {
+  if (!req?.user) return false
 
   // Admin can always delete
   if (AccessControl.isAdmin({ req })) return true
 
-  if (!id) return false
-
   // Owner-only delete
   return {
-    id: { equals: id },
-    user: { equals: req.user.id },
+    user: {
+      equals: req.user.id,
+    },
   }
 }
 
@@ -37,13 +36,11 @@ export const ReviewReactions: CollectionConfig = {
     group: 'Engagement',
   },
 
-  /* -----------------------------------------------------------
-     ACCESS CONTROL
-  ----------------------------------------------------------- */
   access: {
     read: () => true,
     create: ({ req }) => Boolean(req.user),
     delete: canDeleteReaction,
+    update: () => false, // immutable
   },
 
   fields: [

@@ -1,13 +1,14 @@
-import type { CollectionConfig, CollectionBeforeChangeHook, AccessArgs } from 'payload'
+import type { CollectionConfig, CollectionBeforeChangeHook } from 'payload'
 import { seoFields } from '../../fields/seo'
 
-/* -------------------------------
-   TYPE-SAFE ADMIN CHECK
--------------------------------- */
-const isAdmin = ({ req }: AccessArgs) => {
-  const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
+import {
+  isPublic,
+  isStaffAccess,
+  isAdmin,
+  isEditorOrAboveField,
+  metricsFieldUpdate,
+  isAdminField,
+} from '@/access/control'
 
 /* -------------------------------
    BEFORE CHANGE HOOK (TS SAFE)
@@ -43,10 +44,10 @@ export const Albums: CollectionConfig = {
   },
 
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
-    delete: isAdmin,
+    read: isPublic, // 🔐 API key + fetch code (or logged-in)
+    create: isStaffAccess, // staff+
+    update: isStaffAccess, // staff+
+    delete: isAdmin, // admin+
   },
 
   timestamps: true,
@@ -201,6 +202,7 @@ export const Albums: CollectionConfig = {
 
         /* -----------------------------------------------------------
          * TAB 7 – SEO
+         * ✅ FieldAccess wrapper used here (NOT Access)
          ----------------------------------------------------------- */
         {
           label: 'SEO',
@@ -220,24 +222,28 @@ export const Albums: CollectionConfig = {
                   name: 'streams',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
                 {
                   name: 'likes',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
                 {
                   name: 'shares',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
                 {
                   name: 'engagementScore',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: metricsFieldUpdate },
                   admin: { readOnly: true, width: '25%' },
                 },
               ],
@@ -255,12 +261,14 @@ export const Albums: CollectionConfig = {
               name: 'createdBy',
               type: 'relationship',
               relationTo: 'users',
+              access: { read: isAdminField },
               admin: { readOnly: true },
             },
             {
               name: 'updatedBy',
               type: 'relationship',
               relationTo: 'users',
+              access: { read: isAdminField },
               admin: { readOnly: true },
             },
           ],

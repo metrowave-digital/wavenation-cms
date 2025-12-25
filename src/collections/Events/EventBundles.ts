@@ -1,4 +1,27 @@
-import type { CollectionConfig } from 'payload'
+// src/collections/Events/EventBundles.ts
+
+import type { CollectionConfig, FieldAccess } from 'payload'
+import * as AccessControl from '@/access/control'
+import { Roles } from '@/access/roles'
+
+/* ============================================================
+   FIELD ACCESS HELPERS (BOOLEAN ONLY)
+============================================================ */
+
+/**
+ * Admin-only fields (pricing, inventory, status)
+ */
+const adminOnly: FieldAccess = ({ req }) => Boolean(req?.user && AccessControl.isAdminRole(req))
+
+/**
+ * Staff+ can manage non-financial fields
+ */
+const staffOnly: FieldAccess = ({ req }) =>
+  Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.STAFF))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const EventBundles: CollectionConfig = {
   slug: 'event-bundles',
@@ -6,20 +29,36 @@ export const EventBundles: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: 'Events',
-    defaultColumns: ['name', 'status', 'price', 'currency'],
+    defaultColumns: ['name', 'status', 'price', 'currency', 'sold'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (COLLECTION LEVEL)
+     NOTE: No `doc` here (Payload v3 rule)
+  ----------------------------------------------------------- */
   access: {
+    /**
+     * Public can read bundles (frontend store)
+     */
     read: () => true,
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) =>
-      Boolean(req.user?.roles?.includes('admin') || req.user?.roles?.includes('super-admin')),
+
+    /**
+     * Create / Update: staff+
+     */
+    create: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.STAFF)),
+
+    update: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.STAFF)),
+
+    /**
+     * Delete: admin only
+     */
+    delete: ({ req }) => Boolean(req?.user && AccessControl.hasRoleAtOrAbove(req, Roles.ADMIN)),
   },
 
   timestamps: true,
 
   fields: [
+    /* ---------------- CORE ---------------- */
     {
       name: 'name',
       type: 'text',
@@ -40,6 +79,7 @@ export const EventBundles: CollectionConfig = {
       name: 'status',
       type: 'select',
       defaultValue: 'draft',
+      access: { update: adminOnly },
       options: [
         { label: 'Draft', value: 'draft' },
         { label: 'Active', value: 'active' },
@@ -50,6 +90,7 @@ export const EventBundles: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
+      access: { update: staffOnly },
     },
 
     /* ---------------- CONTENTS ---------------- */
@@ -58,6 +99,7 @@ export const EventBundles: CollectionConfig = {
       type: 'relationship',
       relationTo: 'events',
       hasMany: true,
+      access: { update: staffOnly },
       admin: {
         description: 'Events included in this bundle.',
       },
@@ -68,6 +110,7 @@ export const EventBundles: CollectionConfig = {
       type: 'relationship',
       relationTo: 'ticket-types',
       hasMany: true,
+      access: { update: staffOnly },
       admin: {
         description: 'Specific ticket tiers included, if applicable.',
       },
@@ -78,8 +121,9 @@ export const EventBundles: CollectionConfig = {
       type: 'relationship',
       relationTo: 'event-passes',
       hasMany: true,
+      access: { update: staffOnly },
       admin: {
-        description: 'Pass types associated with this bundle.',
+        description: 'Passes associated with this bundle.',
       },
     },
 
@@ -91,12 +135,14 @@ export const EventBundles: CollectionConfig = {
           name: 'price',
           type: 'number',
           required: true,
+          access: { update: adminOnly },
           admin: { width: '40%' },
         },
         {
           name: 'currency',
           type: 'select',
           defaultValue: 'USD',
+          access: { update: adminOnly },
           options: [
             { label: 'USD', value: 'USD' },
             { label: 'EUR', value: 'EUR' },
@@ -107,6 +153,7 @@ export const EventBundles: CollectionConfig = {
         {
           name: 'compareAtPrice',
           type: 'number',
+          access: { update: adminOnly },
           admin: {
             width: '30%',
             description: "Optional 'full price' for showing discount.",
@@ -121,17 +168,20 @@ export const EventBundles: CollectionConfig = {
         {
           name: 'maxQuantity',
           type: 'number',
+          access: { update: adminOnly },
           admin: { width: '33%' },
         },
         {
           name: 'maxPerOrder',
           type: 'number',
+          access: { update: adminOnly },
           admin: { width: '33%' },
         },
         {
           name: 'sold',
           type: 'number',
           defaultValue: 0,
+          access: { update: () => false },
           admin: { width: '33%', readOnly: true },
         },
       ],
@@ -144,11 +194,13 @@ export const EventBundles: CollectionConfig = {
         {
           name: 'salesStart',
           type: 'date',
+          access: { update: adminOnly },
           admin: { width: '50%' },
         },
         {
           name: 'salesEnd',
           type: 'date',
+          access: { update: adminOnly },
           admin: { width: '50%' },
         },
       ],
@@ -160,8 +212,9 @@ export const EventBundles: CollectionConfig = {
       type: 'relationship',
       relationTo: 'event-promotions',
       hasMany: true,
+      access: { update: staffOnly },
       admin: {
-        description: 'Promo codes that apply to this bundle.',
+        description: 'Promotions that apply to this bundle.',
       },
     },
 
@@ -169,6 +222,7 @@ export const EventBundles: CollectionConfig = {
       name: 'isFeatured',
       type: 'checkbox',
       defaultValue: false,
+      access: { update: staffOnly },
     },
 
     /* ---------------- AUDIT ---------------- */
@@ -186,6 +240,9 @@ export const EventBundles: CollectionConfig = {
     },
   ],
 
+  /* -----------------------------------------------------------
+     HOOKS
+  ----------------------------------------------------------- */
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
@@ -206,3 +263,5 @@ export const EventBundles: CollectionConfig = {
     ],
   },
 }
+
+export default EventBundles

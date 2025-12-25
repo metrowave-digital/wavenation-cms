@@ -3,9 +3,11 @@ import type { CollectionBeforeChangeHook } from 'payload'
 export const autoSetPublishDate: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
   if (!data) return data
 
-  const publishing = data.status === 'published' && originalDoc?.status !== 'published'
+  const isPublishing = data.status === 'published'
+  const wasPublished = originalDoc?.status === 'published'
 
-  if (publishing && !data.publishedDate) {
+  // First publish OR republish
+  if (isPublishing && !wasPublished) {
     data.publishedDate = new Date().toISOString()
   }
 

@@ -1,4 +1,21 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Access, FieldAccess } from 'payload'
+
+import { isLoggedIn, isStaffAccess, isModeratorOrAboveField } from '@/access/control'
+
+/* ============================================================
+   COLLECTION ACCESS (COARSE-GRAINED)
+============================================================ */
+
+const canReadMessages: Access = ({ req }) => Boolean(req?.user)
+
+const canCreateMessages: Access = isLoggedIn
+
+// Only staff can bypass ownership — ownership enforced in hook
+const canUpdateMessages: Access = ({ req }) => Boolean(req?.user && isStaffAccess({ req }))
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Messages: CollectionConfig = {
   slug: 'messages',
@@ -10,63 +27,80 @@ export const Messages: CollectionConfig = {
   },
 
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => false, // no deleting messages
+    read: canReadMessages,
+    create: canCreateMessages,
+    update: canUpdateMessages,
+    delete: () => false, // immutable audit trail
+  },
+
+  /* ============================================================
+     HOOKS — DOC-LEVEL OWNERSHIP (CORRECT PLACE)
+  ============================================================ */
+  hooks: {
+    beforeChange: [
+      async ({ req, data, originalDoc, operation }) => {
+        if (!req?.user) return data
+
+        // Staff override
+        if (isStaffAccess({ req })) return data
+
+        // Sender-only updates
+        if (operation === 'update' && originalDoc) {
+          const senderId =
+            typeof originalDoc.sender === 'object' ? originalDoc.sender.id : originalDoc.sender
+
+          if (String(senderId) !== String(req.user.id)) {
+            throw new Error('You may only edit your own messages.')
+          }
+        }
+
+        return data
+      },
+    ],
   },
 
   timestamps: true,
 
   fields: [
     /* ---------------------------------------------------------
-     * WHO SENT THE MESSAGE
+     * RELATIONSHIPS
      --------------------------------------------------------- */
     {
       name: 'sender',
       type: 'relationship',
       relationTo: 'profiles',
       required: true,
+      access: { update: () => false },
     },
 
-    /* ---------------------------------------------------------
-     * WHAT CHAT THIS MESSAGE BELONGS TO
-     --------------------------------------------------------- */
     {
       name: 'chat',
       type: 'relationship',
       relationTo: 'chats',
       required: true,
-    },
-
-    /* ---------------------------------------------------------
-     * MESSAGE CONTENT
-     --------------------------------------------------------- */
-    {
-      name: 'text',
-      type: 'textarea',
-      admin: { description: 'Message content (optional if attachments exist)' },
-    },
-
-    {
-      name: 'attachments',
-      type: 'relationship',
-      relationTo: 'media',
-      hasMany: true,
-      admin: {
-        description: 'Images, audio, video, files.',
-      },
+      access: { update: () => false },
     },
 
     {
       name: 'replyTo',
       type: 'relationship',
       relationTo: 'messages',
-      admin: { description: 'Threaded replies (optional)' },
     },
 
     /* ---------------------------------------------------------
-     * STATUS + READ RECEIPTS
+     * CONTENT
+     --------------------------------------------------------- */
+    { name: 'text', type: 'textarea' },
+
+    {
+      name: 'attachments',
+      type: 'relationship',
+      relationTo: 'media',
+      hasMany: true,
+    },
+
+    /* ---------------------------------------------------------
+     * DELIVERY STATUS
      --------------------------------------------------------- */
     {
       name: 'status',
@@ -78,6 +112,9 @@ export const Messages: CollectionConfig = {
         { label: 'Read', value: 'read' },
         { label: 'Failed', value: 'failed' },
       ],
+      access: {
+        update: isStaffAccess as FieldAccess,
+      },
     },
 
     {
@@ -85,45 +122,32 @@ export const Messages: CollectionConfig = {
       type: 'relationship',
       relationTo: 'profiles',
       hasMany: true,
-      admin: { description: 'Profiles who have read this message' },
+      access: { update: () => true },
     },
 
     /* ---------------------------------------------------------
-     * MESSAGE REACTIONS
-     --------------------------------------------------------- */
-    {
-      name: 'reactions',
-      type: 'relationship',
-      relationTo: 'message-reactions',
-      hasMany: true,
-    },
-
-    /* ---------------------------------------------------------
-     * MODERATION + TOXICITY AI
+     * MODERATION
      --------------------------------------------------------- */
     {
       name: 'toxicityScore',
       type: 'number',
-      admin: {
-        readOnly: true,
-        description: 'AI toxicity score (0–1)',
-      },
+      admin: { readOnly: true },
+      access: { update: () => false },
     },
 
     {
       name: 'isToxic',
       type: 'checkbox',
       defaultValue: false,
-      admin: {
-        readOnly: true,
-      },
+      admin: { readOnly: true },
+      access: { update: () => false },
     },
 
     {
       name: 'isFlagged',
       type: 'checkbox',
       defaultValue: false,
-      admin: { description: 'Moderation flag' },
+      access: { update: isModeratorOrAboveField },
     },
 
     /* ---------------------------------------------------------
@@ -134,6 +158,7 @@ export const Messages: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       admin: { readOnly: true },
+      access: { update: () => false },
     },
   ],
 }

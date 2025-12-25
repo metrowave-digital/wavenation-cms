@@ -1,10 +1,20 @@
-import type { CollectionConfig, PayloadRequest } from 'payload'
+// src/collections/Shows.ts
+
+import type { CollectionConfig } from 'payload'
 import { seoFields } from '../../fields/seo'
 
-const isAdmin = ({ req }: { req: PayloadRequest }) => {
-  const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
+import {
+  isPublic,
+  isEditorOrAbove,
+  isStaffAccess,
+  isAdmin,
+  isStaffAccessField,
+  isAdminField,
+} from '@/access/control'
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const Shows: CollectionConfig = {
   slug: 'shows',
@@ -15,10 +25,13 @@ export const Shows: CollectionConfig = {
     group: 'Content',
   },
 
+  /* ------------------------------------------------------------
+     ACCESS CONTROL
+  ------------------------------------------------------------ */
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
+    read: isPublic,
+    create: isEditorOrAbove,
+    update: isStaffAccess,
     delete: isAdmin,
   },
 
@@ -28,7 +41,9 @@ export const Shows: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
-        /* ------------------ TAB 1 — Details ------------------ */
+        /* =====================================================
+           TAB 1 — DETAILS
+        ===================================================== */
         {
           label: 'Details',
           fields: [
@@ -93,11 +108,16 @@ export const Shows: CollectionConfig = {
             {
               name: 'brandColor',
               type: 'text',
+              admin: {
+                description: 'Hex color for show branding (e.g. #00E5FF)',
+              },
             },
           ],
         },
 
-        /* ------------------ TAB 2 — Crew ------------------ */
+        /* =====================================================
+           TAB 2 — CREW
+        ===================================================== */
         {
           label: 'Crew',
           fields: [
@@ -134,7 +154,9 @@ export const Shows: CollectionConfig = {
           ],
         },
 
-        /* ------------------ TAB 3 — Episodes (TV only) ------------------ */
+        /* =====================================================
+           TAB 3 — EPISODES (TV ONLY)
+        ===================================================== */
         {
           label: 'Episodes',
           admin: { condition: (data) => data?.showType === 'tv' },
@@ -157,7 +179,9 @@ export const Shows: CollectionConfig = {
           ],
         },
 
-        /* ------------------ TAB 4 — Radio Scheduling ------------------ */
+        /* =====================================================
+           TAB 4 — RADIO SCHEDULING
+        ===================================================== */
         {
           label: 'Scheduling',
           admin: { condition: (data) => data?.showType === 'radio' },
@@ -167,12 +191,16 @@ export const Shows: CollectionConfig = {
               type: 'relationship',
               relationTo: 'schedule',
               hasMany: true,
-              admin: { description: 'Select schedule blocks from Schedule.ts' },
+              admin: {
+                description: 'Schedule blocks (used for EPG + Live Radio)',
+              },
             },
           ],
         },
 
-        /* ------------------ TAB 5 — Tags + Categories ------------------ */
+        /* =====================================================
+           TAB 5 — TAXONOMY
+        ===================================================== */
         {
           label: 'Taxonomy',
           fields: [
@@ -180,7 +208,6 @@ export const Shows: CollectionConfig = {
               name: 'genre',
               type: 'relationship',
               relationTo: 'categories',
-              hasMany: false,
             },
             {
               name: 'tags',
@@ -191,13 +218,17 @@ export const Shows: CollectionConfig = {
           ],
         },
 
-        /* ------------------ TAB 6 — SEO ------------------ */
+        /* =====================================================
+           TAB 6 — SEO
+        ===================================================== */
         {
           label: 'SEO',
           fields: [seoFields],
         },
 
-        /* ------------------ TAB 7 — Analytics ------------------ */
+        /* =====================================================
+           TAB 7 — ANALYTICS (LOCKED)
+        ===================================================== */
         {
           label: 'Analytics',
           fields: [
@@ -208,14 +239,28 @@ export const Shows: CollectionConfig = {
                   name: 'followersCount',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: isStaffAccessField },
                   admin: { readOnly: true },
                 },
-                { name: 'playsCount', type: 'number', defaultValue: 0, admin: { readOnly: true } },
-                { name: 'likesCount', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+                {
+                  name: 'playsCount',
+                  type: 'number',
+                  defaultValue: 0,
+                  access: { update: isStaffAccessField },
+                  admin: { readOnly: true },
+                },
+                {
+                  name: 'likesCount',
+                  type: 'number',
+                  defaultValue: 0,
+                  access: { update: isStaffAccessField },
+                  admin: { readOnly: true },
+                },
                 {
                   name: 'engagementScore',
                   type: 'number',
                   defaultValue: 0,
+                  access: { update: isStaffAccessField },
                   admin: { readOnly: true },
                 },
               ],
@@ -223,7 +268,9 @@ export const Shows: CollectionConfig = {
           ],
         },
 
-        /* ------------------ TAB 8 — Audit ------------------ */
+        /* =====================================================
+           TAB 8 — AUDIT (ADMIN ONLY)
+        ===================================================== */
         {
           label: 'Audit',
           fields: [
@@ -231,12 +278,14 @@ export const Shows: CollectionConfig = {
               name: 'createdBy',
               type: 'relationship',
               relationTo: 'users',
+              access: { update: isAdminField },
               admin: { readOnly: true, position: 'sidebar' },
             },
             {
               name: 'updatedBy',
               type: 'relationship',
               relationTo: 'users',
+              access: { update: isAdminField },
               admin: { readOnly: true, position: 'sidebar' },
             },
           ],
@@ -245,6 +294,9 @@ export const Shows: CollectionConfig = {
     },
   ],
 
+  /* ------------------------------------------------------------
+     HOOKS
+  ------------------------------------------------------------ */
   hooks: {
     beforeChange: [
       async ({ data, req, operation }) => {

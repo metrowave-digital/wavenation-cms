@@ -1,13 +1,44 @@
 import type { CollectionConfig, Access } from 'payload'
 
-const isLoggedIn: Access = ({ req }) => Boolean(req.user)
+import { isAdminRole, hasRoleAtOrAbove } from '@/access/control'
+import { Roles } from '@/access/roles'
 
-const isMessageOwnerOrAdmin: Access = async ({ req, id }) => {
-  if (!req.user) return false
+/* ============================================================
+   ID NORMALIZATION (SAFE)
+============================================================ */
 
-  const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-  const admin = roles.includes('admin') || roles.includes('super-admin')
-  if (admin) return true
+const toStringID = (value: unknown): string | null => {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'object' && value && 'id' in value) {
+    const id = (value as any).id
+    if (typeof id === 'string') return id
+    if (typeof id === 'number') return String(id)
+  }
+  return null
+}
+
+/* ============================================================
+   ACCESS HELPERS
+============================================================ */
+
+const isLoggedIn: Access = ({ req }) => Boolean(req?.user)
+
+/**
+ * Can update / delete message if:
+ * - Admin override
+ * - Staff+
+ * - Message author
+ * - Group owner / admin / moderator
+ */
+const canEditGroupMessage: Access = async ({ req, id }) => {
+  if (!req?.user) return false
+
+  const userId = String(req.user.id)
+
+  // 🔑 Global overrides
+  if (isAdminRole(req)) return true
+  if (hasRoleAtOrAbove(req, Roles.STAFF)) return true
 
   if (!id) return false
 
@@ -16,10 +47,37 @@ const isMessageOwnerOrAdmin: Access = async ({ req, id }) => {
     id,
   })
 
-  const authorId = typeof message.author === 'string' ? message.author : (message.author as any)?.id
+  // Message author owns it
+  if (toStringID(message.author) === userId) return true
 
-  return authorId === req.user.id
+  // Load group for role-based permissions
+  const groupId = toStringID(message.group)
+  if (!groupId) return false
+
+  const group = await req.payload.findByID({
+    collection: 'groups',
+    id: groupId,
+  })
+
+  // Group owner
+  if (toStringID(group.owner) === userId) return true
+
+  // Group admins
+  if (Array.isArray(group.admins) && group.admins.map(toStringID).includes(userId)) {
+    return true
+  }
+
+  // Group moderators
+  if (Array.isArray(group.moderators) && group.moderators.map(toStringID).includes(userId)) {
+    return true
+  }
+
+  return false
 }
+
+/* ============================================================
+   COLLECTION
+============================================================ */
 
 export const GroupMessages: CollectionConfig = {
   slug: 'group-messages',
@@ -32,23 +90,31 @@ export const GroupMessages: CollectionConfig = {
   access: {
     read: () => true,
     create: isLoggedIn,
-    update: isMessageOwnerOrAdmin,
-    delete: isMessageOwnerOrAdmin,
+    update: canEditGroupMessage,
+    delete: canEditGroupMessage,
   },
 
   timestamps: true,
 
   fields: [
+    /* --------------------------------------------------------
+       CORE
+    -------------------------------------------------------- */
     {
       name: 'text',
       type: 'textarea',
       required: true,
     },
+
+    /* --------------------------------------------------------
+       RELATIONSHIPS
+    -------------------------------------------------------- */
     {
       name: 'author',
       type: 'relationship',
       relationTo: 'profiles',
       required: true,
+      admin: { readOnly: true },
     },
     {
       name: 'group',
@@ -60,23 +126,37 @@ export const GroupMessages: CollectionConfig = {
       name: 'parentMessage',
       type: 'relationship',
       relationTo: 'group-messages',
-      admin: { description: 'If this is a reply.' },
+      admin: {
+        description: 'If this is a reply.',
+      },
     },
+
+    /* --------------------------------------------------------
+       ATTACHMENTS
+    -------------------------------------------------------- */
     {
       name: 'attachments',
       type: 'upload',
       relationTo: 'media',
-      admin: { description: 'Any image/video attachments.' },
+      admin: {
+        description: 'Any image/video attachments.',
+      },
     },
   ],
 
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
-        if (!req.user) return data
-        if (operation === 'create') data.author = req.user.id
+        if (!req?.user) return data
+
+        if (operation === 'create') {
+          data.author = String(req.user.id)
+        }
+
         return data
       },
     ],
   },
 }
+
+export default GroupMessages

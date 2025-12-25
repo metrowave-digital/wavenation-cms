@@ -1,0 +1,18 @@
+.container {
+  max-width: 900px;
+  color: #e6ebf2;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  margin-top: 2rem;
+  font-size: 1.3rem;
+}
+
+p {
+  line-height: 1.6;
+}

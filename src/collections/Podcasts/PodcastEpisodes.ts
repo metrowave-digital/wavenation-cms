@@ -1,11 +1,8 @@
-import type { CollectionConfig, PayloadRequest } from 'payload'
+import type { CollectionConfig } from 'payload'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { seoFields } from '../../fields/seo'
 
-const isAdmin = ({ req }: { req: PayloadRequest }) => {
-  const roles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
+import * as AccessControl from '@/access/control'
 
 export const PodcastEpisodes: CollectionConfig = {
   slug: 'podcast-episodes',
@@ -16,11 +13,14 @@ export const PodcastEpisodes: CollectionConfig = {
     defaultColumns: ['title', 'episodeNumber', 'podcast', 'status'],
   },
 
+  /* -----------------------------------------------------------
+     ACCESS (ENTERPRISE SAFE — NO DATA CHANGES)
+  ----------------------------------------------------------- */
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
-    delete: isAdmin,
+    read: AccessControl.isPublic, // 🔐 API key OR logged-in
+    create: AccessControl.isAdmin,
+    update: AccessControl.isAdmin,
+    delete: AccessControl.isAdmin,
   },
 
   timestamps: true,
@@ -79,7 +79,7 @@ export const PodcastEpisodes: CollectionConfig = {
             {
               name: 'description',
               type: 'richText',
-              editor: lexicalEditor(), // FIXED
+              editor: lexicalEditor(),
             },
           ],
         },
@@ -113,26 +113,20 @@ export const PodcastEpisodes: CollectionConfig = {
             {
               name: 'cloudflarePlaybackUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.audioProvider === 'cloudflare',
-              },
+              admin: { condition: (data) => data?.audioProvider === 'cloudflare' },
             },
 
             {
               name: 's3AudioFile',
               type: 'upload',
               relationTo: 'media',
-              admin: {
-                condition: (data) => data?.audioProvider === 's3',
-              },
+              admin: { condition: (data) => data?.audioProvider === 's3' },
             },
 
             {
               name: 'externalUrl',
               type: 'text',
-              admin: {
-                condition: (data) => data?.audioProvider === 'external',
-              },
+              admin: { condition: (data) => data?.audioProvider === 'external' },
             },
           ],
         },
@@ -149,7 +143,6 @@ export const PodcastEpisodes: CollectionConfig = {
               relationTo: 'podcasts',
               required: true,
             },
-
             {
               name: 'hosts',
               type: 'relationship',
@@ -172,7 +165,25 @@ export const PodcastEpisodes: CollectionConfig = {
         },
 
         // =======================================================
-        // TAB 4 — METADATA
+        // TAB 4 — VIDEO / VOD (OPTIONAL)
+        // =======================================================
+        {
+          label: 'Video / VOD',
+          fields: [
+            {
+              name: 'vod',
+              type: 'relationship',
+              relationTo: 'vod',
+              admin: {
+                description:
+                  'Optional video or vodcast version of this episode (studio recording, simulcast, or companion video)',
+              },
+            },
+          ],
+        },
+
+        // =======================================================
+        // TAB 5 — METADATA
         // =======================================================
         {
           label: 'Metadata',
@@ -195,13 +206,13 @@ export const PodcastEpisodes: CollectionConfig = {
             {
               name: 'transcript',
               type: 'richText',
-              editor: lexicalEditor(), // FIXED
+              editor: lexicalEditor(),
             },
           ],
         },
 
         // =======================================================
-        // TAB 5 — EXTRAS
+        // TAB 6 — EXTRAS
         // =======================================================
         {
           label: 'Extras',
@@ -236,7 +247,7 @@ export const PodcastEpisodes: CollectionConfig = {
         },
 
         // =======================================================
-        // TAB 6 — PLAYLISTS
+        // TAB 7 — PLAYLISTS
         // =======================================================
         {
           label: 'Playlists',
@@ -251,7 +262,7 @@ export const PodcastEpisodes: CollectionConfig = {
         },
 
         // =======================================================
-        // TAB 7 — SEO
+        // TAB 8 — SEO
         // =======================================================
         {
           label: 'SEO',
@@ -259,7 +270,7 @@ export const PodcastEpisodes: CollectionConfig = {
         },
 
         // =======================================================
-        // TAB 8 — ANALYTICS
+        // TAB 9 — ANALYTICS
         // =======================================================
         {
           label: 'Analytics',
@@ -297,7 +308,7 @@ export const PodcastEpisodes: CollectionConfig = {
         },
 
         // ----------------------------------------------------
-        // TAB 9 — SYSTEM
+        // TAB 10 — SYSTEM
         // ----------------------------------------------------
         {
           label: 'System',
@@ -323,11 +334,11 @@ export const PodcastEpisodes: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data = {}, req, operation }) => {
-        const user = (req.user as any)?.id
+        const userId = req.user ? String(req.user.id) : undefined
 
-        if (user) {
-          if (operation === 'create') data.createdBy = user
-          data.updatedBy = user
+        if (userId) {
+          if (operation === 'create') data.createdBy = userId
+          data.updatedBy = userId
         }
 
         if (data?.title && !data?.slug) {
@@ -342,3 +353,5 @@ export const PodcastEpisodes: CollectionConfig = {
     ],
   },
 }
+
+export default PodcastEpisodes

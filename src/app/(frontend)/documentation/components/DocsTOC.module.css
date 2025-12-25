@@ -1,0 +1,27 @@
+.toc {
+  position: sticky;
+  top: 120px;
+  width: 220px;
+  padding-left: 2rem;
+  border-left: 1px solid #1f2633;
+}
+
+.tocTitle {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8fa3bf;
+  margin-bottom: 0.75rem;
+}
+
+.tocItem {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  color: #cfd6e0;
+  text-decoration: none;
+}
+
+.tocItem:hover {
+  color: #ffffff;
+}

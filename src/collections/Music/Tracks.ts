@@ -1,11 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { seoFields } from '../../fields/seo'
 
-// Properly typed admin guard
-const isAdmin = ({ req }: { req: import('payload').PayloadRequest }) => {
-  const roles = Array.isArray(req.user?.roles) ? req.user.roles : []
-  return roles.includes('admin') || roles.includes('super-admin')
-}
+import { isAdmin, isStaffAccess, isPublic } from '@/access/control'
 
 export const Tracks: CollectionConfig = {
   slug: 'tracks',
@@ -17,9 +13,9 @@ export const Tracks: CollectionConfig = {
   },
 
   access: {
-    read: () => true,
-    create: isAdmin,
-    update: isAdmin,
+    read: isPublic, // 🔐 API-locked public read
+    create: isStaffAccess,
+    update: isStaffAccess,
     delete: isAdmin,
   },
 
@@ -29,22 +25,11 @@ export const Tracks: CollectionConfig = {
     {
       type: 'tabs',
       tabs: [
-        // -----------------------------------------------------------
-        // TAB 1 – BASIC INFO
-        // -----------------------------------------------------------
         {
           label: 'Track Info',
           fields: [
             { name: 'title', type: 'text', required: true },
-
-            {
-              name: 'slug',
-              type: 'text',
-              unique: true,
-              index: true,
-              admin: { description: 'Auto-generated if empty' },
-            },
-
+            { name: 'slug', type: 'text', unique: true, index: true },
             {
               name: 'status',
               type: 'select',
@@ -56,52 +41,26 @@ export const Tracks: CollectionConfig = {
                 { label: 'Blocked', value: 'blocked' },
               ],
             },
-
             { name: 'description', type: 'textarea' },
           ],
         },
 
-        // -----------------------------------------------------------
-        // TAB 2 – ARTISTS
-        // -----------------------------------------------------------
         {
           label: 'Artists',
           fields: [
-            {
-              name: 'primaryArtist',
-              type: 'relationship',
-              relationTo: 'profiles',
-              required: true,
-            },
+            { name: 'primaryArtist', type: 'relationship', relationTo: 'profiles', required: true },
             {
               name: 'featuredArtists',
               type: 'relationship',
               relationTo: 'profiles',
               hasMany: true,
             },
-            {
-              name: 'producers',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'writers',
-              type: 'relationship',
-              relationTo: 'profiles',
-              hasMany: true,
-            },
-            {
-              name: 'album',
-              type: 'relationship',
-              relationTo: 'albums',
-            },
+            { name: 'producers', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'writers', type: 'relationship', relationTo: 'profiles', hasMany: true },
+            { name: 'album', type: 'relationship', relationTo: 'albums' },
           ],
         },
 
-        // -----------------------------------------------------------
-        // TAB 3 – AUDIO SOURCE
-        // -----------------------------------------------------------
         {
           label: 'Audio Source',
           fields: [
@@ -115,8 +74,6 @@ export const Tracks: CollectionConfig = {
                 { label: 'External URL', value: 'external' },
               ],
             },
-
-            // Cloudflare
             {
               name: 'cloudflareAudioId',
               type: 'text',
@@ -127,16 +84,12 @@ export const Tracks: CollectionConfig = {
               type: 'text',
               admin: { condition: (data) => data?.audioProvider === 'cloudflare' },
             },
-
-            // S3
             {
               name: 's3AudioFile',
               type: 'upload',
               relationTo: 'media',
               admin: { condition: (data) => data?.audioProvider === 's3' },
             },
-
-            // External URL
             {
               name: 'externalUrl',
               type: 'text',
@@ -145,113 +98,59 @@ export const Tracks: CollectionConfig = {
           ],
         },
 
-        // -----------------------------------------------------------
-        // TAB 4 – METADATA
-        // -----------------------------------------------------------
         {
           label: 'Metadata',
           fields: [
-            { name: 'runtime', type: 'text', admin: { width: '33%' } },
-            { name: 'bpm', type: 'number', admin: { width: '33%' } },
-            { name: 'key', type: 'text', admin: { width: '33%' } },
-
-            {
-              name: 'isrc',
-              type: 'text',
-              admin: { description: 'International Standard Recording Code' },
-            },
-
+            { name: 'runtime', type: 'text' },
+            { name: 'bpm', type: 'number' },
+            { name: 'key', type: 'text' },
+            { name: 'isrc', type: 'text' },
             { name: 'genre', type: 'relationship', relationTo: 'categories' },
             { name: 'tags', type: 'relationship', relationTo: 'tags', hasMany: true },
-
-            {
-              name: 'lyrics',
-              type: 'richText',
-              admin: { description: 'Optional lyrics or timed captions' },
-            },
+            { name: 'lyrics', type: 'richText' },
           ],
         },
 
-        // -----------------------------------------------------------
-        // TAB 5 – VISUALS
-        // -----------------------------------------------------------
         {
           label: 'Visuals',
           fields: [
             { name: 'coverArt', type: 'upload', relationTo: 'media' },
-            {
-              name: 'videoVisual',
-              type: 'upload',
-              relationTo: 'media',
-              admin: { description: 'Optional visualizer loop' },
-            },
+            { name: 'videoVisual', type: 'upload', relationTo: 'media' },
           ],
         },
 
-        // -----------------------------------------------------------
-        // TAB 6 – PLAYLIST RELATION
-        // -----------------------------------------------------------
         {
           label: 'Playlists',
           fields: [
-            {
-              name: 'playlists',
-              type: 'relationship',
-              relationTo: 'playlists',
-              hasMany: true,
-            },
+            { name: 'playlists', type: 'relationship', relationTo: 'playlists', hasMany: true },
           ],
         },
 
-        // -----------------------------------------------------------
-        // TAB 7 – SEO
-        // -----------------------------------------------------------
         {
           label: 'SEO',
           fields: [seoFields],
         },
 
-        // -----------------------------------------------------------
-        // TAB 8 – ANALYTICS
-        // -----------------------------------------------------------
         {
           label: 'Analytics',
           fields: [
             {
               type: 'row',
               fields: [
-                {
-                  name: 'streams',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
-                },
-                {
-                  name: 'likes',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
-                },
-                {
-                  name: 'shares',
-                  type: 'number',
-                  defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
-                },
+                { name: 'streams', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+                { name: 'likes', type: 'number', defaultValue: 0, admin: { readOnly: true } },
+                { name: 'shares', type: 'number', defaultValue: 0, admin: { readOnly: true } },
                 {
                   name: 'engagementScore',
                   type: 'number',
                   defaultValue: 0,
-                  admin: { readOnly: true, width: '25%' },
+                  admin: { readOnly: true },
                 },
               ],
             },
           ],
         },
 
-        // -----------------------------------------------------------
-        // TAB 9 – SYSTEM
-        // -----------------------------------------------------------
         {
           label: 'System',
           fields: [
@@ -273,20 +172,9 @@ export const Tracks: CollectionConfig = {
     },
   ],
 
-  // -----------------------------------------------------------
-  // HOOKS — Correct Payload v3 Typing
-  // -----------------------------------------------------------
   hooks: {
     beforeChange: [
-      ({
-        data,
-        req,
-        operation,
-      }: {
-        data: any
-        req: import('payload').PayloadRequest
-        operation: 'create' | 'update'
-      }) => {
+      ({ data, req, operation }) => {
         if (req.user) {
           if (operation === 'create') data.createdBy = req.user.id
           data.updatedBy = req.user.id

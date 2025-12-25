@@ -18,14 +18,14 @@ import { sponsoredContentFields } from './sponsoredContent'
 import { creatorSpotlightFields } from './creatorSpotlight'
 
 export const articleFields: Field[] = [
-  // ------------------------------------------------------
-  // ✅ GLOBAL SEO — applies to ALL article types
-  // ------------------------------------------------------
+  /* ------------------------------------------------------
+     GLOBAL SEO — applies to ALL article types
+  ------------------------------------------------------ */
   seoFields,
 
-  // ------------------------------------------------------
-  // ✅ GLOBAL ENGAGEMENT METRICS (shared across all types)
-  // ------------------------------------------------------
+  /* ------------------------------------------------------
+     GLOBAL ENGAGEMENT METRICS (READ-ONLY)
+  ------------------------------------------------------ */
   {
     type: 'group',
     name: 'engagement',
@@ -52,16 +52,17 @@ export const articleFields: Field[] = [
     ],
   },
 
-  // ------------------------------------------------------
-  // ARTICLE TYPE GROUPS (conditional visibility)
-  // ------------------------------------------------------
+  /* ------------------------------------------------------
+     ARTICLE TYPE GROUPS (CONDITIONAL)
+     NOTE: optional chaining is REQUIRED for admin stability
+  ------------------------------------------------------ */
 
   {
     type: 'group',
     name: 'standardFields',
     label: 'Standard Article',
     fields: standardArticleFields,
-    admin: { condition: (data) => data.type === 'standard' },
+    admin: { condition: (data) => data?.type === 'standard' },
   },
 
   {
@@ -69,7 +70,7 @@ export const articleFields: Field[] = [
     name: 'breakingNewsFields',
     label: 'Breaking News',
     fields: breakingNewsFields,
-    admin: { condition: (data) => data.type === 'breaking-news' },
+    admin: { condition: (data) => data?.type === 'breaking-news' },
   },
 
   {
@@ -77,15 +78,15 @@ export const articleFields: Field[] = [
     name: 'musicReviewFields',
     label: 'Music Review',
     fields: musicReviewFields,
-    admin: { condition: (data) => data.type === 'music-review' },
+    admin: { condition: (data) => data?.type === 'music-review' },
   },
 
   {
     type: 'group',
     name: 'filmTVReviewFields',
-    label: 'Film/TV Review',
+    label: 'Film / TV Review',
     fields: filmTVReviewFields,
-    admin: { condition: (data) => data.type === 'film-tv-review' },
+    admin: { condition: (data) => data?.type === 'film-tv-review' },
   },
 
   {
@@ -93,7 +94,7 @@ export const articleFields: Field[] = [
     name: 'interviewFields',
     label: 'Interview',
     fields: interviewFields,
-    admin: { condition: (data) => data.type === 'interview' },
+    admin: { condition: (data) => data?.type === 'interview' },
   },
 
   {
@@ -101,7 +102,7 @@ export const articleFields: Field[] = [
     name: 'featureFields',
     label: 'Feature Article',
     fields: featureArticleFields,
-    admin: { condition: (data) => data.type === 'feature' },
+    admin: { condition: (data) => data?.type === 'feature' },
   },
 
   {
@@ -109,7 +110,7 @@ export const articleFields: Field[] = [
     name: 'eventRecapFields',
     label: 'Event Recap',
     fields: eventRecapFields,
-    admin: { condition: (data) => data.type === 'event-recap' },
+    admin: { condition: (data) => data?.type === 'event-recap' },
   },
 
   {
@@ -117,7 +118,7 @@ export const articleFields: Field[] = [
     name: 'aaFields',
     label: 'African-American / Southern Culture',
     fields: africanAmericanCultureStoryFields,
-    admin: { condition: (data) => data.type === 'african-american-culture' },
+    admin: { condition: (data) => data?.type === 'african-american-culture' },
   },
 
   {
@@ -125,7 +126,7 @@ export const articleFields: Field[] = [
     name: 'lifestyleFields',
     label: 'Lifestyle Article',
     fields: lifestyleArticleFields,
-    admin: { condition: (data) => data.type === 'lifestyle' },
+    admin: { condition: (data) => data?.type === 'lifestyle' },
   },
 
   {
@@ -133,7 +134,7 @@ export const articleFields: Field[] = [
     name: 'faithFields',
     label: 'Faith & Inspiration',
     fields: faithInspirationFields,
-    admin: { condition: (data) => data.type === 'faith-inspiration' },
+    admin: { condition: (data) => data?.type === 'faith-inspiration' },
   },
 
   {
@@ -141,7 +142,7 @@ export const articleFields: Field[] = [
     name: 'sponsoredFields',
     label: 'Sponsored Content',
     fields: sponsoredContentFields,
-    admin: { condition: (data) => data.type === 'sponsored' },
+    admin: { condition: (data) => data?.type === 'sponsored' },
   },
 
   {
@@ -149,6 +150,6 @@ export const articleFields: Field[] = [
     name: 'csFields',
     label: 'Creator Spotlight',
     fields: creatorSpotlightFields,
-    admin: { condition: (data) => data.type === 'creator-spotlight' },
+    admin: { condition: (data) => data?.type === 'creator-spotlight' },
   },
 ]

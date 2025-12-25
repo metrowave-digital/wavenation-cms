@@ -1,5 +1,6 @@
 // src/collections/ChannelAnalytics.ts
 import type { CollectionConfig } from 'payload'
+import * as AccessControl from '@/access/control'
 
 export const ChannelAnalytics: CollectionConfig = {
   slug: 'channel-analytics',
@@ -7,23 +8,49 @@ export const ChannelAnalytics: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     group: 'Creator Channels',
-    defaultColumns: ['channel', 'date', 'scope'],
+    defaultColumns: ['channel', 'date', 'scope', 'createdAt'],
+    description: 'System-generated analytics snapshots. Read-only for humans.',
   },
 
+  /* -----------------------------------------------------------
+     ACCESS CONTROL (SYSTEM OF RECORD)
+     - Read:
+         • logged-in users (UI will scope by channel)
+     - Create:
+         • system / admin only (workers, cron jobs)
+     - Update:
+         • system / admin only (backfills, corrections)
+     - Delete:
+         • admin only (rare, audited)
+  ----------------------------------------------------------- */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) =>
-      Boolean(req.user?.roles?.includes('system') || req.user?.roles?.includes('admin')),
-    update: ({ req }) =>
-      Boolean(req.user?.roles?.includes('system') || req.user?.roles?.includes('admin')),
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+    read: AccessControl.isLoggedIn,
+
+    create: ({ req }) => AccessControl.hasRole(req, ['system' as any, 'admin' as any]),
+
+    update: ({ req }) => AccessControl.hasRole(req, ['system' as any, 'admin' as any]),
+
+    delete: AccessControl.isAdmin,
   },
 
   timestamps: true,
 
   fields: [
-    { name: 'channel', type: 'relationship', relationTo: 'creator-channels', required: true },
+    /* ================= CHANNEL ================= */
+    {
+      name: 'channel',
+      type: 'relationship',
+      relationTo: 'creator-channels',
+      required: true,
+      admin: {
+        description: 'Channel this analytics snapshot belongs to',
+      },
+      access: {
+        update: () => false,
+      },
+    },
 
+    /* ================= SCOPE / TIME ================= */
     {
       name: 'scope',
       type: 'select',
@@ -34,11 +61,27 @@ export const ChannelAnalytics: CollectionConfig = {
         { label: 'Monthly', value: 'monthly' },
         { label: 'Lifetime Snapshot', value: 'lifetime' },
       ],
+      admin: {
+        description: 'Aggregation window for this snapshot',
+      },
+      access: {
+        update: () => false,
+      },
     },
 
-    { name: 'date', type: 'date', required: true },
+    {
+      name: 'date',
+      type: 'date',
+      required: true,
+      admin: {
+        description: 'Anchor date for this snapshot (e.g. day start, week start)',
+      },
+      access: {
+        update: () => false,
+      },
+    },
 
-    /* CORE METRICS */
+    /* ================= CORE METRICS ================= */
     {
       name: 'views',
       type: 'number',
@@ -55,7 +98,9 @@ export const ChannelAnalytics: CollectionConfig = {
       name: 'watchTimeMinutes',
       type: 'number',
       defaultValue: 0,
-      admin: { description: 'Total watch time (minutes) across all content' },
+      admin: {
+        description: 'Total watch time (minutes) across all content',
+      },
     },
 
     {
@@ -64,7 +109,7 @@ export const ChannelAnalytics: CollectionConfig = {
       defaultValue: 0,
     },
 
-    /* SUBSCRIBERS */
+    /* ================= SUBSCRIBERS ================= */
     {
       name: 'subscribersGained',
       type: 'number',
@@ -76,7 +121,7 @@ export const ChannelAnalytics: CollectionConfig = {
       defaultValue: 0,
     },
 
-    /* ENGAGEMENT */
+    /* ================= ENGAGEMENT ================= */
     {
       name: 'engagement',
       type: 'group',
@@ -89,10 +134,13 @@ export const ChannelAnalytics: CollectionConfig = {
       ],
     },
 
-    /* REVENUE ATTRIBUTION */
+    /* ================= REVENUE ATTRIBUTION ================= */
     {
       name: 'revenue',
       type: 'group',
+      admin: {
+        description: 'Attributed revenue for this window. Informational unless reconciled.',
+      },
       fields: [
         { name: 'subscriptions', type: 'number', defaultValue: 0 },
         { name: 'contentPurchases', type: 'number', defaultValue: 0 },
@@ -106,13 +154,33 @@ export const ChannelAnalytics: CollectionConfig = {
       ],
     },
 
-    /* BREAKDOWNS */
+    /* ================= BREAKDOWNS ================= */
     {
       name: 'breakdowns',
       type: 'json',
       admin: {
-        description: 'Optional breakdown by content type, device, geography, etc.',
+        description: 'Optional breakdowns (content type, device, geo, referrer, etc.)',
+      },
+    },
+
+    /* ================= AUDIT ================= */
+    {
+      name: 'generatedBy',
+      type: 'select',
+      defaultValue: 'system',
+      options: [
+        { label: 'System', value: 'system' },
+        { label: 'Backfill Job', value: 'backfill' },
+        { label: 'Manual Admin Override', value: 'manual' },
+      ],
+      admin: {
+        description: 'Source of this analytics snapshot',
+      },
+      access: {
+        update: AccessControl.isAdminField,
       },
     },
   ],
 }
+
+export default ChannelAnalytics

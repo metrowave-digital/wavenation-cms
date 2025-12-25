@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { isStaffAccess } from '@/access/control'
 
 export const Mentions: CollectionConfig = {
   slug: 'mentions',
@@ -9,18 +10,21 @@ export const Mentions: CollectionConfig = {
     defaultColumns: ['mentionedUser', 'actor', 'sourceType', 'createdAt'],
   },
 
+  /* ============================================================
+     ACCESS (COARSE-GRAINED)
+  ============================================================ */
   access: {
-    read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => Boolean(req.user), // created by system frontend
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user?.roles?.includes('admin')),
+    read: ({ req }) => Boolean(req?.user),
+    create: ({ req }) => Boolean(req?.user),
+    update: () => false, // immutable
+    delete: ({ req }) => Boolean(req?.user?.roles?.includes('admin')),
   },
 
   timestamps: true,
 
   fields: [
     /* ----------------------------------------------------------
-     * WHO WAS MENTIONED?
+     * CORE RELATIONSHIPS
      ---------------------------------------------------------- */
     {
       name: 'mentionedUser',
@@ -29,19 +33,18 @@ export const Mentions: CollectionConfig = {
       required: true,
     },
 
-    /* ----------------------------------------------------------
-     * WHO DID THE MENTIONING?
-     ---------------------------------------------------------- */
     {
       name: 'actor',
       type: 'relationship',
       relationTo: 'profiles',
       required: true,
+      access: {
+        update: () => false,
+      },
     },
 
     /* ----------------------------------------------------------
-     * WHERE DID THE MENTION OCCUR?
-     * messages, comments, reviews, articles, etc.
+     * SOURCE
      ---------------------------------------------------------- */
     {
       name: 'sourceType',
@@ -61,21 +64,14 @@ export const Mentions: CollectionConfig = {
       type: 'relationship',
       relationTo: ['messages', 'comments', 'reviews', 'articles'],
       required: true,
-      admin: {
-        description: 'The exact item where the mention happened.',
-      },
     },
 
     /* ----------------------------------------------------------
-     * OPTIONAL MEDIA CONTEXT (track, film, podcast, etc.)
-     * Useful for when a mention occurs inside a media discussion.
+     * OPTIONAL MEDIA CONTEXT
      ---------------------------------------------------------- */
     {
       name: 'mediaType',
       type: 'select',
-      admin: {
-        description: 'Optional — mention refers to a specific media item.',
-      },
       options: [
         'tracks',
         'albums',
@@ -108,65 +104,51 @@ export const Mentions: CollectionConfig = {
         'charts',
       ],
       admin: {
-        condition: (data) => !!data?.mediaType,
-        description: 'Optional media item referenced by the mention.',
+        condition: (data) => Boolean(data?.mediaType),
       },
     },
 
     /* ----------------------------------------------------------
-     * PREVIEW TEXT
+     * PREVIEW
      ---------------------------------------------------------- */
     {
       name: 'previewText',
       type: 'text',
-      admin: {
-        description: 'Excerpt of the message/comment/review where the mention appears.',
-      },
     },
 
     /* ----------------------------------------------------------
-     * NOTIFICATION + INBOX ATTACHMENT (auto-trigger)
+     * DELIVERY
      ---------------------------------------------------------- */
     {
       name: 'notification',
       type: 'relationship',
       relationTo: 'notifications',
-      admin: { description: 'Notification tied to this mention.' },
     },
 
     {
       name: 'inboxEntry',
       type: 'relationship',
       relationTo: 'inbox',
-      admin: { description: 'Inbox entry representing this mention.' },
     },
 
     /* ----------------------------------------------------------
-     * MODERATION / AI TOXICITY
+     * MODERATION / AI
      ---------------------------------------------------------- */
     {
       name: 'toxicityScore',
       type: 'number',
-      admin: {
-        readOnly: true,
-        description: 'AI-estimated toxicity score (0–1).',
-      },
+      admin: { readOnly: true },
     },
     {
       name: 'isToxic',
       type: 'checkbox',
       defaultValue: false,
-      admin: {
-        readOnly: true,
-      },
+      admin: { readOnly: true },
     },
     {
       name: 'isFlagged',
       type: 'checkbox',
       defaultValue: false,
-      admin: {
-        description: 'Flag this mention for moderation.',
-      },
     },
 
     /* ----------------------------------------------------------
@@ -186,22 +168,49 @@ export const Mentions: CollectionConfig = {
     },
   ],
 
+  /* ============================================================
+     HOOKS — ENFORCEMENT
+  ============================================================ */
   hooks: {
     beforeChange: [
-      async ({ req, data, operation }) => {
+      async ({ req, data, operation, req: { payload } }) => {
+        if (!req?.user) return data
+
         /* ------------------------------------------------------
-         * AUDIT
-         ------------------------------------------------------ */
-        if (req.user) {
-          if (operation === 'create') data.createdBy = req.user.id
-          data.updatedBy = req.user.id
+           Audit
+        ------------------------------------------------------ */
+        if (operation === 'create') {
+          data.createdBy = req.user.id
+          data.actor = req.user.id // 🔒 prevent spoofing
+        }
+        data.updatedBy = req.user.id
+
+        /* ------------------------------------------------------
+           Preview fallback
+        ------------------------------------------------------ */
+        if (!data.previewText && data.sourceType !== 'system') {
+          data.previewText = '[mention]'
         }
 
         /* ------------------------------------------------------
-         * Auto-preview for UI display
-         ------------------------------------------------------ */
-        if (!data.previewText && data.sourceType !== 'system') {
-          data.previewText = '[mention]'
+           Prevent duplicate mentions
+        ------------------------------------------------------ */
+        if (operation === 'create') {
+          const existing = await payload.find({
+            collection: 'mentions',
+            where: {
+              and: [
+                { mentionedUser: { equals: data.mentionedUser } },
+                { sourceType: { equals: data.sourceType } },
+                { sourceItem: { equals: data.sourceItem } },
+              ],
+            },
+            limit: 1,
+          })
+
+          if (existing.docs.length > 0) {
+            throw new Error('This user has already been mentioned here.')
+          }
         }
 
         return data
